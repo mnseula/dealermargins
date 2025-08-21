@@ -221,7 +221,7 @@ def get_all_dealer_margins_optimized(series_filters: Optional[List[str]] = None)
     finally:
         session.close()
 
-def create_dealer_quotes_csv(json_path: str = 'margins_optimized.json', csv_path: str = 'dealer_quotes.csv') -> bool:
+def create_dealer_quotes_csv(json_path: str = 'margins_optimized.json', csv_path: 'dealer_quotes.csv') -> bool:
     """Creates a wide-format CSV for dealer quotes from the downloaded JSON data."""
     try:
         print(f"\n🔄 Creating dealer quotes CSV from {json_path}...")
@@ -267,6 +267,34 @@ def create_dealer_quotes_csv(json_path: str = 'margins_optimized.json', csv_path
         # Reset index to make DealerID and Dealership columns
         pivot_df.reset_index(inplace=True)
         
+        # Define the final column order
+        final_columns = [
+            'DealerID', 'Dealership',
+            'Q_BASE_BOAT', 'Q_ENGINE', 'Q_OPTIONS', 'Q_FREIGHT', 'Q_PREP', 'Q_VOL_DISC',
+            'QX_BASE_BOAT', 'QX_ENGINE', 'QX_OPTIONS', 'QX_FREIGHT', 'QX_PREP', 'QX_VOL_DISC',
+            'QXS_BASE_BOAT', 'QXS_ENGINE', 'QXS_OPTIONS', 'QXS_FREIGHT', 'QXS_PREP', 'QXS_VOL_DISC',
+            'R_BASE_BOAT', 'R_ENGINE', 'R_OPTIONS', 'R_FREIGHT', 'R_PREP', 'R_VOL_DISC',
+            'RX_BASE_BOAT', 'RX_ENGINE', 'RX_OPTIONS', 'RX_FREIGHT', 'RX_PREP', 'RX_VOL_DISC',
+            'RT_BASE_BOAT', 'RT_ENGINE', 'RT_OPTIONS', 'RT_FREIGHT', 'RT_PREP', 'RT_VOL_DISC',
+            'G_BASE_BOAT', 'G_ENGINE', 'G_OPTIONS', 'G_FREIGHT', 'G_PREP', 'G_VOL_DISC',
+            'S_BASE_BOAT', 'S_ENGINE', 'S_OPTIONS', 'S_FREIGHT', 'S_PREP', 'S_VOL_DISC',
+            'SX_BASE_BOAT', 'SX_ENGINE', 'SX_OPTIONS', 'SX_FREIGHT', 'SX_PREP', 'SX_VOL_DISC',
+            'L_BASE_BOAT', 'L_ENGINE', 'L_OPTIONS', 'L_FREIGHT', 'L_PREP', 'L_VOL_DISC',
+            'LX_BASE_BOAT', 'LX_ENGINE', 'LX_OPTIONS', 'LX_FREIGHT', 'LX_PREP', 'LX_VOL_DISC',
+            'LT_BASE_BOAT', 'LT_ENGINE', 'LT_OPTIONS', 'LT_FREIGHT', 'LT_PREP', 'LT_VOL_DISC',
+            'S_23_BASE_BOAT', 'S_23_ENGINE', 'S_23_OPTIONS', 'S_23_FREIGHT', 'S_23_PREP', 'S_23_VOL_DISC',
+            'SV_23_BASE_BOAT', 'SV_23_ENGINE', 'SV_23_OPTIONS', 'SV_23_FREIGHT', 'SV_23_PREP', 'SV_23_VOL_DISC',
+            'M_BASE_BOAT', 'M_ENGINE', 'M_OPTIONS', 'M_FREIGHT', 'M_PREP', 'M_VOL_DISC'
+        ]
+        
+        # Add missing columns with default value (e.g., 0 or NaN)
+        for col in final_columns:
+            if col not in pivot_df.columns:
+                pivot_df[col] = pd.NA
+                
+        # Reorder columns
+        pivot_df = pivot_df[final_columns]
+        
         # Save to CSV
         pivot_df.to_csv(csv_path, index=False, encoding='utf-8-sig')
         
@@ -281,6 +309,7 @@ def create_dealer_quotes_csv(json_path: str = 'margins_optimized.json', csv_path
     except Exception as e:
         print(f"❌ Error during CSV creation: {e}")
         return False
+
 
 if __name__ == "__main__":
     print("🚀 Starting optimized dealer margins downloader...")
