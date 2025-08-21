@@ -119,19 +119,18 @@ def get_download_metadata(session: requests.Session, token_manager: TokenManager
         print(f"❌ Error fetching total pages: {e}")
         return None
 
-def get_all_dealer_margins_optimized(series_filters: Optional[List[str]] = None) -> bool:
+def get_all_dealer_margins_optimized(series_filters: Optional[List[str]] = None) -> Optional[List[Dict]]:
     """Optimized version with correct page size detection and better error handling"""
 
     session = requests.Session()
     token_manager = TokenManager()
 
-    print("🚀 Starting optimized dealer margins download...")
+    print(f"🚀 Starting download for series: {series_filters}")
     
     filter_query = ""
     if series_filters:
         # Deduplicate the list while preserving order for logging
         unique_series = list(dict.fromkeys(series_filters))
-        print(f"🔍 Filtering for series: {unique_series}")
         filter_conditions = [f"C_Series eq '{s}'" for s in unique_series]
         filter_string = " or ".join(filter_conditions)
         filter_query = f"&$filter={filter_string}"
@@ -139,39 +138,29 @@ def get_all_dealer_margins_optimized(series_filters: Optional[List[str]] = None)
     metadata = get_download_metadata(session, token_manager, filter_query)
     if not metadata:
         print("❌ Could not retrieve download metadata. Aborting.")
-        return False
+        return None
 
     total_items, _ = metadata
 
     if total_items == 0:
-        print("\n✅ No items found matching the filter criteria. Nothing to download.")
-        file_path = 'margins_optimized.json'
-        empty_data = {
-            "items": [],
-            "totalItems": 0,
-            "downloadedAt": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "pagesDownloaded": 0
-        }
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(empty_data, f, indent=2)
-        return True
+        print(f"\n✅ No items found for series: {series_filters}. Nothing to download.")
+        return []
 
     try:
         # Detect actual items per page from first page
-        with tqdm(total=total_items, unit=' records', desc="Downloading Margins", dynamic_ncols=True) as pbar:
+        with tqdm(total=total_items, unit=' records', desc=f"Downloading {series_filters}", dynamic_ncols=True) as pbar:
             first_page_items = fetch_page_with_retry(session, token_manager, 1, ITEMS_PER_PAGE, pbar, filter_query)
             if not first_page_items:
                 print("❌ Could not fetch first page. Exiting.")
-                return False
+                return None
 
             actual_items_per_page = len(first_page_items)
             if actual_items_per_page == 0:
                 print("❌ First page returned zero items. Exiting.")
-                return False
+                return []
 
             total_pages = (total_items + actual_items_per_page - 1) // actual_items_per_page
-            print(f"🔎 totalItems: {total_items}, actual_items_per_page: {actual_items_per_page}, total_pages: {total_pages}")
-
+            
             all_items = []
             all_items.extend(first_page_items)
 
@@ -191,47 +180,27 @@ def get_all_dealer_margins_optimized(series_filters: Optional[List[str]] = None)
 
             if not all_items:
                 print("❌ No data was successfully downloaded")
-                return False
+                return None
 
-            print(f"\n✅ Successfully downloaded {len(all_items):,} records from {total_pages} pages")
-
-            # Save results
-            full_margins_data = {
-                "items": all_items,
-                "totalItems": len(all_items),
-                "downloadedAt": time.strftime("%Y-%m-%d %H:%M:%S"),
-                "pagesDownloaded": total_pages
-            }
-
-            file_path = 'margins_optimized.json'
-            print(f"💾 Saving data to {file_path}...")
-
-            with open(file_path, 'w', encoding='utf-8') as f:
-                json.dump(full_margins_data, f, indent=2)
-
-            print(f"✅ Data saved successfully to: {file_path}")
-            return True
+            print(f"\n✅ Successfully downloaded {len(all_items):,} records for series: {series_filters}")
+            return all_items
 
     except KeyboardInterrupt:
         print("\n⏹️  Download interrupted by user")
-        return False
+        return None
     except Exception as e:
         print(f"\n❌ Unexpected error during download: {e}")
-        return False
+        return None
     finally:
         session.close()
 
-def create_dealer_quotes_csv(json_path: str = 'margins_optimized.json', csv_path: str = 'dealer_quotes.csv') -> bool:
+def create_dealer_quotes_csv(items: List[Dict], csv_path: str = 'dealer_quotes.csv') -> bool:
     """Creates a wide-format CSV for dealer quotes from the downloaded JSON data."""
     try:
-        print(f"\n🔄 Creating dealer quotes CSV from {json_path}...")
+        print(f"\n🔄 Creating dealer quotes CSV...")
         
-        with open(json_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            
-        items = data.get('items')
         if not items:
-            print("✅ JSON file contains no items. Nothing to process.")
+            print("✅ No items to process.")
             return True
             
         df = pd.DataFrame(items)
@@ -304,12 +273,11 @@ def create_dealer_quotes_csv(json_path: str = 'margins_optimized.json', csv_path
         return True
 
     except FileNotFoundError:
-        print(f"❌ File not found: {json_path}")
+        print(f"❌ File not found")
         return False
     except Exception as e:
         print(f"❌ Error during CSV creation: {e}")
         return False
-
 
 if __name__ == "__main__":
     print("🚀 Starting optimized dealer margins downloader...")
@@ -320,32 +288,37 @@ if __name__ == "__main__":
             'Q', 'QX', 'QXS', 'R', 'RX', 'RT', 'G', 'S', 'SX', 'L', 'LX', 'LT', 'S 23', 'SV 23', 'M'
         ]
         
-        json_output_path = 'margins_optimized.json'
         csv_output_path = 'dealer_quotes.csv'
         
-        # Clean up old files before starting
-        if os.path.exists(json_output_path):
-            os.remove(json_output_path)
+        # Clean up old CSV file before starting
         if os.path.exists(csv_output_path):
             os.remove(csv_output_path)
-            
-        print(f"🧹 Removed old files.")
+            print(f"🧹 Removed old CSV file: {csv_output_path}")
 
-        # Download data for all series at once
-        download_success = get_all_dealer_margins_optimized(series_filters=series_to_download)
-        
-        if download_success:
-            print(f"✅ Download for all series completed.")
+        all_downloaded_items = []
+        all_series_successful = True
+        for series in series_to_download:
+            print(f"\n--- Processing series: '{series}' ---")
             
+            # Download data for a single series
+            downloaded_items = get_all_dealer_margins_optimized(series_filters=[series])
+            
+            if downloaded_items is not None:
+                all_downloaded_items.extend(downloaded_items)
+            else:
+                print(f"❌ Download failed for series '{series}'.")
+                all_series_successful = False
+
+        if all_downloaded_items:
             # Create the final pivoted CSV
-            csv_success = create_dealer_quotes_csv(json_path=json_output_path, csv_path=csv_output_path)
+            csv_success = create_dealer_quotes_csv(all_downloaded_items, csv_output_path)
             
             if csv_success:
                 print(f"\n🎉 All operations completed successfully!")
             else:
                 print(f"\n⚠️ CSV creation failed. Please review the logs.")
         else:
-            print(f"❌ Download failed. Please review the logs.")
+            print(f"\n⚠️ No data was downloaded for any series. Please review the logs.")
 
         print(f"⏱️  Total time: {time.time() - start_time:.1f} seconds")
             

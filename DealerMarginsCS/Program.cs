@@ -366,9 +366,22 @@ public static class Program
             var pivotService = new PivotService();
             var csvWriterService = new CsvWriterService();
 
-            var allItems = await apiService.GetAllDealerMarginsAsync(seriesToDownload);
+            var allItems = new List<MarginData>();
+            foreach (var series in seriesToDownload)
+            {
+                Console.WriteLine("\n--- Processing series: '" + series + "' ---");
+                var items = await apiService.GetAllDealerMarginsAsync(new List<string> { series });
+                if (items != null)
+                {
+                    allItems.AddRange(items);
+                }
+                else
+                {
+                    Console.WriteLine($"❌ Download failed for series '{series}'.");
+                }
+            }
 
-            if (allItems != null && allItems.Any())
+            if (allItems.Any())
             {
                 var pivotData = pivotService.PivotData(allItems);
                 await csvWriterService.WriteToCsvAsync(pivotData, csvOutputPath);
