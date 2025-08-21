@@ -221,82 +221,65 @@ def get_all_dealer_margins_optimized(series_filters: Optional[List[str]] = None)
     finally:
         session.close()
 
-def convert_json_to_csv_optimized(json_path: str = 'margins_optimized.json', csv_path: str = 'margins_optimized.csv') -> bool:
-    """Optimized CSV conversion with better error handling and append support"""
+def create_dealer_quotes_csv(json_path: str = 'margins_optimized.json', csv_path: str = 'dealer_quotes.csv') -> bool:
+    """Creates a wide-format CSV for dealer quotes from the downloaded JSON data."""
     try:
-        print(f"\n🔄 Appending {json_path} to {csv_path}...")
+        print(f"\n🔄 Creating dealer quotes CSV from {json_path}...")
         
-        # Use pandas to read JSON directly for better performance
         with open(json_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        
-        column_rename_map = {
-            'C_DealerName': 'DealerName',
-            'C_DealerId': 'DealerId', 
-            'C_Series': 'Series',
-            'C_Volume': 'Volume_Margin_Percent',
-            'C_BaseBoat': 'BaseBoat_Margin_Percent',
-            'C_Engine': 'Engine_Margin_Percent',
-            'C_Options': 'Options_Margin_Percent',
-            'C_Freight': 'Freight_Margin_Dollars',
-            'C_Prep': 'Prep_Margin_Dollars',
-            'C_Enabled': 'IsEnabled',
-            'C_Dealer': 'Dealer_GUID'
-        }
-
+            
         items = data.get('items')
-        if items is None:
-            print("❌ 'items' key not found in the JSON file")
-            return False
-        
-        file_exists = os.path.isfile(csv_path)
-
         if not items:
-            print("✅ JSON file contains no items. Nothing to append.")
-            if not file_exists:
-                # Create an empty file with headers if it doesn't exist
-                pd.DataFrame(columns=column_rename_map.values()).to_csv(csv_path, index=False, encoding='utf-8-sig')
-                print(f"✅ Created empty CSV with headers: {csv_path}")
+            print("✅ JSON file contains no items. Nothing to process.")
             return True
-        
-        print(f"📊 Processing {len(items):,} records...")
-        
-        # Create DataFrame
+            
         df = pd.DataFrame(items)
         
-        # Filter out metadata columns
-        columns_to_keep = [col for col in df.columns if not col.startswith('_')]
-        df_filtered = df[columns_to_keep].copy()
+        # Initial column rename
+        column_rename_map = {
+            'C_DealerName': 'Dealership',
+            'C_DealerId': 'DealerID',
+            'C_Series': 'Series',
+            'C_Volume': 'VOL_DISC',
+            'C_BaseBoat': 'BASE_BOAT',
+            'C_Engine': 'ENGINE',
+            'C_Options': 'OPTIONS',
+            'C_Freight': 'FREIGHT',
+            'C_Prep': 'PREP',
+        }
+        df.rename(columns=column_rename_map, inplace=True)
         
-        existing_renames = {k: v for k, v in column_rename_map.items() if k in df_filtered.columns}
-        df_filtered.rename(columns=existing_renames, inplace=True)
-
-        # Ensure consistent column order for appending
-        df_filtered = df_filtered.reindex(columns=list(column_rename_map.values()))
+        # We only need the columns that will be part of the pivot
+        value_vars = ['VOL_DISC', 'BASE_BOAT', 'ENGINE', 'OPTIONS', 'FREIGHT', 'PREP']
+        df_filtered = df[['DealerID', 'Dealership', 'Series'] + value_vars]
         
-        # Save to CSV with better performance settings
-        df_filtered.to_csv(csv_path, index=False, encoding='utf-8-sig', mode='a', header=not file_exists)
+        # Pivot the table
+        pivot_df = df_filtered.pivot_table(
+            index=['DealerID', 'Dealership'],
+            columns='Series',
+            values=value_vars
+        )
         
-        print(f"✅ Successfully appended {len(df_filtered):,} records to: {csv_path}")
-        if not file_exists:
-            # Only print columns for the first write
-            print(f"📝 Renamed {len(existing_renames)} columns for clarity")
-            print(f"📄 Columns: {', '.join(df_filtered.columns)}")
+        # Flatten the multi-level column index
+        pivot_df.columns = [f'{series.replace(" ", "_")}_{val}' for val, series in pivot_df.columns]
+        
+        # Reset index to make DealerID and Dealership columns
+        pivot_df.reset_index(inplace=True)
+        
+        # Save to CSV
+        pivot_df.to_csv(csv_path, index=False, encoding='utf-8-sig')
+        
+        print(f"✅ Successfully created dealer quotes CSV: {csv_path}")
+        print(f"📄 Columns: {', '.join(pivot_df.columns)}")
         
         return True
-        
+
     except FileNotFoundError:
         print(f"❌ File not found: {json_path}")
         return False
-    except json.JSONDecodeError as e:
-        print(f"❌ Invalid JSON in {json_path}: {e}")
-        return False
-    except PermissionError:
-        print(f"❌ Error during CSV conversion: Permission denied for '{csv_path}'.")
-        print("   Please make sure the file is not open in another program (like Excel) and try again.")
-        return False
     except Exception as e:
-        print(f"❌ Error during CSV conversion: {e}")
+        print(f"❌ Error during CSV creation: {e}")
         return False
 
 if __name__ == "__main__":
@@ -305,42 +288,37 @@ if __name__ == "__main__":
     
     try:
         series_to_download = [
-            'Q', 'R', 'S', 'L', 'M'
+            'Q', 'QX', 'QXS', 'R', 'RX', 'RT', 'G', 'S', 'SX', 'L', 'LX', 'LT', 'S 23', 'SV 23', 'M'
         ]
         
-        csv_output_path = 'margins_optimized.csv'
+        json_output_path = 'margins_optimized.json'
+        csv_output_path = 'dealer_quotes.csv'
         
-        # Clean up old CSV file before starting
+        # Clean up old files before starting
+        if os.path.exists(json_output_path):
+            os.remove(json_output_path)
         if os.path.exists(csv_output_path):
             os.remove(csv_output_path)
-            print(f"🧹 Removed old CSV file: {csv_output_path}")
+            
+        print(f"🧹 Removed old files.")
 
-        all_series_successful = True
-        for i, series in enumerate(series_to_download):
-            print(f"\n--- Processing series {i+1}/{len(series_to_download)}: '{series}' ---")
+        # Download data for all series at once
+        download_success = get_all_dealer_margins_optimized(series_filters=series_to_download)
+        
+        if download_success:
+            print(f"✅ Download for all series completed.")
             
-            # Download data for a single series
-            download_success = get_all_dealer_margins_optimized(series_filters=[series])
+            # Create the final pivoted CSV
+            csv_success = create_dealer_quotes_csv(json_path=json_output_path, csv_path=csv_output_path)
             
-            if download_success:
-                print(f"✅ Download for series '{series}' completed.")
-                
-                # Convert the downloaded JSON and append to the main CSV
-                csv_success = convert_json_to_csv_optimized(csv_path=csv_output_path)
-                
-                if not csv_success:
-                    print(f"⚠️ CSV conversion failed for series '{series}'.")
-                    all_series_successful = False
+            if csv_success:
+                print(f"\n🎉 All operations completed successfully!")
             else:
-                print(f"❌ Download failed for series '{series}'.")
-                all_series_successful = False
-
-        if all_series_successful:
-            print(f"\n🎉 All operations completed successfully!")
-            print(f"⏱️  Total time: {time.time() - start_time:.1f} seconds")
+                print(f"\n⚠️ CSV creation failed. Please review the logs.")
         else:
-            print(f"\n⚠️  Some operations failed. Please review the logs.")
-            print(f"⏱️  Total time: {time.time() - start_time:.1f} seconds")
+            print(f"❌ Download failed. Please review the logs.")
+
+        print(f"⏱️  Total time: {time.time() - start_time:.1f} seconds")
             
     except KeyboardInterrupt:
         print(f"\n⏹️  Process interrupted after {time.time() - start_time:.1f} seconds")
