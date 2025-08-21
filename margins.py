@@ -221,7 +221,7 @@ def get_all_dealer_margins_optimized(series_filters: Optional[List[str]] = None)
     finally:
         session.close()
 
-def create_dealer_quotes_csv(json_path: str = 'margins_optimized.json', csv_path: 'dealer_quotes.csv') -> bool:
+def create_dealer_quotes_csv(json_path: str = 'margins_optimized.json', csv_path: str = 'dealer_quotes.csv') -> bool:
     """Creates a wide-format CSV for dealer quotes from the downloaded JSON data."""
     try:
         print(f"\n🔄 Creating dealer quotes CSV from {json_path}...")
