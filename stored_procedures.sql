@@ -5,7 +5,7 @@
 -- All procedures READ from BoatOptions25_test (no modifications)
 -- ============================================================================
 
-USE bennington_cpq;
+USE warrantyparts_test;
 
 -- Drop existing procedures
 DROP PROCEDURE IF EXISTS GetIncludedOptions;
@@ -31,7 +31,7 @@ BEGIN
         QuantitySold AS Quantity,
         ExtSalesAmount AS SalePrice,
         ExtSalesAmount AS MSRP  -- For now, assuming MSRP = SalePrice
-    FROM warrantyparts_test.BoatOptions25_test
+    FROM BoatOptions25_test
     WHERE BoatModelNo = p_model_id
       AND ItemMasterProdCat = 'ACC'
       AND ItemNo IS NOT NULL
@@ -119,7 +119,7 @@ BEGIN
         QuantitySold AS Quantity,
         ExtSalesAmount AS SalePrice,
         ExtSalesAmount AS MSRP
-    FROM warrantyparts_test.BoatOptions25_test
+    FROM BoatOptions25_test
     WHERE BoatModelNo = p_model_id
       AND ItemMasterProdCat = 'ACC'
       AND ItemNo IS NOT NULL
@@ -179,7 +179,7 @@ BEGIN
     -- Calculate options total from sales database (read-only)
     SELECT COALESCE(SUM(ExtSalesAmount), 0)
     INTO v_options_total
-    FROM warrantyparts_test.BoatOptions25_test
+    FROM BoatOptions25_test
     WHERE BoatModelNo = p_model_id
       AND ItemMasterProdCat = 'ACC'
       AND ExtSalesAmount IS NOT NULL;
@@ -300,7 +300,7 @@ BEGIN
         ItemDesc1 AS ItemDescription,
         QuantitySold AS Quantity,
         ExtSalesAmount AS Amount
-    FROM warrantyparts_test.BoatOptions25_test
+    FROM BoatOptions25_test
     WHERE BoatModelNo = p_model_id
       AND ItemMasterProdCat = 'ACC'
       AND ItemNo IS NOT NULL

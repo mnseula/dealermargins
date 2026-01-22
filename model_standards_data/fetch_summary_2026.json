@@ -1,0 +1,76 @@
+{
+  "timestamp": "2026-01-21T11:00:59.837328",
+  "year": 2026,
+  "total_series": 11,
+  "series_results": [
+    {
+      "series": "LT",
+      "status": "success",
+      "record_count": 176,
+      "matrix_name": "LT_ModelStandards_2026"
+    },
+    {
+      "series": "LXS",
+      "status": "success",
+      "record_count": 176,
+      "matrix_name": "LXS_ModelStandards_2026"
+    },
+    {
+      "series": "M",
+      "status": "success",
+      "record_count": 176,
+      "matrix_name": "M_ModelStandards_2026"
+    },
+    {
+      "series": "M1",
+      "status": "success",
+      "record_count": 51,
+      "matrix_name": "M1_ModelStandards_2026"
+    },
+    {
+      "series": "Q",
+      "status": "success",
+      "record_count": 176,
+      "matrix_name": "Q_ModelStandards_2026"
+    },
+    {
+      "series": "QX",
+      "status": "success",
+      "record_count": 176,
+      "matrix_name": "QX_ModelStandards_2026"
+    },
+    {
+      "series": "R",
+      "status": "success",
+      "record_count": 176,
+      "matrix_name": "R_ModelStandards_2026"
+    },
+    {
+      "series": "RT",
+      "status": "success",
+      "record_count": 176,
+      "matrix_name": "RT_ModelStandards_2026"
+    },
+    {
+      "series": "RX",
+      "status": "success",
+      "record_count": 176,
+      "matrix_name": "RX_ModelStandards_2026"
+    },
+    {
+      "series": "S",
+      "status": "success",
+      "record_count": 175,
+      "matrix_name": "S_ModelStandards_2026"
+    },
+    {
+      "series": "S1",
+      "status": "success",
+      "record_count": 62,
+      "matrix_name": "S1_ModelStandards_2026"
+    }
+  ],
+  "success_count": 11,
+  "not_found_count": 0,
+  "error_count": 0
+}

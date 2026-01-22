@@ -1,0 +1,76 @@
+{
+  "timestamp": "2026-01-21T10:47:08.179505",
+  "year": 2026,
+  "total_series": 11,
+  "series_results": [
+    {
+      "series": "LT",
+      "status": "success",
+      "record_count": 6,
+      "matrix_name": "LT_PerformanceData_2026"
+    },
+    {
+      "series": "LXS",
+      "status": "success",
+      "record_count": 72,
+      "matrix_name": "LXS_PerformanceData_2026"
+    },
+    {
+      "series": "M",
+      "status": "success",
+      "record_count": 193,
+      "matrix_name": "M_PerformanceData_2026"
+    },
+    {
+      "series": "M1",
+      "status": "success",
+      "record_count": 14,
+      "matrix_name": "M1_PerformanceData_2026"
+    },
+    {
+      "series": "Q",
+      "status": "success",
+      "record_count": 124,
+      "matrix_name": "Q_PerformanceData_2026"
+    },
+    {
+      "series": "QX",
+      "status": "success",
+      "record_count": 138,
+      "matrix_name": "QX_PerformanceData_2026"
+    },
+    {
+      "series": "R",
+      "status": "success",
+      "record_count": 169,
+      "matrix_name": "R_PerformanceData_2026"
+    },
+    {
+      "series": "RT",
+      "status": "success",
+      "record_count": 11,
+      "matrix_name": "RT_PerformanceData_2026"
+    },
+    {
+      "series": "RX",
+      "status": "success",
+      "record_count": 132,
+      "matrix_name": "RX_PerformanceData_2026"
+    },
+    {
+      "series": "S",
+      "status": "success",
+      "record_count": 212,
+      "matrix_name": "S_PerformanceData_2026"
+    },
+    {
+      "series": "S1",
+      "status": "success",
+      "record_count": 12,
+      "matrix_name": "S1_PerformanceData_2026"
+    }
+  ],
+  "success_count": 11,
+  "not_found_count": 0,
+  "error_count": 0
+}

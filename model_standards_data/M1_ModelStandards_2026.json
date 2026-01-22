@@ -1,0 +1,421 @@
+{
+  "result": {
+    "totalDetailsCount": 51,
+    "details": [
+      {
+        "ExternalId": null,
+        "Sort": 2.0,
+        "Area": "Console Features",
+        "Description": "Non-Elevated Fiberglass Console",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 4.0,
+        "Area": "Console Features",
+        "Description": "Console Courtesy Light",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 5.0,
+        "Area": "Console Features",
+        "Description": "Console Footrest",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 8.0,
+        "Area": "Console Features",
+        "Description": "Windscreen - glass",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 9.0,
+        "Area": "Console Features",
+        "Description": "LaColla Black Wheel",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 14.0,
+        "Area": "Console Features",
+        "Description": "12 Button Digital Switching",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 18.0,
+        "Area": "Console Features",
+        "Description": "7\" Vivid UX Touchscreen Display",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 21.0,
+        "Area": "Console Features",
+        "Description": "Locking Helm Glove Box",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 22.0,
+        "Area": "Console Features",
+        "Description": "Locking Side Access Console Door",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 23.0,
+        "Area": "Console Features",
+        "Description": "Binnacle Arm Cup Holder/Locking Glovebox Combo",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 27.0,
+        "Area": "Console Features",
+        "Description": "Rockford Fosgate PMX-1 Receiver",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 30.0,
+        "Area": "Console Features",
+        "Description": "Tilt Steering",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 31.0,
+        "Area": "Console Features",
+        "Description": "Fire Extinguisher",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 35.0,
+        "Area": "Exterior Features",
+        "Description": "Silver Anodizing Package",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 36.0,
+        "Area": "Exterior Features",
+        "Description": "Chrome Logos",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 39.0,
+        "Area": "Exterior Features",
+        "Description": "25\" Pontoons",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 43.0,
+        "Area": "Exterior Features",
+        "Description": "Tapered Bow Deck",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 46.0,
+        "Area": "Exterior Features",
+        "Description": "Extended Aft Deck",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 47.0,
+        "Area": "Exterior Features",
+        "Description": "Fixed Cleats - Aft",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 48.0,
+        "Area": "Exterior Features",
+        "Description": "Fixed Cleats - Bow",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 55.0,
+        "Area": "Exterior Features",
+        "Description": "Heavy Duty Rub Rail w/ Platinum Insert",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 59.0,
+        "Area": "Exterior Features",
+        "Description": "Top Mount Lillipad Ladder",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 63.0,
+        "Area": "Exterior Features",
+        "Description": "LED Docking Lights Rail Integrated",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 68.0,
+        "Area": "Exterior Features",
+        "Description": "Straight Single Bimini",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 72.0,
+        "Area": "Exterior Features",
+        "Description": "Playpen Cover",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 74.0,
+        "Area": "Exterior Features",
+        "Description": "Direct Fill Fuel Tank 25 gal.",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 80.0,
+        "Area": "Exterior Features",
+        "Description": "Rounded Solid Keels",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 90.0,
+        "Area": "Exterior Features",
+        "Description": "Full Length Extruded Anodized Skirting",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 97.0,
+        "Area": "Exterior Features",
+        "Description": "Extruded Splash Guards",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 98.0,
+        "Area": "Exterior Features",
+        "Description": "Underdeck Spray Deflectors",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 99.0,
+        "Area": "Interior Features",
+        "Description": "Standard Trim Package",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 101.0,
+        "Area": "Interior Features",
+        "Description": "M-Series Standard Furniture",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 105.0,
+        "Area": "Interior Features",
+        "Description": "Swingback Standard",
+        "23M1FB": "",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 108.0,
+        "Area": "Interior Features",
+        "Description": "Captain's Recliner",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 114.0,
+        "Area": "Interior Features",
+        "Description": "Co-Captain's Recliner",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 120.0,
+        "Area": "Interior Features",
+        "Description": "Zebrawood Slate Accents",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 126.0,
+        "Area": "Interior Features",
+        "Description": "Rectangular Table (Stowable)",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 128.0,
+        "Area": "Interior Features",
+        "Description": "Rockford Fosgate RM Speakers (6)",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 137.0,
+        "Area": "Interior Features",
+        "Description": "12 Volt Receptacle",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 139.0,
+        "Area": "Interior Features",
+        "Description": "2 Chaise Lounges",
+        "23M1FB": "S",
+        "23M1SB": ""
+      },
+      {
+        "ExternalId": null,
+        "Sort": 149.0,
+        "Area": "Interior Features",
+        "Description": "2 USB Charge Station with Volt Meter; 1 USB with Quick Charge 3.0 & 1 USB-C Port",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 151.0,
+        "Area": "Interior Features",
+        "Description": "Chaise Convenience Center",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 152.0,
+        "Area": "Interior Features",
+        "Description": "Standard Cupholders",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 158.0,
+        "Area": "Interior Features",
+        "Description": "Mid-Ship Storage Pocket w/ Diamond Shatter Accent",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 166.0,
+        "Area": "Interior Features",
+        "Description": "Soft Sided Bag Cooler",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 171.0,
+        "Area": "Interior Features",
+        "Description": "Shoreline Woven Vinyl Flooring",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 172.0,
+        "Area": "Interior Features",
+        "Description": "Lighted Gate Glides",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 174.0,
+        "Area": "Interior Features",
+        "Description": "Waste Container",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 175.0,
+        "Area": "Warranty",
+        "Description": "Industry Leading Factory Backed Lifetime Structural and Deck Warranty",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 176.0,
+        "Area": "Warranty",
+        "Description": "10-Year Bow-to-Stern Warranty*",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      },
+      {
+        "ExternalId": null,
+        "Sort": 134.0,
+        "Area": "Interior Features",
+        "Description": "Battery - Single Battery",
+        "23M1FB": "S",
+        "23M1SB": "S"
+      }
+    ]
+  },
+  "pageInfo": {
+    "currentPage": 1,
+    "totalPages": 1,
+    "totalItems": 51,
+    "itemsPerPage": 1000
+  }
+}

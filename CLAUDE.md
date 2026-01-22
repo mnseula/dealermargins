@@ -8,22 +8,20 @@ This project builds a SQL-driven dealer margin and quote system for Bennington M
 
 ### Data Flow
 ```
-Infor CPQ APIs → Python Scripts → MySQL Database → SQL Stored Procedures → Quotes/Window Stickers
-                                                  ↗
-                 BoatOptions25_test (read-only)
+Infor CPQ APIs → Python Scripts → MySQL Database (warrantyparts_test) → SQL Stored Procedures → Quotes/Window Stickers
 ```
 
 ### Key Principle
 - **Python scripts ONLY for data loading** - Fetch from APIs and populate database
 - **SQL-driven for everything else** - Quotes, window stickers, calculations all done via stored procedures and views
-- **BoatOptions25_test is read-only** - Never modify sales database, only query it
+- **BoatOptions25_test is read-only** - Never modify existing sales data, only query it
 
 ## Database Architecture
 
-### Primary Database: `bennington_cpq`
-Main CPQ database with boat models, pricing, performance specs, dealer margins.
+### Database: `warrantyparts_test`
+All tables exist in the warrantyparts_test database.
 
-**Core Tables:**
+**CPQ Tables (newly created):**
 - `Series` - Boat series (Q, QX, R, LXS, M, S, etc.)
 - `Models` - Central catalog of all boat models
 - `ModelPricing` - MSRP pricing with effective date tracking
@@ -34,13 +32,11 @@ Main CPQ database with boat models, pricing, performance specs, dealer margins.
 - `Dealers` - Dealer information
 - `DealerMargins` - Margin percentages per dealer × series combination
 
-### Secondary Database: `warrantyparts_test`
-Existing sales database - **READ ONLY**
-
-**Key Table:**
+**Existing Sales Table (read-only):**
 - `BoatOptions25_test` - Historical sales data with line items
   - Used to get included options where `ItemMasterProdCat = 'ACC'`
   - Contains: ItemNo, ItemDesc1, QuantitySold, ExtSalesAmount, BoatModelNo
+  - **DO NOT MODIFY** - This is existing sales data
 
 ## Database Credentials
 
@@ -49,7 +45,7 @@ Existing sales database - **READ ONLY**
 Host:     ben.c0fnidwvz1hv.us-east-1.rds.amazonaws.com
 User:     awsmaster
 Password: VWvHG9vfG23g7gD
-Database: bennington_cpq (main) / warrantyparts_test (sales data)
+Database: warrantyparts_test (main) / warrantyparts_test (sales data)
 ```
 
 ## API Credentials
@@ -103,8 +99,8 @@ Token Endpoint: https://mingle-sso.inforcloudsuite.com/QA2FNBZCKUAUH7QB_TRN/as/t
 mysql -h ben.c0fnidwvz1hv.us-east-1.rds.amazonaws.com -u awsmaster -p
 
 -- Create main database
-CREATE DATABASE IF NOT EXISTS bennington_cpq CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE bennington_cpq;
+CREATE DATABASE IF NOT EXISTS warrantyparts_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE warrantyparts_test;
 
 -- Run schema files in order
 source database_schema.sql;

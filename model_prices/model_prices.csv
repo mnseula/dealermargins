@@ -1,0 +1,284 @@
+model_id,series,parent_series,msrp,floorplan,floorplan_desc,length,seats,visible
+20SF,S,S,24739,F,Fishing,20,11,True
+26MFBTD,M,M,999999,FBTD,Fastback with Top-Deck,26,16,False
+25RSBWAX1,R,R,82524,SBWAX1,10' Wide Swingback with Windshield and Arch,25,14,True
+24RTSB,RT,R,78664,SB,Swingback,24,14,True
+25QFBU,Q,Q,82680,FB,Fastback,25,16,True
+23RXSBU,RX,R,35666,SB,Swingback,23,15,True
+23QXFB,QX,Q,93969,FB,Fastback,23,14,True
+25RSBAU,R,R,103036,SBA,Swingback with Arch,25,15,True
+28QXFBWAX1,QX,Q,148866,FBWAX1,10' Wide Fastback with Windshield and Arch,28,18,True
+26MSB,M,M,999999,SB,Swingback,26,15,True
+27QXSBWAX2,QX,Q,99586,SBWAX2,10' Wide Swingback with Windshield and Arch,27,14,True
+27QXFBWAT2,QX,Q,146645,FBWAT2,Fastback with Windshield and Arch,27,15,True
+24MSB,M,M,999999,SB,Swingback,24,14,True
+24RTFBC,RT,R,74213,FBC,Fastback Center-Walkthrough,24,15,True
+168SF,S,S,17628,F,Fishing,16,9,True
+21MSL,M,M,999999,SL,Stern Lounge,21,15,False
+23M1SB,M1,M,999999,SB,Swingback,23,12,True
+27QXFBCT2,QX,Q,117689,FBCT2,Fastback Center Walkthrough,27,18,True
+25QSBWU,Q,Q,95143,SBW,Swingback with Windshield,25,17,True
+28QXSBAX1U,QX,Q,106071,SBAX1,10' Wide Swingback with Arch,28,18,True
+25QXFBA,QX,Q,100650,FBA,Fastback with Arch,25,15,True
+22SSR,S,S,25531,SR,Quad Bench Stern Radius,22,14,True
+23RCWA,R,R,60690,CWA,Center-Walkthrough with Arch,23,16,False
+25RFBWAU,R,R,61415,FBWA,Fastback with Windshield and Arch,25,17,True
+25QFBWA,Q,Q,82680,FBWA,Fastback with Windshield and Arch,25,16,True
+25RSRX1,R,R,89811,SRX1,10' Wide Stern Radius Quad Bench,25,19,True
+25QXSBWU,QX,Q,115926,SBW,Swingback with Windshield,25,14,True
+23RSRA,R,R,53502,SRA,Quad Bench Stern Radius with Arch,23,15,True
+26LXSSBA,LXS,L,59914,SBA,Swingback with Arch,26,15,True
+21SLJ,S,S,24229,LJ,J-Bench,21,13,True
+27QSBT2,Q,Q,94692,SBT2,Swingback,27,15,True
+188SLU,S,S,20012,L,L-Bench,18,13,True
+25RXFBWA,RX,R,92652,FBWA,Fastback with Windshield and Arch,25,17,True
+25QCWA,Q,Q,81053,CWA,Center-Walkthrough with Arch,25,0,False
+26MCSB,M,M,43071,CSB,Center Swingback,26,15,True
+23LTSBA,LT,L,56960,SBA,Swingback with Arch,23,13,True
+27QXFBWAX2,QX,Q,141878,FBWAX2,10' Wide Fastback with Windshield and Arch,27,15,True
+21ML,M,M,999999,L,L-Bench,21,15,True
+23RXFBAU,RX,R,75340,FBA,Fastback with Arch,23,15,True
+27QXSBT2,QX,Q,117361,SBT2,Swingback,27,15,True
+24LXSFBA,LXS,L,47504,FBA,Fastback with Arch,24,13,True
+24LXSFB,LXS,L,49046,FB,Fastback,24,15,True
+21SSB,S,S,27470,SB,Swingback,21,14,True
+22SSB,S,S,28570,SB,Swingback,22,14,True
+25RTSBA,RT,R,75340,SBA,Swingback with Arch,25,16,True
+25RTFBC,RT,R,76466,FBC,Fastback Center-Walkthrough,25,17,True
+23MFBU,M,M,999999,FB,Fastback,23,13,True
+23RFB,R,R,66678,FB,Fastback,23,17,True
+25QFBAU,Q,Q,73211,FBA,Fastback with Arch,25,16,True
+27RXFBWAT2,RX,R,91484,FBWAT2,Fastback with Windshield and Arch,27,17,True
+30RSRAX2,R,R,73818,SRAX2,Stern Radius Quad Bench with Arch,30,20,True
+26MSL,M,M,46760,SL,Stern Lounge,26,19,True
+27RSBWAT2,R,R,91408,SBWAT2,Swingback with Windshield and Arch,27,15,True
+22RTFB,RT,R,78489,FB,Fastback,22,13,True
+188SFU,S,S,20514,F,Fishing,18,11,True
+23SLJ,S,S,25983,LJ,J-Bench,23,14,True
+24ML,M,M,999999,L,L-Bench,24,17,True
+25QSBA,Q,Q,75945,SBA,Swingback with Arch,25,17,True
+25QXFBWA,QX,Q,103726,FBWA,Fastback with Windshield and Arch,25,15,True
+22SFC,S,S,27769,FC,Fish & Cruse,22,15,True
+23SFC,S,S,29667,FC,Fish & Cruse,23,16,True
+24QSBWA,Q,Q,70866,SBWA,Swingback with Windshield and Arch,24,0,False
+27QSBAX2,Q,Q,82772,SBAX2,10' Wide Fastback with Arch,27,15,True
+22SSRU,S,S,25531,SR,Quad Bench Stern Radius,22,14,True
+22MFC,M,M,999999,FC,Fish & Cruse,22,14,True
+25QCWWA,Q,Q,73211,CWWA,Center Walkthrough with Windshield and Arch,25,0,False
+28QXFBA,QX,Q,144895,FBA,Fastback with Arch,28,17,True
+28QXFBAX1U,QX,Q,109088,FBAX1,10' Wide Fastback with Arch,28,18,True
+23QCW,Q,Q,68821,CW,Center-Walkthrough,23,0,False
+22SL,S,S,24329,L,L-Bench,22,14,True
+25RSBU,R,R,73349,SB,Swingback,25,17,True
+25SL,S,S,30559,L,L-Bench,25,15,True
+25QXFB,QX,Q,100650,FB,Fastback,25,15,True
+23RXFBA,RX,R,81143,FBA,Fastback with Arch,23,15,True
+27RXFBCT2,RX,R,107558,FBCT2,Fastback Center Walkthrough,27,19,True
+28RCW,R,R,103366,CW,Center-Walkthrough,28,19,False
+25SQC,S,S,37607,QC,Quad Chair,25,17,True
+21SF,S,S,25389,F,Fishing,21,12,True
+25QXSBX1,QX,Q,143188,SBX1,10' Wide Swingback,25,17,True
+25QXSBWA,QX,Q,100505,SBWA,Swingback with Windshield and Arch,25,14,True
+188SFC,S,S,21268,FC,Fish & Cruse,18,11,True
+27RXSBWAT2,RX,R,67038,SBWAT2,Swingback with Windshield and Arch,27,15,True
+23RXSBA,RX,R,79777,SBA,Swingback with Arch,23,15,True
+21SSR,S,S,24431,SR,Quad Bench Stern Radius,21,15,True
+28QXSBWAX1U,QX,Q,149191,SBWAX1,10' Wide Swingback with Windshield and Arch,28,14,True
+25RSR,R,R,66515,SR,Quad Bench Stern Radius,25,17,True
+28QXSBWA,QX,Q,147009,SBWA,Swingback with Windshield and Arch,28,16,True
+27QFBAX2,Q,Q,97061,FBAX2,10' Wide Fastback with Arch,27,16,True
+24LXSSBA,LXS,L,49849,SBA,Swingback with Arch,24,13,True
+25SF,S,S,34750,F,Fishing,25,13,True
+22SLU,S,S,24329,L,L-Bench,22,14,True
+25QXSBWAU,QX,Q,92739,SBWA,Swingback with Windshield and Arch,25,14,True
+25QFBX1,Q,Q,68259,FBX1,10' Wide Fastback,25,17,True
+25QSBX1,Q,Q,65436,SBX1,10' Wide Swingback,25,17,True
+24RTSBA,RT,R,80681,SBA,Swingback with Arch,24,14,True
+27QSBWAT2,Q,Q,138884,SBWAT2,Swingback with Windshield and Arch,27,13,True
+30QSBAX2,Q,Q,126238,SBAX2,10' Wide Fastback with Arch,30,18,True
+23MSL,M,M,999999,SL,Stern Lounge,23,16,True
+27RSBT2,R,R,86227,SBT2,Swingback,27,17,True
+22ML,M,M,999999,L,L-Bench,22,15,True
+22MFB,M,M,35548,FB,Fastback,22,13,True
+28QXSBAX1,QX,Q,143363,SBAX1,10' Wide Swingback with Arch,28,18,True
+25SLJ,S,S,31559,LJ,J-Bench,25,15,True
+23MOFB,M,M,999999,OFB,Open Fastback,23,14,True
+23RXSBAU,RX,R,73715,SBA,Swingback with Arch,23,15,True
+20S1F,S1,S,24739,F,Fishing,20,11,True
+30QXSBAX2,QX,Q,150874,SBAX2,10' Wide Fastback with Arch,30,19,True
+25RXFBU,RX,R,88464,FB,Fastback,25,17,True
+25SSR,S,S,33287,SR,Quad Bench Stern Radius,25,17,True
+20SSR,S,S,23781,SR,Quad Bench Stern Radius,20,14,True
+25RSB,R,R,68366,SB,Swingback,25,17,True
+21MFB,M,M,999999,FB,Fastback,21,14,True
+20SSB,S,S,26820,SB,Swingback,20,14,True
+25QXFBAU,QX,Q,93369,FBA,Fastback with Arch,25,15,True
+23M1FB,M1,M,999999,FB,Fastback,23,13,True
+23QXSB,QX,Q,93005,SB,Swingback,23,13,True
+25RSBAX1,R,R,61415,SBAX1,10' Wide Swingback with Arch,25,18,True
+20SLU,S,S,22579,L,L-Bench,20,13,True
+23RXSB,RX,R,79777,SB,Swingback,23,15,True
+23MFB,M,M,999999,FB,Fastback,23,13,True
+25RFBA,R,R,72391,FBA,Fastback with Arch,25,17,True
+22S1SR,S1,S,25531,SR,Quad Bench Stern Radius,22,14,True
+27RXSBT2,RX,R,102281,SBT2,Swingback,27,17,True
+24LXSSB,LXS,L,52763,SB,Swingback,24,12,True
+24RTFB,RT,R,82924,FB,Fastback,24,15,True
+30RSBAX2,R,R,111323,SBAX2,10' Wide Fastback with Arch,30,17,True
+28RSRX1,R,R,100220,SRX1,10' Wide Stern Radius Quad Bench,28,20,False
+25RSBX1,R,R,59440,SBX1,10' Wide Swingback,25,18,True
+28QXFBAX1,QX,Q,144895,FBAX1,10' Wide Fastback with Arch,28,18,True
+22MOFB,M,M,999999,OFB,Open Fastback,22,13,True
+26LXSFB,LXS,L,51497,FB,Fastback,26,15,True
+24LXSFBC,LXS,L,50254,FBC,Fastback Center-Walkthrough,24,15,True
+28RSBX1,R,R,86865,SBX1,10' Wide Swingback,28,19,False
+21MOFB,M,M,999999,OFB,Open Fastback,21,14,True
+30QSBX2,Q,Q,83884,SBX2,Swingback,30,20,True
+188SL,S,S,20012,L,L-Bench,18,13,True
+25SFC,S,S,35249,FC,Fish & Cruse,25,17,True
+23SL,S,S,24983,L,L-Bench,23,15,True
+25SSB,S,S,36407,SB,Swingback,25,16,True
+24MSL,M,M,999999,SL,Stern Lounge,24,16,True
+23MSB,M,M,999999,SB,Swingback,23,12,True
+25QXCWWA,QX,Q,93369,CWWA,Center Walkthrough with Windshield and Arch,25,15,False
+30QXSBWAX2,QX,Q,150874,SBWAX2,10' Wide Swingback with Windshield and Arch,30,14,True
+25RXSBA,RX,R,84476,SBA,Swingback with Arch,25,16,True
+24RTFBA,RT,R,78624,FBA,Fastback with Arch,24,15,True
+25QXCWW,QX,Q,101264,CWW,Center Walkthrough with Windshield and Arch,25,15,False
+30RFBX2,R,R,114617,FBX2,10' Wide Fastback,30,21,True
+168SL,S,S,17128,L,L-Bench,16,11,True
+23RSB,R,R,64668,SB,Swingback,23,16,True
+28RSBAX1,R,R,89897,SBAX1,10' Wide Swingback with Arch,28,20,True
+25QFB,Q,Q,78640,FB,Fastback,25,16,True
+23SSB,S,S,29975,SB,Swingback,23,14,True
+25QSBWA,Q,Q,80423,SBWA,Swingback with Windshield and Arch,25,17,True
+25QCW,Q,Q,77348,CW,Center-Walkthrough,25,0,False
+25RXFBWU,RX,R,78772,FBW,Fastback with Windshield,25,17,True
+25RFBWA,R,R,76689,FBWA,Fastback with Windshield and Arch,25,17,True
+30QFBX2,Q,Q,124354,FBX2,10' Wide Fastback,30,21,True
+25QXSBAU,QX,Q,92739,SBA,Swingback with Arch,25,15,True
+25QXSBA,QX,Q,999999,SBA,Swingback with Arch,25,15,True
+26MOFB,M,M,999999,OFB,Open Fastback,26,16,True
+23RSBA,R,R,62301,SBA,Swingback with Arch,23,14,True
+25RCW,R,R,65804,CW,Center-Walkthrough,25,18,False
+25QSBWAU,Q,Q,72844,SBWA,Swingback with Windshield and Arch,25,17,True
+22S1SB,S1,S,28570,SB,Swingback,22,14,True
+20SL,S,S,22579,L,L-Bench,20,13,True
+25RTFBA,RT,R,80817,FBA,Fastback with Arch,25,17,True
+27RSRAX2,R,R,71726,SRAX2,Stern Radius Quad Bench with Arch,27,18,True
+25RTSB,RT,R,80947,SB,Swingback,25,16,True
+25QXSBW,QX,Q,100505,SBW,Swingback with Windshield,25,16,True
+23LTFB,LT,L,51975,FB,Fastback,23,14,True
+25QSRA,Q,Q,124129,SRA,Quad Bench Stern Radius with Arch,25,0,True
+23MSBU,M,M,999999,SB,Swingback,23,12,True
+23SF,S,S,29166,F,Fishing,23,13,True
+20SSRU,S,S,23781,SR,Quad Bench Stern Radius,20,14,True
+26LXSFBA,LXS,L,49976,FBA,Fastback with Arch,26,15,True
+23ML,M,M,999999,L,L-Bench,23,13,True
+30QSBWAX2,Q,Q,107477,SBWAX2,10' Wide Swingback with Windshield and Arch,30,12,True
+23SQC,S,S,30975,QC,Quad Chair,23,15,True
+25RFBU,R,R,76689,FB,Fastback,25,17,True
+25QSBU,Q,Q,72844,SB,Swingback,25,17,True
+22SSBU,S,S,28570,SB,Swingback,22,14,True
+25RSRC,R,R,84355,SRC,Quad Bench Stern Radius Center Walkthrough,25,18,True
+22MSL,M,M,999999,SL,Stern Lounge,22,0,False
+25RSBWA,R,R,73349,SBWA,Swingback with Windshield and Arch,25,15,True
+25RXSBWA,RX,R,90130,SBWA,Swingback with Windshield and Arch,25,17,True
+20SLJ,S,S,23579,LJ,J-Bench,20,13,True
+22SF,S,S,26489,F,Fishing,22,12,True
+22MSB,M,M,36985,SB,Swingback,22,13,True
+168SLJ,S,S,17591,LJ,J-Bench,16,10,True
+27RSRCT2,R,R,66469,SRCT2,Stern Radius Quad Bench Center Walkthrough,27,19,True
+24MFC,M,M,39649,FC,Fish & Cruse,24,16,True
+25RSBWAU,R,R,107824,SBWA,Swingback with Windshield and Arch,25,15,True
+24MCSB,M,M,39187,CSB,Center Swingback,24,14,True
+23RFBA,R,R,57430,FBA,Fastback with Arch,23,15,True
+21SQC,S,S,28470,QC,Quad Chair,21,11,True
+26LXSSB,LXS,L,55110,SB,Swingback,26,16,True
+25RXSBW,RX,R,90130,SBW,Swingback with Windshield,25,16,True
+25RXFBAU,RX,R,81328,FBA,Fastback with Arch,25,17,True
+25RXFB,RX,R,87041,FB,Fastback,25,17,True
+27QXSBAX2,QX,Q,105320,SBAX2,10' Wide Fastback with Arch,27,16,True
+25QSB,Q,Q,75945,SB,Swingback,25,17,True
+20SFC,S,S,26019,FC,Fish & Cruse,20,15,True
+27QFBWAT2,Q,Q,119785,FBWAT2,Fastback with Windshield and Arch,27,15,True
+28QXFBWAX1U,QX,Q,124042,FBWAX1,10' Wide Fastback with Windshield and Arch,28,18,True
+188SF,S,S,20514,F,Fishing,18,11,True
+27RSBX2,R,R,106356,SBX2,Swingback,27,19,True
+28QXSBA,QX,Q,143363,SBA,Swingback with Arch,28,16,True
+20SSBU,S,S,26820,SB,Swingback,20,14,True
+23LTSB,LT,L,53545,SB,Swingback,23,13,True
+25LTSB,LT,L,55608,SB,Swingback,25,16,True
+26ML,M,M,999999,L,L-Bench,26,19,True
+23MFC,M,M,999999,FC,Fish & Cruse,23,12,True
+21SFC,S,S,26669,FC,Fish & Cruse,21,15,True
+22LXSSB,LXS,L,45744,SB,Swingback,22,13,True
+23SSR,S,S,28210,SR,Quad Bench Stern Radius,23,15,True
+21SL,S,S,23229,L,L-Bench,21,14,True
+28QXSBWAX1,QX,Q,147009,SBWAX1,10' Wide Swingback with Windshield and Arch,28,14,True
+23LXSFB,LXS,L,48298,FB,Fastback,23,13,True
+25RSBA,R,R,68366,SBA,Swingback with Arch,25,15,True
+27RFBWAT2,R,R,94811,FBWAT2,Fastback with Windshield and Arch,27,17,True
+24MFB,M,M,999999,FB,Fastback,24,14,True
+23RSR,R,R,61935,SR,Quad Bench Stern Radius,23,15,True
+20S1L,S1,S,22579,L,L-Bench,20,13,True
+23S1SB,S1,S,29975,SB,Swingback,23,14,True
+23S1SR,S1,S,28210,SR,Quad Bench Stern Radius,23,15,True
+23RXFBU,RX,R,73715,FB,Fastback,23,15,True
+26MFB,M,M,999999,FB,Fastback,26,16,True
+25LTFB,LT,L,54025,FB,Fastback,25,16,True
+27QXFBAX2,QX,Q,107237,FBAX2,10' Wide Fastback with Arch,27,16,True
+188SLJ,S,S,21656,LJ,J-Bench,18,13,True
+25RXSBWAU,RX,R,85948,SBWA,Swingback with Windshield and Arch,25,17,True
+25QSBW,Q,Q,80423,SBW,Swingback with Windshield,25,17,True
+25QXFBU,QX,Q,103726,FB,Fastback,25,15,True
+25QFBA,Q,Q,78640,FBA,Fastback with Arch,25,16,True
+28QXFB,QX,Q,105749,FB,Fastback,28,17,True
+25QXFBX1,QX,Q,97977,FBX1,10' Wide Fastback,25,18,True
+25QSR,Q,Q,74650,SR,Quad Bench Stern Radius,25,0,True
+20SFCU,S,S,26019,FC,Fish & Cruse,20,15,True
+25RSRWX1,R,R,79394,SRWX1,10' Wide Stern Radius Quad Bench with Windshield,25,16,True
+22S1FC,S1,S,27769,FC,Fish & Cruse,22,15,True
+26MFC,M,M,43733,FC,Fish & Cruse,26,16,True
+23QXSBA,QX,Q,94778,SBA,Swingback with Arch,23,13,True
+25RXSB,RX,R,84476,SB,Swingback,25,16,True
+25RXSBWU,RX,R,93706,SBW,Swingback with Windshield,25,16,True
+23RSBWA,R,R,54389,SBWA,Swingback with Windshield and Arch,23,13,True
+188SFCU,S,S,21268,FC,Fish & Cruse,18,11,True
+25RXSBU,RX,R,85948,SB,Swingback,25,16,True
+25RXSBAU,RX,R,78772,SBA,Swingback with Arch,25,16,True
+20S1SR,S1,S,23781,SR,Quad Bench Stern Radius,20,14,True
+22SLJ,S,S,25329,LJ,J-Bench,22,13,True
+25RSRA,R,R,58616,SRA,Quad Bench Stern Radius with Arch,25,17,True
+23MCSB,M,M,999999,CSB,Center Swingback,23,11,True
+30QFBWAX2,Q,Q,110478,FBWAX2,10' Wide Fastback with Windshield and Arch,30,18,True
+30QXFBAX2,QX,Q,157012,FBAX2,10' Wide Fastback with Arch,30,19,True
+30QXFBX2,QX,Q,147824,FBX2,10' Wide Fastback,30,19,True
+26LXSFBC,LXS,L,52704,FBC,Fastback Center-Walkthrough,26,17,True
+21MFC,M,M,999999,FC,Fish & Cruse,21,15,False
+28QXFBWA,QX,Q,148866,FBWA,Fastback with Windshield and Arch,28,17,True
+24MOFB,M,M,999999,OFB,Open Fastback,24,14,True
+25QFBWAU,Q,Q,98365,FBWA,Fastback with Windshield and Arch,25,16,True
+23RSRC,R,R,63943,SRC,Quad Bench Stern Radius Center Walkthrough,23,16,True
+30QXFBWAX2,QX,Q,127727,FBWAX2,10' Wide Fastback with Windshield and Arch,30,18,True
+23RXFB,RX,R,81143,FB,Fastback,23,15,True
+23RSBW,R,R,69468,SBW,Swingback with Windshield,23,13,True
+25QXFBWAU,QX,Q,117928,FBWA,Fastback with Windshield and Arch,25,15,True
+27RFBX2,R,R,109430,FBX2,10' Wide Fastback,27,18,True
+28QXFBX1,QX,Q,103045,FBX1,10' Wide Fastback,28,19,True
+27QXSBWAT2,QX,Q,144745,SBWAT2,Swingback with Windshield and Arch,27,13,True
+25RXFBWAU,RX,R,88464,FBWA,Fastback with Windshield and Arch,25,17,True
+23QXFBA,QX,Q,87565,FBA,Fastback with Arch,23,14,True
+23QSBW,Q,Q,68264,SBW,Swingback with Windshield,23,0,True
+22SFCU,S,S,27769,FC,Fish & Cruse,22,15,True
+25RTFB,RT,R,85149,FB,Fastback,25,17,True
+25RFB,R,R,72391,FB,Fastback,25,17,True
+25LTSBA,LT,L,58623,SBA,Swingback with Arch,25,15,True
+23RCW,R,R,67089,CW,Center-Walkthrough,23,17,False
+21MSB,M,M,999999,SB,Swingback,21,0,False
+25RXFBW,RX,R,92652,FBW,Fastback with Windshield,25,17,True
+25RFBAU,R,R,65804,FBA,Fastback with Arch,25,17,True
+23LXSSB,LXS,L,47402,SB,Swingback,23,15,True
+25QSBAU,Q,Q,68259,SBA,Swingback with Arch,25,17,True
+27RSBAX2,R,R,75166,SBAX2,10' Wide Swingback with Arch,27,16,True
+25RXFBA,RX,R,87041,FBA,Fastback with Arch,25,17,True
