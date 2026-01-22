@@ -82,11 +82,12 @@ Token Endpoint: https://mingle-sso.inforcloudsuite.com/QA2FNBZCKUAUH7QB_TRN/as/t
 - `stored_procedures.sql` - Comprehensive stored procedures for quotes and window stickers
 
 ### Python Data Loading Scripts
-- `fetch_model_prices.py` - Loads model pricing from OptionList API
-- `fetch_all_performance_data.py` - Loads performance specifications by series
-- `fetch_all_model_standards.py` - Loads standard features by series
-- `query_boat_info.py` - Query functions for boat info and dealer margins
-- `generate_window_sticker.py` - Python version (being deprecated in favor of SQL procedures)
+- `load_cpq_data.py` - **UNIFIED LOADER** - Loads all CPQ data from APIs (models, pricing, performance, features, dealer margins)
+- Legacy scripts (deprecated - use load_cpq_data.py instead):
+  - `fetch_model_prices.py`
+  - `fetch_all_performance_data.py`
+  - `fetch_all_model_standards.py`
+  - `query_boat_info.py`
 
 ### Database Configuration
 - `db_config.py` - Database connection configuration
@@ -110,28 +111,24 @@ source stored_procedures.sql;
 
 ### 2. Load Data from APIs
 ```bash
-# Load model pricing
-python3 fetch_model_prices.py
-
-# Load performance data
-python3 fetch_all_performance_data.py
-
-# Load standard features
-python3 fetch_all_model_standards.py
-
-# Load dealer margins (if available)
-# python3 load_dealer_margins.py
+# Load ALL CPQ data (models, pricing, performance, features, dealer margins)
+python3 load_cpq_data.py
 ```
 
-## Using the System
+This single script loads everything from the Infor CPQ APIs:
+- Model prices (PRD environment)
+- Performance data (TRN environment)
+- Standard features (TRN environment)
+- Dealer margins (TRN environment)
 
-### Query Dealer Margins
-```python
-python3 -c "
-from query_boat_info import get_dealer_margins
-margins = get_dealer_margins('NICHOLS MARINE - NORMAN', 'QX')
-print(margins)
-"
+## Using the System - Pure SQL
+
+**IMPORTANT**: All window stickers, quotes, and queries are done via SQL stored procedures.
+Python is ONLY for loading data from APIs. No Python business logic.
+
+### Connect to Database
+```bash
+mysql -h ben.c0fnidwvz1hv.us-east-1.rds.amazonaws.com -u awsmaster -p warrantyparts_test
 ```
 
 ### Generate Window Sticker (SQL)
