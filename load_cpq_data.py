@@ -41,6 +41,7 @@ SERVICE_KEY_TRN = "QA2FNBZCKUAUH7QB_TRN#kxVE4LhZZFTPMVPuF8lZsHc2Zfz03QS0GOZasx2A
 SERVICE_SECRET_TRN = "pAze3yNlj8r6dbcTv-Fn8AiGvhIcs2x-yEgJaMiuoraAJdkFB6iLQFKaFQCP_17KZIYoroUoF_CeEoslHWlXug"
 
 # API Endpoints
+# Note: API endpoints use _2026 naming but contain 2025 model year data (model IDs with "25" prefix)
 OPTION_LIST_ENDPOINT = "https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_PRD/CPQ/DataImport/QA2FNBZCKUAUH7QB_PRD/v1/OptionLists/bb38d84e-6493-40c7-b282-9cb9c0df26ae/values"
 PERFORMANCE_MATRIX_ENDPOINT = "https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_TRN/CPQ/DataImport/v2/Matrices/{series}_PerformanceData_2026/values"
 STANDARDS_MATRIX_ENDPOINT = "https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_TRN/CPQ/DataImport/v2/Matrices/{series}_ModelStandards_2026/values"
@@ -57,7 +58,7 @@ DB_CONFIG = {
 # Settings
 REQUEST_TIMEOUT = 120
 MAX_RETRIES = 3
-MODEL_YEAR = 2026
+MODEL_YEAR = 2025  # Model IDs with "25" prefix = 2025 model year
 OUTPUT_DIR = Path("cpq_data_backups")
 
 # ==================== TOKEN MANAGEMENT ====================

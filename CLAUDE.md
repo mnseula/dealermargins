@@ -74,6 +74,8 @@ Token Endpoint: https://mingle-sso.inforcloudsuite.com/QA2FNBZCKUAUH7QB_TRN/as/t
 - **Standard Features (TRN):** `https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_TRN/CPQ/DataImport/v2/Matrices/{series}_ModelStandards_2026/values`
 - **Dealer Margins (TRN):** `https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_TRN/CPQEQ/RuntimeApi/EnterpriseQuoting/Entities/C_GD_DealerMargin`
 
+**Note:** API endpoints are named `_2026` but contain 2025 model year data (model IDs with "25" prefix like 25QXFBWA = 2025 model year)
+
 ## Key Files
 
 ### Database Schema Files
@@ -318,7 +320,9 @@ WHERE model_id = '25QXFBWA'
 ## Notes
 
 - All timestamps in database are UTC
-- Model year is currently hardcoded to 2026
+- Model year is 2025 (model IDs with "25" prefix = 2025 model year)
+- API endpoints are named `_2026` but contain 2025 model year data
 - Margins are stored as percentages (27.0 = 27%)
 - ExtSalesAmount in BoatOptions25_test may be NULL for some items
 - Some models exist in CPQ but not in sales database (and vice versa)
+- No model ID overlap between CPQ (25QXFBWA format) and sales data (2550GBRDE format)
