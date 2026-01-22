@@ -336,8 +336,9 @@ def load_standards_to_db(cursor, series: str, standards_data: List[Dict], all_mo
             if not description:
                 continue
 
-            # Create a feature code (unique identifier)
-            feature_code = f"{series}_{area}_{description[:50]}".replace(' ', '_').replace(',', '').replace("'", '')
+            # Create a feature code (unique identifier) - sanitize for database
+            feature_code = f"{series}_{area}_{description[:50]}"
+            feature_code = feature_code.replace(' ', '_').replace(',', '').replace("'", '').replace('"', '').replace('/', '_')
 
             # Insert/update standard feature
             cursor.execute(
@@ -353,7 +354,14 @@ def load_standards_to_db(cursor, series: str, standards_data: List[Dict], all_mo
 
             # Get the feature_id
             cursor.execute("SELECT feature_id FROM StandardFeatures WHERE feature_code = %s", (feature_code,))
-            feature_id = cursor.fetchone()[0]
+            result = cursor.fetchone()
+
+            if not result:
+                print(f"⚠️  Feature not found after insert: {feature_code}")
+                errors += 1
+                continue
+
+            feature_id = result[0]
 
             # Link to models where feature is standard (value = 'S')
             for model_id in all_model_ids:
@@ -369,7 +377,7 @@ def load_standards_to_db(cursor, series: str, standards_data: List[Dict], all_mo
 
         except Exception as e:
             errors += 1
-            print(f"⚠️  Error loading standard feature: {e}")
+            print(f"⚠️  Error loading standard feature '{description[:30]}': {e}")
 
     return success, errors
 
