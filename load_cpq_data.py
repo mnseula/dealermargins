@@ -5,8 +5,9 @@ This script:
 1. Fetches model prices from OptionList API → Loads to Series, Models, ModelPricing
 2. Fetches performance data from Matrix APIs → Loads to PerformancePackages, ModelPerformance
 3. Fetches standard features from Matrix APIs → Loads to StandardFeatures, ModelStandardFeatures
-4. Saves backup JSON files for all data
+4. Fetches dealer margins from API → Loads to Dealers, DealerMargins
 
+Complete one-stop data loader for all CPQ tables.
 Designed to run via JAMS scheduler for automated data synchronization.
 """
 
@@ -43,6 +44,7 @@ SERVICE_SECRET_TRN = "pAze3yNlj8r6dbcTv-Fn8AiGvhIcs2x-yEgJaMiuoraAJdkFB6iLQFKaFQ
 OPTION_LIST_ENDPOINT = "https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_PRD/CPQ/DataImport/QA2FNBZCKUAUH7QB_PRD/v1/OptionLists/bb38d84e-6493-40c7-b282-9cb9c0df26ae/values"
 PERFORMANCE_MATRIX_ENDPOINT = "https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_TRN/CPQ/DataImport/v2/Matrices/{series}_PerformanceData_2026/values"
 STANDARDS_MATRIX_ENDPOINT = "https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_TRN/CPQ/DataImport/v2/Matrices/{series}_ModelStandards_2026/values"
+DEALER_MARGIN_ENDPOINT = "https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_TRN/CPQEQ/RuntimeApi/EnterpriseQuoting/Entities/C_GD_DealerMargin"
 
 # Database Configuration
 DB_CONFIG = {
@@ -384,6 +386,118 @@ def load_standards_to_db(cursor, series: str, standards_data: List[Dict], all_mo
 
     return success, errors
 
+# ==================== STEP 4: DEALER MARGINS ====================
+
+def fetch_dealer_margins(token: str) -> List[Dict]:
+    """Fetch all dealer margins from API"""
+    try:
+        headers = {'Authorization': f'Bearer {token}', 'Accept': 'application/json'}
+        response = requests.get(DEALER_MARGIN_ENDPOINT, headers=headers, timeout=REQUEST_TIMEOUT, verify=False)
+        response.raise_for_status()
+
+        data = response.json()
+        margins = data.get('items', [])
+        return margins
+
+    except Exception as e:
+        print(f"⚠️  Error fetching dealer margins: {e}")
+        return []
+
+def load_dealer_margins_to_db(cursor, margins: List[Dict]):
+    """Load dealer margins into database"""
+    dealers_loaded = 0
+    margins_loaded = 0
+    errors = 0
+
+    for margin_record in margins:
+        try:
+            dealer_id = margin_record.get('C_DealerId')
+            dealer_name = margin_record.get('C_DealerName')
+            series_id = margin_record.get('C_Series')
+
+            if not dealer_id or not dealer_name or not series_id:
+                errors += 1
+                continue
+
+            # Insert/update dealer
+            cursor.execute(
+                """INSERT INTO Dealers (dealer_id, dealer_name, active)
+                   VALUES (%s, %s, TRUE)
+                   ON DUPLICATE KEY UPDATE
+                   dealer_name = VALUES(dealer_name),
+                   updated_at = NOW()""",
+                (dealer_id, dealer_name)
+            )
+            dealers_loaded += 1
+
+            # Ensure series exists
+            cursor.execute(
+                """INSERT INTO Series (series_id, series_name, active)
+                   VALUES (%s, %s, TRUE)
+                   ON DUPLICATE KEY UPDATE updated_at = NOW()""",
+                (series_id, series_id)
+            )
+
+            # Get margin values
+            base_boat = margin_record.get('C_BaseBoat', 0)
+            engine = margin_record.get('C_Engine', 0)
+            options = margin_record.get('C_Options', 0)
+            freight = margin_record.get('C_Freight', 0)
+            prep = margin_record.get('C_Prep', 0)
+            volume = margin_record.get('C_Volume', 0)
+            enabled = margin_record.get('C_Enabled', False)
+
+            # Check if margins already exist with same values
+            cursor.execute(
+                """SELECT margin_id FROM DealerMargins
+                   WHERE dealer_id = %s AND series_id = %s AND end_date IS NULL
+                   AND base_boat_margin = %s AND engine_margin = %s
+                   AND options_margin = %s AND freight_margin = %s
+                   AND prep_margin = %s AND volume_discount = %s""",
+                (dealer_id, series_id, base_boat, engine, options, freight, prep, volume)
+            )
+
+            if cursor.fetchone():
+                # Margins unchanged, just update enabled status
+                cursor.execute(
+                    """UPDATE DealerMargins SET enabled = %s, updated_at = NOW()
+                       WHERE dealer_id = %s AND series_id = %s AND end_date IS NULL""",
+                    (enabled, dealer_id, series_id)
+                )
+            else:
+                # Margins changed - end old and insert new
+                effective_date = date.today()
+
+                cursor.execute(
+                    """UPDATE DealerMargins
+                       SET end_date = DATE_SUB(%s, INTERVAL 1 DAY)
+                       WHERE dealer_id = %s AND series_id = %s AND end_date IS NULL""",
+                    (effective_date, dealer_id, series_id)
+                )
+
+                cursor.execute(
+                    """INSERT INTO DealerMargins (
+                       dealer_id, series_id,
+                       base_boat_margin, engine_margin, options_margin,
+                       freight_margin, prep_margin, volume_discount,
+                       enabled, effective_date, year
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                    (
+                        dealer_id, series_id,
+                        base_boat, engine, options,
+                        freight, prep, volume,
+                        enabled, effective_date, MODEL_YEAR
+                    )
+                )
+
+            margins_loaded += 1
+
+        except Exception as e:
+            errors += 1
+            print(f"⚠️  Error loading dealer margin: {e}")
+
+    return dealers_loaded, margins_loaded, errors
+
 # ==================== MAIN EXECUTION ====================
 
 def main():
@@ -477,6 +591,38 @@ def main():
 
         print(f"\n✅ Standard features loaded: {total_std_success} records, {total_std_errors} errors")
 
+        # STEP 4: Fetch and load dealer margins
+        print("\n" + "=" * 80)
+        print("STEP 4: DEALER MARGINS")
+        print("=" * 80)
+
+        print("\n📋 Fetching dealer margins from API...")
+        margins = fetch_dealer_margins(token_trn)
+
+        if margins:
+            print(f"   Fetched {len(margins)} dealer margin records")
+            dealers_count, margins_count, margins_errors = load_dealer_margins_to_db(cursor, margins)
+            connection.commit()
+            print(f"\n✅ Dealer margins loaded: {dealers_count} dealers, {margins_count} margin records, {margins_errors} errors")
+        else:
+            print("⚠️  No dealer margins fetched")
+            dealers_count = 0
+            margins_count = 0
+            margins_errors = 0
+
+        # Get final database statistics
+        cursor.execute("SELECT COUNT(*) FROM Models WHERE active = TRUE")
+        total_models = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM ModelPricing WHERE end_date IS NULL")
+        total_active_pricing = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM Dealers WHERE active = TRUE")
+        total_dealers = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM DealerMargins WHERE end_date IS NULL")
+        total_active_margins = cursor.fetchone()[0]
+
         # Close database connection
         cursor.close()
         connection.close()
@@ -495,7 +641,13 @@ def main():
     print(f"✅ Models loaded:           {models_success} ({models_errors} errors)")
     print(f"✅ Performance records:     {total_perf_success} ({total_perf_errors} errors)")
     print(f"✅ Standard features:       {total_std_success} ({total_std_errors} errors)")
-    print(f"⏱️  Total execution time:   {elapsed_time:.1f} seconds")
+    print(f"✅ Dealer margins loaded:   {margins_count} ({margins_errors} errors)")
+    print(f"\n📊 DATABASE TOTALS:")
+    print(f"   Active models:           {total_models}")
+    print(f"   Current pricing records: {total_active_pricing}")
+    print(f"   Active dealers:          {total_dealers}")
+    print(f"   Current margin configs:  {total_active_margins}")
+    print(f"\n⏱️  Total execution time:   {elapsed_time:.1f} seconds")
     print(f"💾 Database:                {DB_CONFIG['database']}")
     print(f"📅 Completed:               {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 80)
