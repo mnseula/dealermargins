@@ -3,6 +3,8 @@ import json
 from typing import Optional, Dict, Any, List
 import urllib3
 from datetime import datetime
+import mysql.connector
+from mysql.connector import Error
 
 # Suppress insecure request warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -24,6 +26,14 @@ TOKEN_ENDPOINT_TRN = "https://mingle-sso.inforcloudsuite.com/QA2FNBZCKUAUH7QB_TR
 OPTION_LIST_ENDPOINT = "https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_PRD/CPQ/DataImport/QA2FNBZCKUAUH7QB_PRD/v1/OptionLists/bb38d84e-6493-40c7-b282-9cb9c0df26ae/values"
 PERFORMANCE_MATRIX_ENDPOINT = "https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_TRN/CPQ/DataImport/v2/Matrices/{series}_PerformanceData_2026/values"
 STANDARDS_MATRIX_ENDPOINT = "https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_TRN/CPQ/DataImport/v2/Matrices/{series}_ModelStandards_2026/values"
+
+# Database Configuration
+DB_CONFIG = {
+    'host': 'ben.c0fnidwvz1hv.us-east-1.rds.amazonaws.com',
+    'user': 'awsmaster',
+    'password': 'VWvHG9vfG23g7gD',
+    'database': 'warrantyparts_test'
+}
 
 def get_token(environment: str = "PRD") -> Optional[str]:
     """Get OAuth token for the specified environment."""
@@ -135,6 +145,39 @@ def get_standard_features(model_id: str, series: str) -> Optional[Dict[str, List
         print(f"❌ Error fetching standard features: {e}")
         return None
 
+def get_included_options(model_id: str) -> Optional[List[Dict[str, Any]]]:
+    """Get included options from BoatOptions25_test table for a specific model."""
+    try:
+        connection = mysql.connector.connect(**DB_CONFIG)
+        cursor = connection.cursor(dictionary=True)
+
+        # Query for accessories (ItemMasterProdCat = 'ACC') for this model
+        query = """
+            SELECT DISTINCT
+                ItemNo,
+                ItemDesc1,
+                QuantitySold,
+                ExtSalesAmount
+            FROM BoatOptions25_test
+            WHERE BoatModelNo = %s
+              AND ItemMasterProdCat = 'ACC'
+              AND ItemNo IS NOT NULL
+              AND ItemNo != ''
+            ORDER BY ItemDesc1
+        """
+
+        cursor.execute(query, (model_id,))
+        options = cursor.fetchall()
+
+        cursor.close()
+        connection.close()
+
+        return options if options else None
+
+    except Error as e:
+        print(f"❌ Error fetching included options from database: {e}")
+        return None
+
 def generate_window_sticker(model_id: str, dealer_name: str = None, output_file: str = None):
     """Generate a comprehensive window sticker."""
 
@@ -150,6 +193,7 @@ def generate_window_sticker(model_id: str, dealer_name: str = None, output_file:
 
     perf_data = get_performance_data(model_id, series) if series else None
     features = get_standard_features(model_id, series) if series else None
+    included_options = get_included_options(model_id)
 
     # Build the window sticker
     sticker_lines = []
@@ -204,6 +248,40 @@ def generate_window_sticker(model_id: str, dealer_name: str = None, output_file:
     sticker_lines.append("║" + " " * 98 + "║")
     sticker_lines.append("═" * 100)
     sticker_lines.append("")
+
+    # INCLUDED OPTIONS
+    if included_options:
+        sticker_lines.append("INCLUDED OPTIONS")
+        sticker_lines.append("═" * 100)
+        sticker_lines.append("")
+        sticker_lines.append(f"{'ITEM DESCRIPTION':<50} {'ITEM #':<15} {'QTY':<8} {'MSRP':<12} {'SALE PRICE':<12}")
+        sticker_lines.append("─" * 100)
+
+        total_options_msrp = 0
+        total_options_sale = 0
+
+        for option in included_options:
+            item_desc = option['ItemDesc1'][:48] if option['ItemDesc1'] else 'N/A'
+            item_no = option['ItemNo'] if option['ItemNo'] else 'N/A'
+            qty = option['QuantitySold'] if option['QuantitySold'] else 0
+            sale_price = option['ExtSalesAmount'] if option['ExtSalesAmount'] else 0.00
+
+            # For now, MSRP = Sale Price (can be adjusted if you have actual MSRP data)
+            msrp_price = sale_price
+
+            total_options_msrp += msrp_price
+            total_options_sale += sale_price
+
+            msrp_str = f"${msrp_price:,.2f}" if msrp_price else "N/A"
+            sale_str = f"${sale_price:,.2f}" if sale_price else "N/A"
+
+            sticker_lines.append(f"{item_desc:<50} {item_no:<15} {qty:<8} {msrp_str:<12} {sale_str:<12}")
+
+        sticker_lines.append("─" * 100)
+        sticker_lines.append(f"{'TOTAL OPTIONS':<50} {'':<15} {'':<8} ${total_options_msrp:,.2f:<11} ${total_options_sale:,.2f:<11}")
+        sticker_lines.append("")
+        sticker_lines.append("═" * 100)
+        sticker_lines.append("")
 
     # STANDARD FEATURES
     sticker_lines.append("STANDARD EQUIPMENT INCLUDED IN BASE PRICE")
