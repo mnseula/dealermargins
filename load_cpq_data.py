@@ -611,13 +611,13 @@ def main():
             margins_errors = 0
 
         # Get final database statistics
-        cursor.execute("SELECT COUNT(*) FROM Models WHERE active = TRUE")
+        cursor.execute("SELECT COUNT(*) FROM Models")
         total_models = cursor.fetchone()[0]
 
         cursor.execute("SELECT COUNT(*) FROM ModelPricing WHERE end_date IS NULL")
         total_active_pricing = cursor.fetchone()[0]
 
-        cursor.execute("SELECT COUNT(*) FROM Dealers WHERE active = TRUE")
+        cursor.execute("SELECT COUNT(DISTINCT dealer_id) FROM Dealers")
         total_dealers = cursor.fetchone()[0]
 
         cursor.execute("SELECT COUNT(*) FROM DealerMargins WHERE end_date IS NULL")
