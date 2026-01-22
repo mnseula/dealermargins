@@ -19,6 +19,7 @@ from mysql.connector import Error
 from typing import List, Dict, Optional, Set
 from datetime import datetime, date
 from pathlib import Path
+import hashlib
 
 # Suppress insecure request warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -336,9 +337,11 @@ def load_standards_to_db(cursor, series: str, standards_data: List[Dict], all_mo
             if not description:
                 continue
 
-            # Create a feature code (unique identifier) - sanitize for database
-            feature_code = f"{series}_{area}_{description[:50]}"
-            feature_code = feature_code.replace(' ', '_').replace(',', '').replace("'", '').replace('"', '').replace('/', '_')
+            # Create a hash-based feature code (guaranteed unique and within 50 char limit)
+            # Format: series_hash (e.g., "LT_a3f2b1c9e4d5")
+            hash_input = f"{series}_{area}_{description}".encode('utf-8')
+            hash_hex = hashlib.md5(hash_input).hexdigest()[:12]
+            feature_code = f"{series}_{hash_hex}"
 
             # Insert/update standard feature
             cursor.execute(
@@ -357,7 +360,7 @@ def load_standards_to_db(cursor, series: str, standards_data: List[Dict], all_mo
             result = cursor.fetchone()
 
             if not result:
-                print(f"⚠️  Feature not found after insert: {feature_code}")
+                print(f"⚠️  Feature not found after insert: {feature_code} ({description[:40]})")
                 errors += 1
                 continue
 
