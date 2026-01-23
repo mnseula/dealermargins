@@ -135,12 +135,20 @@ mysql -h ben.c0fnidwvz1hv.us-east-1.rds.amazonaws.com -u awsmaster -p warrantypa
 
 ### Generate Window Sticker (SQL)
 ```sql
-CALL GetWindowStickerData('25QXFBWA', 'NICHOLS MARINE - NORMAN');
+CALL GetWindowStickerData('25QXFBWA', 'NICHOLS MARINE - NORMAN', 2025);
+-- Parameters: model_id, dealer_name, year
 -- Returns 4 result sets:
---   1. Model info with pricing
---   2. Performance specifications
---   3. Standard features by area
+--   1. Model info with pricing (filtered by year)
+--   2. Performance specifications (filtered by year)
+--   3. Standard features by area (filtered by year)
 --   4. Included options from sales database
+```
+
+### Generate Window Sticker (Python)
+```bash
+python3 generate_window_sticker.py 25QXFBWA "NICHOLS MARINE - NORMAN" 2025
+# Simple wrapper that calls the GetWindowStickerData stored procedure
+# Usage: python3 generate_window_sticker.py <model_id> <dealer_name> <year>
 ```
 
 ### Calculate Dealer Quote
@@ -193,10 +201,10 @@ Returns accessories for a model from sales database.
 CALL GetIncludedOptions('25QXFBWA');
 ```
 
-### GetWindowStickerData(model_id, dealer_name)
-Returns complete window sticker data (4 result sets).
+### GetWindowStickerData(model_id, dealer_name, year)
+Returns complete window sticker data (4 result sets) for specified year.
 ```sql
-CALL GetWindowStickerData('25QXFBWA', 'NICHOLS MARINE - NORMAN');
+CALL GetWindowStickerData('25QXFBWA', 'NICHOLS MARINE - NORMAN', 2025);
 ```
 
 ### CalculateDealerQuote(model_id, dealer_id, engine_msrp, freight, prep)
