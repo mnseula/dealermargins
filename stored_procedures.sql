@@ -51,10 +51,11 @@ END //
 
 CREATE PROCEDURE GetWindowStickerData(
     IN p_model_id VARCHAR(20),
-    IN p_dealer_name VARCHAR(200)
+    IN p_dealer_name VARCHAR(200),
+    IN p_year INT
 )
 BEGIN
-    -- Result Set 1: Model Information with Current Pricing
+    -- Result Set 1: Model Information with Pricing for Specified Year
     SELECT
         m.model_id,
         m.model_name,
@@ -77,10 +78,12 @@ BEGIN
         NOW() AS generated_date
     FROM Models m
     JOIN Series s ON m.series_id = s.series_id
-    LEFT JOIN ModelPricing p ON m.model_id = p.model_id AND p.end_date IS NULL
+    LEFT JOIN ModelPricing p ON m.model_id = p.model_id
+        AND p.year = p_year
+        AND p.end_date IS NULL
     WHERE m.model_id = p_model_id;
 
-    -- Result Set 2: Performance Specifications
+    -- Result Set 2: Performance Specifications for Specified Year
     SELECT
         mp.perf_package_id,
         pp.package_name,
@@ -99,9 +102,10 @@ BEGIN
     FROM ModelPerformance mp
     JOIN PerformancePackages pp ON mp.perf_package_id = pp.perf_package_id
     WHERE mp.model_id = p_model_id
+      AND mp.year = p_year
     ORDER BY mp.perf_package_id;
 
-    -- Result Set 3: Standard Features (organized by area)
+    -- Result Set 3: Standard Features for Specified Year (organized by area)
     SELECT
         sf.area,
         sf.description,
@@ -109,6 +113,7 @@ BEGIN
     FROM ModelStandardFeatures msf
     JOIN StandardFeatures sf ON msf.feature_id = sf.feature_id
     WHERE msf.model_id = p_model_id
+      AND msf.year = p_year
       AND sf.active = TRUE
     ORDER BY sf.area, sf.sort_order;
 
