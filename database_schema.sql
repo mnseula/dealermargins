@@ -141,7 +141,7 @@ CREATE TABLE ModelPerformance (
     no_of_tubes DECIMAL(3,1),
     person_capacity VARCHAR(50),
     hull_weight DECIMAL(8,1) COMMENT 'in pounds',
-    pontoon_gauge DECIMAL(4,2) COMMENT 'thickness in inches',
+    pontoon_gauge DECIMAL(5,3) COMMENT 'thickness in inches (e.g., 0.125 = 1/8 inch)',
     transom VARCHAR(20) COMMENT 'height in inches',
     tube_height VARCHAR(20),
     tube_center_to_center VARCHAR(20),
