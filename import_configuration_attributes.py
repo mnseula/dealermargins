@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 """
-Import Boat Configuration Attributes from SQL Server to MySQL
+Import Boat Configuration Data from SQL Server to MySQL
 
-Pulls configuration data from SQL Server cfg_attr_mst table including:
-- Performance Package
-- Console, Fuel, Colors, Trim, Furniture, etc.
+STEP 1: Configuration Attributes
+  - Performance Package, Console, Fuel, Colors, Trim, Furniture, etc.
+  - From cfg_attr_mst table
 
-Uses the Uf_BENN_Cfg_Value field to get actual configuration values.
+STEP 2: Line Items with Pricing
+  - Item#, Description, Quantity, Unit Price, Extended Price
+  - From coitem_mst table
+  - Provides pricing data for window sticker
+
+This is the ONLY script you need to run - imports everything!
 """
 import pymssql
 import mysql.connector
@@ -109,36 +114,106 @@ ORDER BY
     attr.attr_name
 """
 
+# SQL Query to extract line items with pricing
+LINE_ITEMS_QUERY = """
+SELECT
+    LEFT(coi.co_num, 30) AS ERP_OrderNo,
+    LEFT(coi.Uf_BENN_BoatSerialNumber, 15) AS BoatSerialNo,
+    LEFT(coi.Uf_BENN_BoatModel, 14) AS BoatModelNo,
+    LEFT(coi.Uf_BENN_BoatWebOrderNumber, 30) AS WebOrderNo,
+    LEFT(im.Uf_BENN_Series, 5) AS Series,
+
+    -- Line item details
+    coi.co_line AS LineNo,
+    LEFT(coi.item, 30) AS ItemNo,
+    LEFT(im.description, 255) AS ItemDescription,
+    LEFT(im.product_code, 10) AS ItemMasterProdCat,
+
+    -- Pricing
+    coi.qty_ordered AS QuantityOrdered,
+    coi.qty_invoiced AS QuantitySold,
+    CAST(coi.price AS DECIMAL(10,2)) AS UnitPrice,
+    CAST((coi.price * coi.qty_ordered) AS DECIMAL(10,2)) AS ExtendedPrice,
+
+    -- Invoice info
+    LEFT(iim.inv_num, 30) AS InvoiceNo,
+    CASE
+        WHEN ah.inv_date IS NOT NULL
+        THEN CONVERT(INT, CONVERT(VARCHAR(8), ah.inv_date, 112))
+        ELSE NULL
+    END AS InvoiceDate
+
+FROM [CSISTG].[dbo].[coitem_mst] coi
+
+-- Join to get item details
+LEFT JOIN [CSISTG].[dbo].[item_mst] im
+    ON coi.item = im.item
+    AND coi.site_ref = im.site_ref
+
+-- Join to get invoice details
+LEFT JOIN [CSISTG].[dbo].[inv_item_mst] iim
+    ON coi.co_num = iim.co_num
+    AND coi.co_line = iim.co_line
+    AND coi.co_release = iim.co_release
+    AND coi.site_ref = iim.site_ref
+
+LEFT JOIN [CSISTG].[dbo].[arinv_mst] ah
+    ON iim.inv_num = ah.inv_num
+    AND iim.site_ref = ah.site_ref
+
+WHERE
+    coi.site_ref = 'BENN'
+    AND coi.config_id IS NOT NULL
+    AND coi.item IS NOT NULL
+    -- Only orders from last 90 days to match configuration data timeframe
+    AND coi.RecordDate >= DATEADD(day, -90, GETDATE())
+    -- Filter for relevant item categories
+    AND im.product_code IN ('ACC', 'BS1', 'L2', 'MTR', 'OA', 'PL', 'DC')
+
+ORDER BY coi.co_num, coi.co_line
+"""
+
 def main():
     print("=" * 80)
-    print("BOAT CONFIGURATION ATTRIBUTES IMPORT")
+    print("BOAT CONFIGURATION & LINE ITEMS IMPORT")
     print("=" * 80)
     print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-    # Step 1: Extract from SQL Server
-    print("\n📊 STEP 1: Extracting from SQL Server...")
-    attributes = extract_from_sql_server()
+    # Step 1: Configuration Attributes
+    print("\n📊 STEP 1: Extracting Configuration Attributes from SQL Server...")
+    attributes = extract_configuration_attributes()
 
     if not attributes:
-        print("❌ No data extracted from SQL Server. Import aborted.")
+        print("❌ No configuration attributes extracted. Import aborted.")
         return
 
     print(f"✅ Extracted {len(attributes):,} configuration attribute records")
 
-    # Step 2: Load to MySQL
-    print("\n💾 STEP 2: Loading to MySQL...")
-    load_to_mysql(attributes)
+    print("\n💾 STEP 2: Loading Configuration Attributes to MySQL...")
+    load_configuration_attributes(attributes)
 
-    # Step 3: Show summary
-    print("\n📋 STEP 3: Import Summary")
+    # Step 3: Line Items with Pricing
+    print("\n📦 STEP 3: Extracting Line Items with Pricing from SQL Server...")
+    line_items = extract_line_items()
+
+    if not line_items:
+        print("⚠️ No line items extracted (this may be normal if no recent orders)")
+    else:
+        print(f"✅ Extracted {len(line_items):,} line item records")
+
+        print("\n💾 STEP 4: Loading Line Items to MySQL...")
+        load_line_items(line_items)
+
+    # Step 5: Show summary
+    print("\n📋 STEP 5: Import Summary")
     show_summary()
 
     print("\n" + "=" * 80)
-    print("✅ IMPORT COMPLETE")
+    print("✅ IMPORT COMPLETE - ALL DATA LOADED")
     print("=" * 80)
     print(f"Completed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-def extract_from_sql_server():
+def extract_configuration_attributes():
     """Extract configuration attributes from SQL Server"""
     attributes = []
 
@@ -174,7 +249,7 @@ def extract_from_sql_server():
         print(f"   ❌ Error: {e}")
         return []
 
-def load_to_mysql(attributes):
+def load_configuration_attributes(attributes):
     """Load attributes to MySQL BoatConfigurationAttributes table"""
 
     try:
@@ -219,6 +294,109 @@ def load_to_mysql(attributes):
                     attr.get('InvoiceDate')
                 )
                 for attr in batch
+            ]
+
+            cursor.executemany(insert_query, values)
+            conn.commit()
+            inserted += len(batch)
+
+            if inserted % 1000 == 0:
+                print(f"      Inserted {inserted:,} records...")
+
+        print(f"   ✅ Inserted {inserted:,} records")
+
+        cursor.close()
+        conn.close()
+
+    except mysql.connector.Error as e:
+        print(f"   ❌ MySQL Error: {e}")
+        raise
+    except Exception as e:
+        print(f"   ❌ Error: {e}")
+        raise
+
+def extract_line_items():
+    """Extract line items with pricing from SQL Server"""
+    line_items = []
+
+    try:
+        print(f"   Connecting to {SQL_SERVER}...")
+        conn = pymssql.connect(
+            server=SQL_SERVER,
+            database=SQL_DATABASE,
+            user=SQL_USERNAME,
+            password=SQL_PASSWORD,
+            timeout=120,
+            login_timeout=60
+        )
+
+        cursor = conn.cursor(as_dict=True)
+        print("   ✅ Connected to SQL Server")
+
+        print("   Executing query...")
+        print("   (This may take a few minutes...)")
+        cursor.execute(LINE_ITEMS_QUERY)
+
+        print("   Fetching results...")
+        line_items = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        return line_items
+
+    except pymssql.Error as e:
+        print(f"   ❌ SQL Server Error: {e}")
+        return []
+    except Exception as e:
+        print(f"   ❌ Error: {e}")
+        return []
+
+def load_line_items(line_items):
+    """Load line items to MySQL BoatOptions25_test table"""
+
+    try:
+        print("   Connecting to MySQL...")
+        conn = mysql.connector.connect(**MYSQL_CONFIG)
+        cursor = conn.cursor()
+        print("   ✅ Connected to MySQL")
+
+        # Insert new data (add to existing, don't truncate)
+        print(f"   Inserting {len(line_items):,} records...")
+
+        insert_query = """
+            INSERT INTO BoatOptions25_test
+            (ERP_OrderNo, BoatSerialNo, BoatModelNo, WebOrderNo, Series,
+             LineNo, ItemNo, ItemDesc1, ItemMasterProdCat,
+             QuantitySold, ExtSalesAmount, InvoiceNo, InvoiceDate)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+            QuantitySold = VALUES(QuantitySold),
+            ExtSalesAmount = VALUES(ExtSalesAmount)
+        """
+
+        batch_size = 1000
+        inserted = 0
+
+        for i in range(0, len(line_items), batch_size):
+            batch = line_items[i:i+batch_size]
+            values = [
+                (
+                    item.get('ERP_OrderNo'),
+                    item.get('BoatSerialNo'),
+                    item.get('BoatModelNo'),
+                    item.get('WebOrderNo'),
+                    item.get('Series'),
+                    item.get('LineNo'),
+                    item.get('ItemNo'),
+                    item.get('ItemDescription'),
+                    item.get('ItemMasterProdCat'),
+                    item.get('QuantitySold'),
+                    item.get('ExtendedPrice'),
+                    item.get('InvoiceNo'),
+                    item.get('InvoiceDate')
+                )
+                for item in batch
             ]
 
             cursor.executemany(insert_query, values)
@@ -287,6 +465,59 @@ def show_summary():
 
             for row in cursor.fetchall():
                 print(f"      {row[0]:<40} {row[1]:>6,} boats")
+
+        # Line Items Summary
+        print("\n" + "=" * 80)
+        print("LINE ITEMS SUMMARY")
+        print("=" * 80)
+
+        cursor.execute("SELECT COUNT(*) FROM BoatOptions25_test WHERE ERP_OrderNo IS NOT NULL")
+        line_item_count = cursor.fetchone()[0]
+        print(f"\n   Total line items: {line_item_count:,}")
+
+        if line_item_count > 0:
+            # Count by product category
+            print("\n   Line Items by Category:")
+            cursor.execute("""
+                SELECT ItemMasterProdCat, COUNT(*) as count
+                FROM BoatOptions25_test
+                WHERE ERP_OrderNo IS NOT NULL
+                GROUP BY ItemMasterProdCat
+                ORDER BY count DESC
+            """)
+
+            for row in cursor.fetchall():
+                cat = row[0] if row[0] else 'NULL'
+                print(f"      {cat:<15} {row[1]:>6,} items")
+
+            # Check for specific order
+            cursor.execute("""
+                SELECT COUNT(*) FROM BoatOptions25_test
+                WHERE ERP_OrderNo = 'SO00935977'
+            """)
+            test_order_count = cursor.fetchone()[0]
+
+            if test_order_count > 0:
+                print(f"\n   ✅ Order SO00935977: {test_order_count} line items")
+
+                # Show accessory items with pricing
+                cursor.execute("""
+                    SELECT ItemNo, ItemDesc1, QuantitySold, ExtSalesAmount
+                    FROM BoatOptions25_test
+                    WHERE ERP_OrderNo = 'SO00935977'
+                      AND ItemMasterProdCat = 'ACC'
+                    LIMIT 5
+                """)
+
+                acc_items = cursor.fetchall()
+                if acc_items:
+                    print("\n   Sample accessory items with pricing:")
+                    for item in acc_items:
+                        item_no = item[0] if item[0] else 'N/A'
+                        desc = item[1][:40] if item[1] else 'N/A'
+                        qty = item[2] if item[2] else 0
+                        price = item[3] if item[3] else 0
+                        print(f"      {item_no:<15} {desc:<40} Qty: {qty:>3.0f}  Price: ${price:>10,.2f}")
 
         cursor.close()
         conn.close()
