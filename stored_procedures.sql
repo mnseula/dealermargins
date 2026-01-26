@@ -51,7 +51,7 @@ END //
 
 CREATE PROCEDURE GetWindowStickerData(
     IN p_model_id VARCHAR(20),
-    IN p_dealer_name VARCHAR(200),
+    IN p_dealer_id VARCHAR(20),
     IN p_year INT
 )
 BEGIN
@@ -74,13 +74,17 @@ BEGIN
         p.msrp,
         p.year,
         p.effective_date,
-        p_dealer_name AS dealer_name,
+        d.dealer_id,
+        d.dealer_name,
+        d.city,
+        d.state,
         NOW() AS generated_date
     FROM Models m
     JOIN Series s ON m.series_id = s.series_id
     LEFT JOIN ModelPricing p ON m.model_id = p.model_id
         AND p.year = p_year
         AND p.end_date IS NULL
+    LEFT JOIN Dealers d ON d.dealer_id = p_dealer_id
     WHERE m.model_id = p_model_id;
 
     -- Result Set 2: Performance Specifications for Specified Year
@@ -325,7 +329,7 @@ DELIMITER ;
 CALL GetIncludedOptions('25QXFBWA');
 
 -- 2. Get complete window sticker data
-CALL GetWindowStickerData('25QXFBWA', 'NICHOLS MARINE - NORMAN');
+CALL GetWindowStickerData('25QXFBWA', '00333836', 2025);
 
 -- 3. Calculate dealer quote with margins
 CALL CalculateDealerQuote(
