@@ -2,13 +2,18 @@
 """
 Simple Window Sticker Generator - SQL-Driven
 
-Calls the GetWindowStickerData stored procedure with dealer name, boat model, and year.
+Calls the GetWindowStickerData stored procedure with dealer name, boat model, year, and optional identifier.
 
 Usage:
-    python3 generate_window_sticker.py <model_id> <dealer_name> <year>
+    python3 generate_window_sticker.py <model_id> <dealer_name> <year> [identifier]
 
-Example:
+    identifier (optional): HIN (Hull ID Number) or Sales Order Number
+        - If provided: shows only the configured performance package for that specific boat
+        - If omitted: shows all available performance packages
+
+Examples:
     python3 generate_window_sticker.py 25QXFBWA "NICHOLS MARINE - NORMAN" 2025
+    python3 generate_window_sticker.py 25QXFBWA "NICHOLS MARINE - NORMAN" 2025 SO00935977
 """
 import sys
 import mysql.connector
@@ -27,23 +32,23 @@ def format_currency(amount):
         return "N/A"
     return f"${amount:,.2f}"
 
-def generate_window_sticker(model_id, dealer_name, year):
+def generate_window_sticker(model_id, dealer_name, year, identifier=None):
     """Generate window sticker by calling GetWindowStickerData stored procedure"""
 
     connection = mysql.connector.connect(**DB_CONFIG)
     cursor = connection.cursor()
 
     try:
-        # Call the stored procedure with year parameter
-        cursor.callproc('GetWindowStickerData', [model_id, dealer_name, year])
+        # Call the stored procedure with year and optional identifier parameter
+        cursor.callproc('GetWindowStickerData', [model_id, dealer_name, year, identifier])
 
         # Fetch all result sets
         results = []
         for result in cursor.stored_results():
             results.append(result.fetchall())
 
-        if len(results) < 4:
-            print(f"❌ Error: Expected 4 result sets, got {len(results)}")
+        if len(results) < 5:
+            print(f"❌ Error: Expected 5 result sets, got {len(results)}")
             return
 
         # Result Set 1: Model Information
@@ -163,17 +168,19 @@ def generate_window_sticker(model_id, dealer_name, year):
         connection.close()
 
 def main():
-    if len(sys.argv) != 4:
-        print("Usage: python3 generate_window_sticker.py <model_id> <dealer_name> <year>")
-        print("\nExample:")
+    if len(sys.argv) < 4 or len(sys.argv) > 5:
+        print("Usage: python3 generate_window_sticker.py <model_id> <dealer_name> <year> [identifier]")
+        print("\nExamples:")
         print('  python3 generate_window_sticker.py 25QXFBWA "NICHOLS MARINE - NORMAN" 2025')
+        print('  python3 generate_window_sticker.py 25QXFBWA "NICHOLS MARINE - NORMAN" 2025 SO00935977')
         sys.exit(1)
 
     model_id = sys.argv[1]
     dealer_name = sys.argv[2]
     year = int(sys.argv[3])
+    identifier = sys.argv[4] if len(sys.argv) == 5 else None
 
-    generate_window_sticker(model_id, dealer_name, year)
+    generate_window_sticker(model_id, dealer_name, year, identifier)
 
 if __name__ == '__main__':
     main()
