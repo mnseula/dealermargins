@@ -43,16 +43,22 @@ END //
 -- Procedure: GetWindowStickerData
 -- ============================================================================
 -- Gets complete window sticker data for a model
+-- Parameters:
+--   p_model_id: Model ID (e.g., '25QXFBWA')
+--   p_dealer_id: Dealer ID (e.g., '00333836')
+--   p_year: Model year (e.g., 2025)
+--   p_identifier: Optional HIN or Order Number to filter specific boat (NULL for all)
 -- Returns multiple result sets:
 --   1. Model basic info with pricing
---   2. Performance specifications
+--   2. Performance specifications (filtered by identifier if provided)
 --   3. Standard features by area
---   4. Included options from sales database
+--   4. Included options from sales database (filtered by identifier if provided)
 
 CREATE PROCEDURE GetWindowStickerData(
     IN p_model_id VARCHAR(20),
     IN p_dealer_id VARCHAR(20),
-    IN p_year INT
+    IN p_year INT,
+    IN p_identifier VARCHAR(30)
 )
 BEGIN
     -- Result Set 1: Model Information with Pricing for Specified Year
@@ -88,6 +94,7 @@ BEGIN
     WHERE m.model_id = p_model_id;
 
     -- Result Set 2: Performance Specifications for Specified Year
+    -- If identifier provided, filter to configured package for that boat
     SELECT
         mp.perf_package_id,
         pp.package_name,
@@ -107,6 +114,16 @@ BEGIN
     JOIN PerformancePackages pp ON mp.perf_package_id = pp.perf_package_id
     WHERE mp.model_id = p_model_id
       AND mp.year = p_year
+      AND (
+          p_identifier IS NULL
+          OR mp.perf_package_id = (
+              SELECT attr_value
+              FROM BoatConfigurationAttributes
+              WHERE (boat_serial_no = p_identifier OR erp_order_no = p_identifier)
+                AND attr_name = 'PerformancePackage'
+              LIMIT 1
+          )
+      )
     ORDER BY mp.perf_package_id;
 
     -- Result Set 3: Standard Features for Specified Year (organized by area)
@@ -122,6 +139,7 @@ BEGIN
     ORDER BY sf.area, sf.sort_order;
 
     -- Result Set 4: Included Options from Sales Database (read-only)
+    -- If identifier provided, filter to that specific boat
     SELECT DISTINCT
         ItemNo,
         ItemDesc1 AS ItemDescription,
@@ -133,6 +151,11 @@ BEGIN
       AND ItemMasterProdCat = 'ACC'
       AND ItemNo IS NOT NULL
       AND ItemNo != ''
+      AND (
+          p_identifier IS NULL
+          OR BoatSerialNo = p_identifier
+          OR ERP_OrderNo = p_identifier
+      )
     ORDER BY ItemDesc1;
 END //
 
@@ -328,8 +351,11 @@ DELIMITER ;
 -- 1. Get included options for a model
 CALL GetIncludedOptions('25QXFBWA');
 
--- 2. Get complete window sticker data
-CALL GetWindowStickerData('25QXFBWA', '00333836', 2025);
+-- 2. Get complete window sticker data (all performance packages)
+CALL GetWindowStickerData('25QXFBWA', '00333836', 2025, NULL);
+
+-- 2b. Get window sticker for specific boat by order number
+CALL GetWindowStickerData('25QXFBWA', '00333836', 2025, 'SO00935977');
 
 -- 3. Calculate dealer quote with margins
 CALL CalculateDealerQuote(
