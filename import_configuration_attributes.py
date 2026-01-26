@@ -6,7 +6,7 @@ Pulls configuration data from SQL Server cfg_attr_mst table including:
 - Performance Package
 - Console, Fuel, Colors, Trim, Furniture, etc.
 
-Uses the cfgaUf_BENN_Cfg_Value field to get actual configuration values.
+Uses the Uf_BENN_Cfg_Value field to get actual configuration values.
 """
 import pymssql
 import mysql.connector
@@ -38,7 +38,7 @@ SELECT
     -- Attribute details
     LEFT(attr.attr_name, 100) AS AttrName,
     LEFT(attr.attr_value, 255) AS AttrValue,
-    LEFT(attr.cfgaUf_BENN_Cfg_Value, 255) AS CfgValue,
+    LEFT(attr.Uf_BENN_Cfg_Value, 255) AS CfgValue,
     LEFT(attr.comp_id, 50) AS CompID,
 
     -- Boat metadata
