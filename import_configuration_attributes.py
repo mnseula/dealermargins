@@ -122,20 +122,14 @@ SELECT
     LEFT(coi.Uf_BENN_BoatModel, 14) AS BoatModelNo,
     LEFT(coi.Uf_BENN_BoatWebOrderNumber, 30) AS WebOrderNo,
     LEFT(im.Uf_BENN_Series, 5) AS Series,
-
-    -- Line item details
-    coi.co_line AS LineNo,
+    coi.co_line AS Line_Number,
     LEFT(coi.item, 30) AS ItemNo,
     LEFT(im.description, 255) AS ItemDescription,
     LEFT(im.product_code, 10) AS ItemMasterProdCat,
-
-    -- Pricing
     coi.qty_ordered AS QuantityOrdered,
     coi.qty_invoiced AS QuantitySold,
     CAST(coi.price AS DECIMAL(10,2)) AS UnitPrice,
     CAST((coi.price * coi.qty_ordered) AS DECIMAL(10,2)) AS ExtendedPrice,
-
-    -- Invoice info
     LEFT(iim.inv_num, 30) AS InvoiceNo,
     CASE
         WHEN ah.inv_date IS NOT NULL
@@ -387,7 +381,7 @@ def load_line_items(line_items):
                     item.get('BoatModelNo'),
                     item.get('WebOrderNo'),
                     item.get('Series'),
-                    item.get('LineNo'),
+                    item.get('Line_Number'),
                     item.get('ItemNo'),
                     item.get('ItemDescription'),
                     item.get('ItemMasterProdCat'),
