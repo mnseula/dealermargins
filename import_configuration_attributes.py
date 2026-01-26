@@ -82,6 +82,9 @@ WHERE
     coi.config_id IS NOT NULL
     AND coi.site_ref = 'BENN'
     AND attr.attr_name IS NOT NULL
+    -- Only shipped boats with serial numbers
+    AND coi.Uf_BENN_BoatSerialNumber IS NOT NULL
+    AND coi.Uf_BENN_BoatSerialNumber != ''
     -- Focus on key configuration attributes
     AND attr.attr_name IN (
         'Performance Package',
@@ -156,7 +159,10 @@ LEFT JOIN [CSISTG].[dbo].[arinv_mst] ah
 WHERE
     coi.site_ref = 'BENN'
     AND coi.item IS NOT NULL
-    AND im.product_code IN ('ACC', 'BS1', 'L2', 'MTR', 'OA', 'PL', 'DC')
+    -- Only shipped boats with serial numbers
+    AND coi.Uf_BENN_BoatSerialNumber IS NOT NULL
+    AND coi.Uf_BENN_BoatSerialNumber != ''
+    AND im.product_code IN ('ACC', 'BS1', 'L2', 'MTR', 'OA', 'PL', 'DC', 'ENG', 'ENI')
     AND coi.co_num IN ({order_list})
 
 ORDER BY coi.co_num, coi.co_line

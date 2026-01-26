@@ -31,59 +31,21 @@ SELECT
     LEFT(coi.Uf_BENN_BoatModel, 14) AS BoatModelNo,
     LEFT(coi.Uf_BENN_BoatWebOrderNumber, 30) AS WebOrderNo,
     LEFT(im.Uf_BENN_Series, 5) AS Series,
-
-    -- Line item details
     coi.co_line AS LineNo,
     LEFT(coi.item, 30) AS ItemNo,
     LEFT(im.description, 255) AS ItemDescription,
     LEFT(im.product_code, 10) AS ItemMasterProdCat,
-
-    -- Pricing
     coi.qty_ordered AS QuantityOrdered,
     coi.qty_invoiced AS QuantitySold,
     CAST(coi.price AS DECIMAL(10,2)) AS UnitPrice,
     CAST((coi.price * coi.qty_ordered) AS DECIMAL(10,2)) AS ExtendedPrice,
-
-    -- Invoice info
     LEFT(iim.inv_num, 30) AS InvoiceNo,
-    CASE
-        WHEN ah.inv_date IS NOT NULL
-        THEN CONVERT(INT, CONVERT(VARCHAR(8), ah.inv_date, 112))
-        ELSE NULL
-    END AS InvoiceDate
-
+    CASE WHEN ah.inv_date IS NOT NULL THEN CONVERT(INT, CONVERT(VARCHAR(8), ah.inv_date, 112)) ELSE NULL END AS InvoiceDate
 FROM [CSISTG].[dbo].[coitem_mst] coi
-
--- Join to get item details
-LEFT JOIN [CSISTG].[dbo].[item_mst] im
-    ON coi.item = im.item
-    AND coi.site_ref = im.site_ref
-
--- Join to get invoice details
-LEFT JOIN [CSISTG].[dbo].[inv_item_mst] iim
-    ON coi.co_num = iim.co_num
-    AND coi.co_line = iim.co_line
-    AND coi.co_release = iim.co_release
-    AND coi.site_ref = iim.site_ref
-
-LEFT JOIN [CSISTG].[dbo].[arinv_mst] ah
-    ON iim.inv_num = ah.inv_num
-    AND iim.site_ref = ah.site_ref
-
-WHERE
-    coi.site_ref = 'BENN'
-    AND coi.co_num IN (
-        -- Only import orders that exist in our BoatConfigurationAttributes
-        SELECT DISTINCT erp_order_no
-        FROM OPENQUERY(
-            [MYSQL_LINK],
-            'SELECT DISTINCT erp_order_no FROM warrantyparts_test.BoatConfigurationAttributes WHERE erp_order_no IS NOT NULL'
-        )
-    )
-    AND coi.item IS NOT NULL
-    -- Filter for relevant item categories
-    AND im.product_code IN ('ACC', 'BS1', 'L2', 'MTR', 'OA', 'PL', 'DC')
-
+LEFT JOIN [CSISTG].[dbo].[item_mst] im ON coi.item = im.item AND coi.site_ref = im.site_ref
+LEFT JOIN [CSISTG].[dbo].[inv_item_mst] iim ON coi.co_num = iim.co_num AND coi.co_line = iim.co_line AND coi.co_release = iim.co_release AND coi.site_ref = iim.site_ref
+LEFT JOIN [CSISTG].[dbo].[arinv_mst] ah ON iim.inv_num = ah.inv_num AND iim.site_ref = ah.site_ref
+WHERE coi.site_ref = 'BENN' AND coi.Uf_BENN_BoatSerialNumber IS NOT NULL AND coi.Uf_BENN_BoatSerialNumber != '' AND coi.co_num IN (SELECT DISTINCT erp_order_no FROM OPENQUERY([MYSQL_LINK], 'SELECT DISTINCT erp_order_no FROM warrantyparts_test.BoatConfigurationAttributes WHERE erp_order_no IS NOT NULL')) AND coi.item IS NOT NULL AND im.product_code IN ('ACC', 'BS1', 'L2', 'MTR', 'OA', 'PL', 'DC', 'ENG', 'ENI')
 ORDER BY coi.co_num, coi.co_line
 """
 
@@ -95,52 +57,21 @@ SELECT
     LEFT(coi.Uf_BENN_BoatModel, 14) AS BoatModelNo,
     LEFT(coi.Uf_BENN_BoatWebOrderNumber, 30) AS WebOrderNo,
     LEFT(im.Uf_BENN_Series, 5) AS Series,
-
-    -- Line item details
     coi.co_line AS LineNo,
     LEFT(coi.item, 30) AS ItemNo,
     LEFT(im.description, 255) AS ItemDescription,
     LEFT(im.product_code, 10) AS ItemMasterProdCat,
-
-    -- Pricing
     coi.qty_ordered AS QuantityOrdered,
     coi.qty_invoiced AS QuantitySold,
     CAST(coi.price AS DECIMAL(10,2)) AS UnitPrice,
     CAST((coi.price * coi.qty_ordered) AS DECIMAL(10,2)) AS ExtendedPrice,
-
-    -- Invoice info
     LEFT(iim.inv_num, 30) AS InvoiceNo,
-    CASE
-        WHEN ah.inv_date IS NOT NULL
-        THEN CONVERT(INT, CONVERT(VARCHAR(8), ah.inv_date, 112))
-        ELSE NULL
-    END AS InvoiceDate
-
+    CASE WHEN ah.inv_date IS NOT NULL THEN CONVERT(INT, CONVERT(VARCHAR(8), ah.inv_date, 112)) ELSE NULL END AS InvoiceDate
 FROM [CSISTG].[dbo].[coitem_mst] coi
-
--- Join to get item details
-LEFT JOIN [CSISTG].[dbo].[item_mst] im
-    ON coi.item = im.item
-    AND coi.site_ref = im.site_ref
-
--- Join to get invoice details
-LEFT JOIN [CSISTG].[dbo].[inv_item_mst] iim
-    ON coi.co_num = iim.co_num
-    AND coi.co_line = iim.co_line
-    AND coi.co_release = iim.co_release
-    AND coi.site_ref = iim.site_ref
-
-LEFT JOIN [CSISTG].[dbo].[arinv_mst] ah
-    ON iim.inv_num = ah.inv_num
-    AND iim.site_ref = ah.site_ref
-
-WHERE
-    coi.site_ref = 'BENN'
-    AND coi.config_id IS NOT NULL
-    AND coi.item IS NOT NULL
-    -- Only orders from last 90 days to match configuration data timeframe
-    AND coi.RecordDate >= DATEADD(day, -90, GETDATE())
-
+LEFT JOIN [CSISTG].[dbo].[item_mst] im ON coi.item = im.item AND coi.site_ref = im.site_ref
+LEFT JOIN [CSISTG].[dbo].[inv_item_mst] iim ON coi.co_num = iim.co_num AND coi.co_line = iim.co_line AND coi.co_release = iim.co_release AND coi.site_ref = iim.site_ref
+LEFT JOIN [CSISTG].[dbo].[arinv_mst] ah ON iim.inv_num = ah.inv_num AND iim.site_ref = ah.site_ref
+WHERE coi.site_ref = 'BENN' AND coi.config_id IS NOT NULL AND coi.Uf_BENN_BoatSerialNumber IS NOT NULL AND coi.Uf_BENN_BoatSerialNumber != '' AND coi.item IS NOT NULL AND im.product_code IN ('ACC', 'BS1', 'L2', 'MTR', 'OA', 'PL', 'DC', 'ENG', 'ENI') AND coi.RecordDate >= DATEADD(day, -90, GETDATE())
 ORDER BY coi.co_num, coi.co_line
 """
 
