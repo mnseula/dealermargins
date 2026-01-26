@@ -114,8 +114,8 @@ ORDER BY
     attr.attr_name
 """
 
-# SQL Query to extract line items with pricing
-LINE_ITEMS_QUERY = """
+# This will be built dynamically with order numbers from BoatConfigurationAttributes
+LINE_ITEMS_QUERY_TEMPLATE = """
 SELECT
     LEFT(coi.co_num, 30) AS ERP_OrderNo,
     LEFT(coi.Uf_BENN_BoatSerialNumber, 15) AS BoatSerialNo,
@@ -139,12 +139,10 @@ SELECT
 
 FROM [CSISTG].[dbo].[coitem_mst] coi
 
--- Join to get item details
 LEFT JOIN [CSISTG].[dbo].[item_mst] im
     ON coi.item = im.item
     AND coi.site_ref = im.site_ref
 
--- Join to get invoice details
 LEFT JOIN [CSISTG].[dbo].[inv_item_mst] iim
     ON coi.co_num = iim.co_num
     AND coi.co_line = iim.co_line
@@ -157,12 +155,9 @@ LEFT JOIN [CSISTG].[dbo].[arinv_mst] ah
 
 WHERE
     coi.site_ref = 'BENN'
-    AND coi.config_id IS NOT NULL
     AND coi.item IS NOT NULL
-    -- Only orders from last 90 days to match configuration data timeframe
-    AND coi.RecordDate >= DATEADD(day, -90, GETDATE())
-    -- Filter for relevant item categories
     AND im.product_code IN ('ACC', 'BS1', 'L2', 'MTR', 'OA', 'PL', 'DC')
+    AND coi.co_num IN ({order_list})
 
 ORDER BY coi.co_num, coi.co_line
 """
@@ -314,6 +309,35 @@ def extract_line_items():
     line_items = []
 
     try:
+        # First, get the list of order numbers from MySQL
+        print("   Getting order list from BoatConfigurationAttributes...")
+        mysql_conn = mysql.connector.connect(**MYSQL_CONFIG)
+        mysql_cursor = mysql_conn.cursor()
+
+        mysql_cursor.execute("""
+            SELECT DISTINCT erp_order_no
+            FROM BoatConfigurationAttributes
+            WHERE erp_order_no IS NOT NULL
+            AND erp_order_no != ''
+        """)
+
+        order_numbers = [row[0] for row in mysql_cursor.fetchall()]
+        mysql_cursor.close()
+        mysql_conn.close()
+
+        if not order_numbers:
+            print("   ⚠️ No order numbers found in BoatConfigurationAttributes")
+            return []
+
+        print(f"   Found {len(order_numbers)} orders to query")
+
+        # Build the IN clause with quoted order numbers
+        order_list = ','.join([f"'{order}'" for order in order_numbers])
+
+        # Build the final query
+        line_items_query = LINE_ITEMS_QUERY_TEMPLATE.format(order_list=order_list)
+
+        # Connect to SQL Server
         print(f"   Connecting to {SQL_SERVER}...")
         conn = pymssql.connect(
             server=SQL_SERVER,
@@ -329,7 +353,7 @@ def extract_line_items():
 
         print("   Executing query...")
         print("   (This may take a few minutes...)")
-        cursor.execute(LINE_ITEMS_QUERY)
+        cursor.execute(line_items_query)
 
         print("   Fetching results...")
         line_items = cursor.fetchall()
