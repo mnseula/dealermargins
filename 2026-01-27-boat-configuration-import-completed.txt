@@ -1,0 +1,234 @@
+================================================================================
+BOAT CONFIGURATION IMPORT - SESSION SUMMARY
+Date: 2026-01-27
+================================================================================
+
+PROJECT GOAL:
+Generate window stickers for specific boats by HIN (Hull Identification Number)
+Example: HIN ETWP5175I324 (2024 20SVSR) at dealer NICHOLS MARINE - NORMAN
+
+================================================================================
+WHAT WAS ACCOMPLISHED
+================================================================================
+
+✅ CONFIGURATION ATTRIBUTES IMPORTED (User ran on their machine)
+   - Script: import_configuration_attributes.py
+   - Records imported: 2,323 configuration attributes
+   - Boats covered: 105 unique boats
+   - Attributes imported (23 types):
+     * Performance Package (105 records)
+     * Colors: Canvas Color, BASE VINYL, Exterior Color Packages
+     * Console options (105 records)
+     * Fuel (105 records)
+     * Furniture: Captain's Chairs, Co-Captain's Chairs, FURNITURE UPGRADE
+     * Tables: Bow and Aft
+     * Trim Accents, FLOORING
+     * Steering Wheels, Lifting Strakes
+     * Bimini: Bow Bimini Tops, Aft Bimini Tops, Bimini Cable Stays
+     * Arch (32 records)
+     * Electronics: Main Display, Additional Display, Rockford Fosgate Stereo
+     * Saltwater Package
+
+✅ EXISTING LINE ITEMS DATA AVAILABLE
+   - Total records: 323,272 line items
+   - Unique boats: 19,113
+   - Categories: ACC (56,441), C2, W1, ASY, and 150+ other categories
+   - Note: No NEW line items from the 104 recent orders (may not be shipped yet)
+   - But we have plenty of historical accessory/option data
+
+✅ DATABASE STATUS
+   - BoatConfigurationAttributes: 2,323 records loaded
+   - BoatOptions25_test: 323,272 records (existing data)
+   - Models: 283 models from CPQ API
+   - ModelStandardFeatures: 33,974 features from CPQ API
+   - ModelPerformance: 2,146 performance specs from CPQ API
+
+================================================================================
+NEXT STEPS - CRITICAL
+================================================================================
+
+1. ⏭️ VERIFY HINs ARE POPULATED
+
+   The import script ran successfully, but we need to verify that the
+   boat_serial_no (HIN) field is actually populated in the configuration data.
+
+   Run this command to check:
+
+   ```bash
+   python -c "import mysql.connector; conn = mysql.connector.connect(host='ben.c0fnidwvz1hv.us-east-1.rds.amazonaws.com', user='awsmaster', password='VWvHG9vfG23g7gD', database='warrantyparts_test'); cursor = conn.cursor(); cursor.execute('SELECT boat_serial_no, boat_model_no, COUNT(*) as attrs FROM BoatConfigurationAttributes WHERE boat_serial_no IS NOT NULL AND boat_serial_no != \"\" GROUP BY boat_serial_no, boat_model_no LIMIT 10'); results = cursor.fetchall(); print('Boats with HINs:'); [print(f\"  HIN: {row[0]:<20} Model: {row[1]:<15} Attrs: {row[2]:>3}\") for row in results]; cursor.close(); conn.close()"
+   ```
+
+   EXPECTED: Should show 10+ boats with actual HIN values
+
+   IF HINs ARE NULL: We need to investigate why the SQL Server query didn't
+   capture the Uf_BENN_BoatSerialNumber field
+
+2. ⏭️ SEARCH FOR THE EXAMPLE BOAT
+
+   Once HINs are verified, search for the specific boat from the example:
+   - HIN: ETWP5175I324
+   - Model: 2024 20SVSR
+   - Dealer: NICHOLS MARINE - NORMAN
+
+   ```bash
+   python -c "import mysql.connector; conn = mysql.connector.connect(host='ben.c0fnidwvz1hv.us-east-1.rds.amazonaws.com', user='awsmaster', password='VWvHG9vfG23g7gD', database='warrantyparts_test'); cursor = conn.cursor(); cursor.execute('SELECT * FROM BoatConfigurationAttributes WHERE boat_serial_no = \"ETWP5175I324\"'); results = cursor.fetchall(); print(f'Found {len(results)} attributes for HIN ETWP5175I324'); cursor.close(); conn.close()"
+   ```
+
+3. ⏭️ CREATE WINDOW STICKER STORED PROCEDURE
+
+   Once we confirm HINs are populated, create a new stored procedure:
+
+   ```sql
+   CALL GetWindowStickerByHIN('ETWP5175I324', 'NICHOLS MARINE - NORMAN');
+   ```
+
+   This procedure will combine:
+   - Generic model data (from Models, ModelStandardFeatures, ModelPerformance)
+   - Specific boat configuration (from BoatConfigurationAttributes)
+   - Included options (from BoatOptions25_test)
+   - Dealer information (from Dealers)
+
+   Returns the complete window sticker data in the format shown in the example.
+
+4. ⏭️ TEST WINDOW STICKER GENERATION
+
+   Generate the window sticker for HIN ETWP5175I324 and verify it matches
+   the example output provided by the user.
+
+================================================================================
+DATA FLOW ARCHITECTURE
+================================================================================
+
+Window Sticker = Generic Model Data + Specific Boat Configuration
+
+GENERIC MODEL DATA (same for all boats of a model):
+├─ Models table (CPQ API) - Model name, description, length, beam, seats
+├─ ModelStandardFeatures table (CPQ API) - Standard features by area
+└─ ModelPerformance table (CPQ API) - Performance specs by package
+
+SPECIFIC BOAT CONFIGURATION (unique per HIN):
+├─ BoatConfigurationAttributes - Performance package, colors, console, fuel
+└─ BoatOptions25_test - Included options, item numbers, descriptions, pricing
+
+DEALER DATA:
+└─ Dealers table - Dealer name, contact info
+
+================================================================================
+EXAMPLE WINDOW STICKER OUTPUT (User Provided)
+================================================================================
+
+Dealer: NICHOLS MARINE - NORMAN
+HIN: ETWP5175I324
+Model: 2024 20SVSR
+
+BOAT SPECS:
+- Series: S
+- Length: 22'-3" LOA
+- Beam: 8'-6"
+- Seats: 12
+- Max HP: 150 HP
+
+PERFORMANCE PACKAGE:
+- 25" Tubes (20" transom)
+- Max HP: 150 HP
+- Tubes: 2
+- Weight Capacity: 1,950 lbs
+
+STANDARD FEATURES:
+[Grouped by area: Hull, Deck, Furniture, etc.]
+
+INCLUDED OPTIONS:
+- PANEL COLOR ANTHRACITE (908158)
+- ACC PNL NO ACCENT (902917)
+- CANVAS MIDNIGHT BLACK (902802)
+- ECHOMAP YAM MECH KD PHONE MT (901323) - $750.00
+- etc.
+
+================================================================================
+KEY FILES
+================================================================================
+
+IMPORT SCRIPTS:
+- import_configuration_attributes.py - Main import script (RAN SUCCESSFULLY)
+- import_line_items.py - Older script (has SQL syntax error, DON'T USE)
+
+DATABASE SCHEMA:
+- database_schema.sql - CPQ tables (Models, Features, Performance)
+- dealer_margins_schema.sql - Dealers and margins
+- stored_procedures.sql - Existing procedures (needs window sticker procedure)
+
+DATABASE CONFIG:
+- db_config.py - MySQL connection settings
+
+================================================================================
+DATABASE CREDENTIALS
+================================================================================
+
+MySQL RDS:
+Host:     ben.c0fnidwvz1hv.us-east-1.rds.amazonaws.com
+User:     awsmaster
+Password: VWvHG9vfG23g7gD
+Database: warrantyparts_test
+
+SQL Server (for imports):
+Server:   MPL1STGSQL086.POLARISSTAGE.COM
+Database: CSISTG
+User:     svccsimarine
+Password: CNKmoFxEsXs0D9egZQXH
+
+================================================================================
+TECHNICAL NOTES
+================================================================================
+
+- SQL Server is only accessible from internal network (user's machine)
+- Claude's machine cannot access SQL Server (DNS resolution fails)
+- Import scripts must be run on user's machine
+- Window sticker generation will be done via MySQL stored procedures
+- User's directive: "don't worry about the margins for now" - focus on sticker data
+
+================================================================================
+KNOWN ISSUES / BLOCKERS
+================================================================================
+
+1. ⚠️ HIN POPULATION UNKNOWN
+   - Import script ran successfully (2,323 records)
+   - But we don't know if boat_serial_no field is populated
+   - Previous check showed boat_serial_no was NULL in older data
+   - MUST VERIFY in next session
+
+2. ⚠️ MODEL NAME MAPPING
+   - User's example: "2024 20SVSR"
+   - Database models: "20SVSRSR", "20SVSSR", "20SVSR-SPSSR", etc.
+   - May need to map model variations to find the right boat
+
+3. ⚠️ NO NEW LINE ITEMS
+   - Import found 104 orders but extracted 0 line items
+   - Orders may not be shipped yet (config_id exists but no invoice)
+   - Existing 323,272 line items should be sufficient for testing
+
+================================================================================
+SAMPLE PERFORMANCE PACKAGES (From Import)
+================================================================================
+
+25" Tubes (20" transom)                   48 boats
+SPS Performance Package (25" transom)     33 boats
+ESP Performance Package (25" transom)      9 boats
+23" Tubes (20" transom)                    6 boats
+SPS+ Performance Package (25" transom)     2 boats
+Triple ESP (Triple 32" Elliptical Tubes)   2 boats
+32" Elliptical Tubes (20" transom)         1 boat
+ESP+ Performance Package (25" transom)     1 boat
+SPS Performance Package (20" transom)      1 boat
+Twin Engine ESP+ (Twin 25" transom)        1 boat
+
+================================================================================
+END OF SESSION SUMMARY
+================================================================================
+
+Resume next time by:
+1. Verifying HINs are populated in BoatConfigurationAttributes
+2. Searching for example boat ETWP5175I324
+3. Creating window sticker stored procedure
+4. Testing window sticker generation
+
+Contact: Michael Nseula (mnseula@benningtonmarine.com)
