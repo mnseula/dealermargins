@@ -140,13 +140,14 @@ BEGIN
 
     -- Result Set 4: Included Options from Sales Database (read-only)
     -- If identifier provided, filter to that specific boat
+    -- Query production database warrantyparts.BoatOptions25 (or BoatOptions26 based on year)
     SELECT DISTINCT
         ItemNo,
         ItemDesc1 AS ItemDescription,
         QuantitySold AS Quantity,
         ExtSalesAmount AS SalePrice,
         ExtSalesAmount AS MSRP
-    FROM BoatOptions25_test
+    FROM warrantyparts.BoatOptions25
     WHERE BoatModelNo = p_model_id
       AND ItemMasterProdCat = 'ACC'
       AND ItemNo IS NOT NULL
