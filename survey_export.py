@@ -191,13 +191,13 @@ def format_aimbase_row(claim, send_survey=True):
     """Format a warranty claim into Aimbase CSV row format."""
 
     def clean(value):
-        if value is None:
+        if value is None or value == 'None':
             return ''
         return str(value).replace('"', '')
 
     # Use separate first/last name fields from OwnerRegistrations (not split from full name)
-    first_name = clean(claim.get('CFSTNAME', ''))
-    last_name = clean(claim.get('CLSTNAME', ''))
+    first_name = clean(claim.get('CFSTNAME'))
+    last_name = clean(claim.get('CLSTNAME'))
 
     claim_date = clean(claim.get('CLAIMDT', ''))
     if claim_date:
@@ -629,7 +629,10 @@ def main():
 
     def is_valid_customer_email(email):
         """Check if email is valid and not a placeholder."""
-        if not email or not email.strip():
+        # Handle None and non-string values
+        if email is None or not isinstance(email, str):
+            return False
+        if not email.strip():
             return False
         email = email.strip().lower()
         # Filter out invalid/placeholder emails
@@ -648,24 +651,30 @@ def main():
         """
         errors = []
 
+        # Helper to safely check if field has value
+        def has_value(field_name):
+            value = claim.get(field_name)
+            return value is not None and str(value).strip() != ''
+
         # Required: First Name
-        if not claim.get('CFSTNAME', '').strip():
+        if not has_value('CFSTNAME'):
             errors.append('Missing First Name')
 
         # Required: Last Name
-        if not claim.get('CLSTNAME', '').strip():
+        if not has_value('CLSTNAME'):
             errors.append('Missing Last Name')
 
         # Required: Claim Number
-        if not claim.get('CLAIMNO', ''):
+        if not has_value('CLAIMNO'):
             errors.append('Missing Claim Number')
 
         # Required: Zipcode
-        if not claim.get('CPSTCODE', '').strip():
+        if not has_value('CPSTCODE'):
             errors.append('Missing Zipcode')
 
         # Required: Valid Email
-        if not is_valid_customer_email(claim.get('CEMAIL', '')):
+        email = claim.get('CEMAIL')
+        if not is_valid_customer_email(email if email else ''):
             errors.append('Invalid or Missing Email')
 
         return (len(errors) == 0, errors)
