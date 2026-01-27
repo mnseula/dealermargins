@@ -109,24 +109,39 @@ BEGIN
 
     -- Result Set 4: Included Options from Sales Database (read-only)
     -- If identifier provided, filter to that specific boat
-    -- Query production database warrantyparts.BoatOptions25 (or BoatOptions26 based on year)
-    SELECT DISTINCT
-        ItemNo,
-        ItemDesc1 AS ItemDescription,
-        QuantitySold AS Quantity,
-        ExtSalesAmount AS SalePrice,
-        ExtSalesAmount AS MSRP
-    FROM warrantyparts.BoatOptions25
-    WHERE BoatModelNo = p_model_id
-      AND ItemMasterProdCat = 'ACC'
-      AND ItemNo IS NOT NULL
-      AND ItemNo != ''
-      AND (
-          p_identifier IS NULL
-          OR BoatSerialNo = p_identifier
-          OR ERP_OrderNo = p_identifier
-      )
-    ORDER BY ItemDesc1;
+    -- Query production database - dynamically select BoatOptions table based on year
+    -- Year 2024 → BoatOptions24, Year 2025 → BoatOptions25, Year 2026 → BoatOptions26
+
+    SET @year_suffix = RIGHT(CAST(p_year AS CHAR), 2);
+    SET @table_name = CONCAT('warrantyparts.BoatOptions', @year_suffix);
+
+    SET @query = CONCAT('
+        SELECT DISTINCT
+            ItemNo,
+            ItemDesc1 AS ItemDescription,
+            QuantitySold AS Quantity,
+            ExtSalesAmount AS SalePrice,
+            ExtSalesAmount AS MSRP
+        FROM ', @table_name, '
+        WHERE BoatModelNo = ?
+          AND ItemMasterProdCat = ''ACC''
+          AND ItemNo IS NOT NULL
+          AND ItemNo != ''''
+          AND (
+              ? IS NULL
+              OR BoatSerialNo = ?
+              OR ERP_OrderNo = ?
+          )
+        ORDER BY ItemDesc1
+    ');
+
+    PREPARE stmt FROM @query;
+    SET @model_param = p_model_id;
+    SET @identifier_param1 = p_identifier;
+    SET @identifier_param2 = p_identifier;
+    SET @identifier_param3 = p_identifier;
+    EXECUTE stmt USING @model_param, @identifier_param1, @identifier_param2, @identifier_param3;
+    DEALLOCATE PREPARE stmt;
 END //
 
 DELIMITER ;
