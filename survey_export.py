@@ -404,18 +404,18 @@ def send_email_to_mandy(survey_csv_filename, survey_count, optout_csv_filename, 
         body = "Hi Mandy,<br><br>This is the weekly warranty survey report for approved claims.<br><br>Summary:<br>- Total approved claims ready for survey: 0<br><br>Best regards,<br>Automated Survey Export System<br>"
     elif is_test_mode:
         subject = f"TEST - Weekly Warranty Survey Report - REAL DATA - {datetime.now().strftime('%Y-%m-%d')}"
-        body = f"Hi,<br><br><b>THIS IS A TEST WITH REAL DATA</b><br><br>This is a test run of the weekly warranty survey export system using REAL customer data.<br><br>IMPORTANT:<br>- All customer data is REAL<br>- These are actual approved warranty claims<br>- <b>FTP upload was SUCCESSFUL</b><br>- This is a test to verify the upload functionality<br>- <b>Using CUSTOMER emails from OwnerRegistrations (NOT dealer emails)</b><br>- <b>FTP file contains ONLY valid records (no errors)</b><br><br><b>FILES ATTACHED:</b><br><br>"
+        body = f"Hi,<br><br><b>THIS IS A TEST WITH REAL DATA</b><br><br>This is a test run of the weekly warranty survey export system using REAL customer data.<br><br>IMPORTANT:<br>- All customer data is REAL<br>- These are actual approved warranty claims<br>- <b>FTP upload was SUCCESSFUL</b><br>- This is a test to verify the upload functionality<br>- <b>Using CUSTOMER emails from OwnerRegistrations (NOT dealer emails)</b><br>- <b>FTP file contains ONLY valid records (no errors)</b><br>- <b>Survey CSV NOT attached (too large - already on FTP)</b><br><br><b>FILE SUMMARY:</b><br><br>"
         body += f"<b>1. SURVEY FILE (uploaded to Aimbase FTP):</b><br>"
         body += f"   - File: {os.path.basename(survey_csv_filename) if survey_csv_filename else 'None'}<br>"
-        body += f"   - Real customers: {survey_count}<br>"
+        body += f"   - Real customers: {survey_count:,}<br>"
         body += f"   - SENDSRVY: TRUE (these customers WANT surveys)<br>"
-        body += f"   - Email Source: OwnerRegistrations.OwnerEmail (CUSTOMER emails)<br>"
         body += f"   - Data Quality: 100% VALID (all required fields present)<br>"
-        body += f"   - Uploaded to Aimbase: YES<br><br>"
+        body += f"   - Uploaded to Aimbase: YES<br>"
+        body += f"   - Attached to email: NO (file too large - {survey_count:,} records)<br><br>"
 
-        # Add list of people being sent to Aimbase
+        # Add list of people being sent to Aimbase (first 20 only)
         if survey_claims and len(survey_claims) <= 20:
-            body += f"<b>PEOPLE BEING SENT TO AIMBASE (Real Data):</b><br>"
+            body += f"<b>SAMPLE - First {min(20, len(survey_claims))} records sent to Aimbase:</b><br>"
             body += f"<table border='1' cellpadding='5' cellspacing='0' style='border-collapse: collapse;'>"
             body += f"<tr style='background-color: #f0f0f0;'><th>Name</th><th>Email</th><th>Zip</th><th>City, State</th><th>Claim #</th></tr>"
             for claim in survey_claims[:20]:
@@ -431,58 +431,83 @@ def send_email_to_mandy(survey_csv_filename, survey_count, optout_csv_filename, 
             body += f"</table><br><br>"
 
         if optout_csv_filename:
-            body += f"<b>2. OPT-OUT FILE (Mandy only - NOT uploaded):</b><br>"
+            body += f"<b>2. OPT-OUT FILE (attached):</b><br>"
             body += f"   - File: {os.path.basename(optout_csv_filename)}<br>"
             body += f"   - Real customers: {optout_count}<br>"
             body += f"   - SENDSRVY: FALSE (these customers OPTED OUT)<br>"
-            body += f"   - Uploaded to Aimbase: NO (for your records only)<br><br>"
+            body += f"   - Uploaded to Aimbase: NO (for your records only)<br>"
+            body += f"   - Attached to email: YES<br><br>"
 
         if error_csv_filename and error_count > 0:
-            body += f"<b>3. ERROR FILE (Mandy only - NOT uploaded):</b><br>"
+            error_attached = "YES" if error_count < 1000 else "NO (file too large)"
+            body += f"<b>3. ERROR FILE:</b><br>"
             body += f"   - File: {os.path.basename(error_csv_filename)}<br>"
-            body += f"   - Records: {error_count}<br>"
+            body += f"   - Records: {error_count:,}<br>"
             body += f"   - Reason: Missing required fields (FirstName, LastName, Zipcode, or Email)<br>"
             body += f"   - Action Needed: Review and fix data issues<br>"
-            body += f"   - Uploaded to Aimbase: NO (excluded from FTP upload)<br><br>"
+            body += f"   - Uploaded to Aimbase: NO (excluded from FTP upload)<br>"
+            body += f"   - Attached to email: {error_attached}<br><br>"
 
         body += f"Best regards,<br>Automated Survey Export System (TEST MODE)<br>"
     else:
         subject = f"Weekly Warranty Survey Report - {datetime.now().strftime('%Y-%m-%d')}"
         body = f"Hi Mandy,<br><br>This is the weekly warranty survey report for approved claims.<br><br><b>IMPORTANT:</b><br>"
         body += f"- Using CUSTOMER emails from OwnerRegistrations table (NOT dealer emails)<br>"
-        body += f"- FTP file contains ONLY valid records (no missing required fields)<br><br>"
-        body += f"<b>FILES ATTACHED:</b><br><br>"
+        body += f"- FTP file contains ONLY valid records (no missing required fields)<br>"
+        body += f"- Survey CSV NOT attached to email (too large - already uploaded to FTP)<br><br>"
+        body += f"<b>FILE SUMMARY:</b><br><br>"
         body += f"<b>1. SURVEY FILE (uploaded to Aimbase SFTP):</b><br>"
         body += f"   - File: {os.path.basename(survey_csv_filename) if survey_csv_filename else 'None'}<br>"
-        body += f"   - Customers: {survey_count}<br>"
+        body += f"   - Location: \\\\ELK1ITSQVP001\\Qlikview\\Marketing\\{os.path.basename(survey_csv_filename) if survey_csv_filename else 'None'}<br>"
+        body += f"   - Customers: {survey_count:,}<br>"
         body += f"   - SENDSRVY: TRUE (these customers WANT surveys)<br>"
-        body += f"   - Email Source: OwnerRegistrations.OwnerEmail (CUSTOMER emails)<br>"
         body += f"   - Data Quality: 100% VALID (FirstName, LastName, Zipcode, Email all present)<br>"
-        body += f"   - Uploaded to Aimbase: YES<br><br>"
-        body += f"<b>2. OPT-OUT FILE (Mandy only - NOT uploaded):</b><br>"
+        body += f"   - Uploaded to Aimbase: YES<br>"
+        body += f"   - Attached to email: NO (file too large - {survey_count:,} records)<br><br>"
+        body += f"<b>2. OPT-OUT FILE (attached):</b><br>"
         body += f"   - File: {os.path.basename(optout_csv_filename) if optout_csv_filename else 'None'}<br>"
         body += f"   - Customers: {optout_count}<br>"
         body += f"   - SENDSRVY: FALSE (these customers OPTED OUT)<br>"
-        body += f"   - Uploaded to Aimbase: NO (for your records only)<br><br>"
+        body += f"   - Uploaded to Aimbase: NO (for your records only)<br>"
+        body += f"   - Attached to email: YES<br><br>"
 
         if error_csv_filename and error_count > 0:
-            body += f"<b>3. ERROR FILE (Mandy only - ACTION REQUIRED):</b><br>"
+            error_attached = "YES" if error_count < 1000 else "NO (file too large)"
+            body += f"<b>3. ERROR FILE - ACTION REQUIRED:</b><br>"
             body += f"   - File: {os.path.basename(error_csv_filename)}<br>"
-            body += f"   - Records: {error_count}<br>"
+            body += f"   - Location: \\\\ELK1ITSQVP001\\Qlikview\\Marketing\\{os.path.basename(error_csv_filename)}<br>"
+            body += f"   - Records: {error_count:,}<br>"
             body += f"   - Reason: Missing required fields (FirstName, LastName, Zipcode, or Email)<br>"
             body += f"   - Action: Please review and fix data quality issues in warranty system<br>"
-            body += f"   - Uploaded to Aimbase: NO (excluded from FTP upload for data quality)<br><br>"
+            body += f"   - Uploaded to Aimbase: NO (excluded from FTP upload for data quality)<br>"
+            body += f"   - Attached to email: {error_attached}<br><br>"
 
+        body += f"<b>All files saved to:</b> \\\\ELK1ITSQVP001\\Qlikview\\Marketing\\<br><br>"
         body += f"Best regards,<br>Automated Survey Export System<br>"
 
-    # Attach files
+    # Attach files - smart handling to avoid email size limits
     files_to_attach = []
+
+    print("[INFO] Email attachment strategy (to avoid size limits):")
+
+    # DON'T attach survey CSV (already uploaded to FTP - too large for email)
+    # Survey file is ~108K records = ~20-30 MB
     if survey_csv_filename:
-        files_to_attach.append(survey_csv_filename)
+        print(f"  - Survey CSV ({survey_count:,} records): NOT attached (too large - already on FTP)")
+
+    # Always attach opt-out CSV (tiny - usually < 100 records)
     if optout_csv_filename:
         files_to_attach.append(optout_csv_filename)
-    if error_csv_filename:
-        files_to_attach.append(error_csv_filename)
+        print(f"  - Opt-out CSV ({optout_count} records): ATTACHED (small file)")
+
+    # Error CSV: Only attach if small (< 1000 records), otherwise provide network path
+    if error_csv_filename and error_count > 0:
+        if error_count < 1000:
+            files_to_attach.append(error_csv_filename)
+            print(f"  - Error CSV ({error_count} records): ATTACHED (small file)")
+        else:
+            print(f"  - Error CSV ({error_count:,} records): NOT attached (too large - network path provided)")
+    print()
 
     result = send_mail(send_to, body, subject, files_to_attach)
     if result:
