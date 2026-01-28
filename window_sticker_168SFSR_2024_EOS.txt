@@ -1,0 +1,136 @@
+# Data Source: EOS (Backward Compatibility Mode)
+════════════════════════════════════════════════════════════════════════════════════════════════════
+║                                                                                                  ║
+║                                        BENNINGTON MARINE                                         ║
+║                              MANUFACTURER'S SUGGESTED RETAIL PRICE                               ║
+║                                                                                                  ║
+════════════════════════════════════════════════════════════════════════════════════════════════════
+
+MODEL INFORMATION
+────────────────────────────────────────────────────────────────────────────────────────────────────
+Model Number:          168SFSR
+Series:                S (S Parent Series)
+Year:                  2024
+Model Description:     None' 16 S BOW FISH NARROW BEAM
+
+VESSEL SPECIFICATIONS
+────────────────────────────────────────────────────────────────────────────────────────────────────
+Length:                None' (Length Overall)
+Beam Width:            None
+Floorplan:             16 S BOW FISH NARROW BEAM (None)
+Seating Capacity:      None seats
+Hull Weight:           1,546 lbs
+Maximum HP:            40 HP
+Person Capacity:       6 People
+Pontoon Gauge:         0.08
+Transom Height:        20
+
+════════════════════════════════════════════════════════════════════════════════════════════════════
+║                                                                                                  ║
+║                                          BASE MSRP: N/A                                          ║
+║                                                                                                  ║
+════════════════════════════════════════════════════════════════════════════════════════════════════
+
+STANDARD EQUIPMENT INCLUDED IN BASE PRICE
+════════════════════════════════════════════════════════════════════════════════════════════════════
+
+CONSOLE FEATURES
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ✓ All in One Kicker Stereo System (KMC45)
+  ✓ All in One Kicker Stereo System (KMC45)
+  ✓ Console Courtesy Light
+  ✓ Console Courtesy Light
+  ✓ Custom Sterling Gauge Package: Tachometer &amp; Trim
+  ✓ Custom Sterling Gauge Package: Tachometer &amp; Trim
+  ✓ Hour Meter
+  ✓ Hour Meter
+  ✓ Polished Steering Wheel
+  ✓ Polished Steering Wheel
+  ✓ Rocker Switches with Dash Mount Breakers
+  ✓ Rocker Switches with Dash Mount Breakers
+  ✓ Sealed Deutsch Connectors
+  ✓ Sealed Deutsch Connectors
+
+EXTERIOR
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ✓ 23&quot;  Pontoons
+  ✓ 23&quot;  Pontoons
+  ✓ 3&quot; Cross Channels
+  ✓ 3&quot; Cross Channels
+  ✓ Anodized Raised Rails
+  ✓ Anodized Raised Rails
+  ✓ Deep-Step Stern Boarding Ladder
+  ✓ Deep-Step Stern Boarding Ladder
+  ✓ Extruded Splash Guards
+  ✓ Extruded Splash Guards
+  ✓ Mooring Cover Quick Clips
+  ✓ Mooring Cover Quick Clips
+  ✓ Quick Release 10&#039; Bimini Top with Surlast Embroidered Boot, 1.25&quot; Frame &amp; Trailering Struts
+  ✓ Quick Release 10&#039; Bimini Top with Surlast Embroidered Boot, 1.25&quot; Frame &amp; Trailering Struts
+  ✓ Rounded Solid Keels
+  ✓ Rounded Solid Keels
+  ✓ Stainless Steel Cleats and Corner Castings
+  ✓ Stainless Steel Cleats and Corner Castings
+  ✓ Stainless Steel Deck Bolts (Fanged Elevator Bolts secured with Stainless Steel Nylock Nut.)
+  ✓ Stainless Steel Deck Bolts (Fanged Elevator Bolts secured with Stainless Steel Nylock Nut.)
+  ✓ Stern Deck
+  ✓ Stern Deck
+  ✓ Surlast Mooring Cover
+  ✓ Surlast Mooring Cover
+  ✓ Underdeck Spray Deflectors
+  ✓ Underdeck Spray Deflectors
+
+INTERIOR
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ✓ Soft Sided Bag Cooler
+  ✓ Soft Sided Bag Cooler
+
+INTERIOR
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ✓ 2 Fishing Seats
+  ✓ 2 Fishing Seats
+  ✓ Bennington Deluxe Flush Mount Speakers
+  ✓ Bennington Deluxe Flush Mount Speakers
+  ✓ Bow Livewell with Starboard Lid (Port Corner Box)
+  ✓ Bow Livewell with Starboard Lid (Port Corner Box)
+  ✓ Bow Storage Box with Starboard Lid (Starboard Corner) with Cupholder and Rod Holder
+  ✓ Bow Storage Box with Starboard Lid (Starboard Corner) with Cupholder and Rod Holder
+  ✓ Duraframe Seat Bases
+  ✓ Duraframe Seat Bases
+  ✓ Fire Extinguisher
+  ✓ Fire Extinguisher
+  ✓ Powder Coated Seat Hinges
+  ✓ Powder Coated Seat Hinges
+
+AVAILABLE PERFORMANCE PACKAGES
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  1. 1. With 23" Tubes (20" transom) - Max 40 HP, N/A Configuration
+  2. 17. SPS Performance Package 23" - Max 90 HP, N/A Configuration
+  3. 1. With 23" Tubes         - Max 40 HP, N/A Configuration
+  4. 1. With 23" Tubes (20" transom) - Max 40 HP, N/A Configuration
+  5. 1. With 23" Tubes (20" transom) - Max 40 HP, N/A Configuration
+  6. 1. With 23" Tubes (20" transom) - Max 40 HP, N/A Configuration
+  7. 1. With 23" Tubes (20" transom) - Max 40 HP, N/A Configuration
+  8. 1. With 23 Tubes (20" transom)" - Max 40 HP, N/A Configuration
+  9. 1. With 23" Tubes (20" transom) - Max 40 HP, N/A Configuration
+  10. 1. With 23" Tubes (20" transom) - Max 40 HP, N/A Configuration
+  11. 1. With 23 Tubes (20" transom)" - Max 40 HP, N/A Configuration
+  12. 1. With 23 Tubes (20" transom)" - Max 40 HP, N/A Configuration
+  13. 1. With 23" Tubes (20" transom) - Max 40 HP, N/A Configuration
+  14. 1. With 23 Tubes (20" transom)" - Max 40 HP, N/A Configuration
+  15. 1. With 23" Tubes (20" transom) - Max 40 HP, N/A Configuration
+  16. 1. With 23" Tubes (20" transom) - Max 40 HP, N/A Configuration
+  17. 1. With 23 Tubes (20" transom)" - Max 40 HP, N/A Configuration
+  18. 1. With 23" Tubes (20" transom) - Max 40 HP, N/A Configuration
+  19. 1. With 23" Tubes (20" transom) - Max 40 HP, N/A Configuration
+  20. 1. With 23" Tubes (20" transom) - Max 40 HP, N/A Configuration
+  21. 1. With 23" Tubes (20" transom) - Max 40 HP, N/A Configuration
+  22. With 23 IN Tubes (20 IN transom) - Max 40 HP, N/A Configuration
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+Dealer: NEW PROSPECTS, INC.
+Generated: January 28, 2026 at 02:26 PM
+
+This label has been affixed in accordance with federal and state regulations.
+Features and specifications are subject to change without notice.
+════════════════════════════════════════════════════════════════════════════════════════════════════

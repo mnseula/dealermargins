@@ -59,6 +59,9 @@ def generate_window_sticker(model_id, dealer_id, year, identifier=None):
 
         model = model_info[0]
 
+        # Check data source (CPQ or EOS)
+        data_source = model[-1] if len(model) > 21 else 'CPQ'
+
         # Result Set 2: Performance Specifications
         performance = results[1]
 
@@ -67,6 +70,10 @@ def generate_window_sticker(model_id, dealer_id, year, identifier=None):
 
         # Result Set 4: Included Options
         options = results[3]
+
+        # Display data source in header for debugging
+        if data_source == 'EOS':
+            print(f"# Data Source: EOS (Backward Compatibility Mode)")
 
         # Print Window Sticker with fancy formatting
         width = 100
