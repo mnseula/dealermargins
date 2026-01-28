@@ -80,8 +80,8 @@ BEGIN
         p.msrp,
         p.year,
         p.effective_date,
-        d.dealer_id,
-        d.dealer_name,
+        d.dealerno AS dealer_id,
+        d.dealer AS dealer_name,
         d.city,
         d.state,
         NOW() AS generated_date
@@ -90,7 +90,9 @@ BEGIN
     LEFT JOIN ModelPricing p ON m.model_id = p.model_id
         AND p.year = p_year
         AND p.end_date IS NULL
-    LEFT JOIN Dealers d ON d.dealer_id = p_dealer_id
+    LEFT JOIN warrantyparts.`dealermaster - use the one in eos` d
+        ON d.dealerno = p_dealer_id
+        AND d.productline = 'BEN'
     WHERE m.model_id = p_model_id;
 
     -- Result Set 2: Performance Specifications for Specified Year
