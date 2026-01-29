@@ -393,11 +393,20 @@ def fetch_dealer_margins(token: str) -> List[Dict]:
     """Fetch all dealer margins from API"""
     try:
         headers = {'Authorization': f'Bearer {token}', 'Accept': 'application/json'}
-        response = requests.get(DEALER_MARGIN_ENDPOINT, headers=headers, timeout=REQUEST_TIMEOUT, verify=False)
+        # CRITICAL FIX: Add $top=50000 to fetch ALL ~35,000 records (not just 100)
+        response = requests.get(
+            f"{DEALER_MARGIN_ENDPOINT}?$top=50000",
+            headers=headers,
+            timeout=REQUEST_TIMEOUT,
+            verify=False
+        )
         response.raise_for_status()
 
         data = response.json()
         margins = data.get('items', [])
+
+        print(f"   ✓ Fetched {len(margins):,} margin records from CPQ API")
+
         return margins
 
     except Exception as e:

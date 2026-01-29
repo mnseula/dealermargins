@@ -27,8 +27,8 @@ DEALER_MARGIN_ENDPOINT = "https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAU
 MYSQL_HOST = "ben.c0fnidwvz1hv.us-east-1.rds.amazonaws.com"
 MYSQL_USER = "awsmaster"
 MYSQL_PASSWORD = "VWvHG9vfG23g7gD"
-MYSQL_DATABASE = "warrantyparts"
-MYSQL_TABLE = "DealerMargins"
+MYSQL_DATABASE = "warrantyparts"       # SOURCE OF TRUTH: warrantyparts database
+MYSQL_TABLE = "DealerMargins"          # SOURCE OF TRUTH: DealerMargins table (2,334 dealers)
 
 # --- Optimized Constants ---
 REQUEST_TIMEOUT = 60
