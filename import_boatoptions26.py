@@ -91,7 +91,7 @@ PRODUCT_CODES = [
 # ============================================================================
 
 MSSQL_QUERY = """
-SELECT DISTINCT
+SELECT
     LEFT(coi.co_num, 30) AS [ERP_OrderNo],
     LEFT(coi.Uf_BENN_BoatSerialNumber, 15) AS [BoatSerialNo],
     LEFT(coi.Uf_BENN_BoatModel, 14) AS [BoatModelNo],
@@ -130,7 +130,7 @@ WHERE coi.site_ref = 'BENN'
     AND coi.Uf_BENN_BoatSerialNumber IS NOT NULL
     AND coi.Uf_BENN_BoatSerialNumber != ''
     AND im.product_code IN ({product_codes})
-ORDER BY coi.co_num, coi.co_line
+ORDER BY [ERP_OrderNo], [LineNo]
 """
 
 MYSQL_INSERT = """
