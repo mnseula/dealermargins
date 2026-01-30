@@ -160,7 +160,7 @@ def get_all_warranty_claims():
             LEFT JOIN SerialNumberMaster sn ON wc.OrdHdrBoatSerialNo = sn.Boat_SerialNo
             LEFT JOIN OwnerRegistrations owner ON wc.OrdHdrBoatSerialNo = owner.Boat_SerialNo
             WHERE wc.OrdHdrPublicStatus IN ('Approved', 'Completed')
-              -- AND STR_TO_DATE(wc.OrdHdrStatusLastUpd, '%c/%e/%Y') >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+              AND STR_TO_DATE(wc.OrdHdrStatusLastUpd, '%c/%e/%Y') >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
             GROUP BY wc.PartsOrderID
             ORDER BY STR_TO_DATE(wc.OrdHdrStatusLastUpd, '%c/%e/%Y') DESC
         """
@@ -488,12 +488,12 @@ def send_email_to_mandy(survey_csv_filename, survey_count, optout_csv_filename, 
     # Attach files - smart handling to avoid email size limits
     files_to_attach = []
 
-    print("[INFO] Email attachment strategy (to avoid size limits):")
+    print("[INFO] Email attachment strategy:")
 
-    # DON'T attach survey CSV (already uploaded to FTP - too large for email)
-    # Survey file is ~108K records = ~20-30 MB
+    # Attach survey CSV (now that we filter to 7 days, it's small enough ~200-300 records)
     if survey_csv_filename:
-        print(f"  - Survey CSV ({survey_count:,} records): NOT attached (too large - already on FTP)")
+        files_to_attach.append(survey_csv_filename)
+        print(f"  - Survey CSV ({survey_count:,} records): ATTACHED")
 
     # Always attach opt-out CSV (tiny - usually < 100 records)
     if optout_csv_filename:
