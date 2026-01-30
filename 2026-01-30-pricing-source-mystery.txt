@@ -1,0 +1,235 @@
+# Session Context - January 30, 2026
+## CRITICAL QUESTION FOR NEXT SESSION
+
+---
+
+## What We Built Today
+
+### ✅ GetCompleteBoatInformation Stored Procedure
+- **Location**: `GetCompleteBoatInformation.sql`
+- **Input**: ONLY Hull# (e.g., 'ETWP5175I324')
+- **Output**: 5 result sets with complete boat data
+
+**Result Sets:**
+1. Boat Header - Model, dealer, invoice, colors, specs (from SerialNumberMaster)
+2. Line Items - All accessories, engine, options (from BoatOptions{YY} - auto-selected by SN_MY)
+3. MSRP Summary - Totals by category (Base, Engine, Accessories, etc.)
+4. Dealer Margins - Margin percentages from warrantyparts.DealerMargins (27% for Nichols Marine)
+5. Dealer Costs - Dealer cost with margins applied
+
+**How it works:**
+- Queries `warrantyparts.SerialNumberMaster` for boat header
+- Uses `SN_MY` field (24, 25, 26) to determine which `BoatOptions{YY}` table to query
+- Dynamically queries the correct table (e.g., BoatOptions24 for 2024 boats)
+- Looks up dealer margins from `warrantyparts.DealerMargins`
+- Calculates dealer costs using margin percentages
+
+**Status**: ✅ Working perfectly, tested with multiple boats, pushed to GitHub
+
+---
+
+## The Display Modes Requirement
+
+Dealers need 4 pricing display options for window stickers:
+
+1. **MSRP** - Show manufacturer's suggested retail price only
+2. **Selling Price** - Show dealer's selling price (dealer cost)
+3. **Sale & MSRP** - Show both MSRP and selling price (highlight savings)
+4. **No Pricing** - Show boat features only, no prices
+
+**Understanding:**
+- Dealer Cost = Selling Price to customer
+- Our stored procedure already returns dealer costs (Result Set 5)
+
+---
+
+## THE PRICING MYSTERY 🔍
+
+### Test Boat: ETWP5175I324 (2024 20SVSRSR)
+
+**From BoatOptions24 (our stored procedure):**
+```
+Base Boat (20SVSRSR):   $25,077.00
+Engine (F90LB):         $ 9,011.00
+Garmin (901254):        $   600.00
+Pre-rig:                $ 1,295.00
+Discounts:              $-3,436.85
+Fees:                   $    11.00
+─────────────────────────────────
+TOTAL:                  $30,557.15
+```
+
+**From ACTUAL Window Sticker:**
+```
+BOAT PACKAGE:           $35,114.00  ← WHERE DOES THIS COME FROM?
+90 HP 4 STROKE:         $ 2,780.00  ← WHERE DOES THIS COME FROM?
+GARMIN ECHOMAP:         $   675.00  ← WHERE DOES THIS COME FROM?
+─────────────────────────────────
+MSRP TOTAL:             $38,569.00  ← WHERE DOES THIS COME FROM?
+```
+
+**DIFFERENCE: $8,011.85**
+
+---
+
+## What We Discovered
+
+### Database Sources:
+1. **warrantyparts (MySQL)** - Historical boat sales data
+   - `SerialNumberMaster` - Boat header info ✅
+   - `BoatOptions24/25/26` - Line items with SELLING PRICES (what boats sold for)
+   - `DealerMargins` - Dealer margin percentages ✅
+
+2. **CSISTG (MSSQL Staging)** - Current pricing system
+   - Server: MPL1STGSQL086.POLARISSTAGE.COM
+   - Database: CSISTG
+   - Contains: coitem_mst, cfg_attr_mst, item_mst, etc.
+
+### CPQ Pricing Logic Found:
+**File**: `/Users/michaelnseula/code/jquery/pricing.js`
+
+**The Formula:**
+```javascript
+// Three price points calculated:
+cost = Number(partData.COST);  // Base dealer cost
+
+sale = Math.round((cost * volumeDiscount) / btMrgn);  // Dealer selling price
+
+msrp = Math.round((cost * msrpVolume) / msrpMargin);  // Manufacturer MSRP
+```
+
+**Margins come from:**
+- `DLR_SET` values (dealer margins)
+- `MSRP_Margins` list (MSRP margins by model year and pricing type)
+
+---
+
+## THE CRITICAL QUESTION ❓
+
+**For already-sold boats (in BoatOptions tables), where does the MSRP come from?**
+
+### Theories:
+
+1. **Stored in configuration data when boat was built?**
+   - Maybe in BoatConfigurationAttributes?
+   - Maybe in CSISTG cfg_attr_mst?
+   - Maybe in a separate MSRP table?
+
+2. **Calculate backwards from selling price?**
+   ```
+   If: sale = (cost * volumeDiscount) / btMrgn
+   Then: cost = (sale * btMrgn) / volumeDiscount
+   Then: msrp = (cost * msrpVolume) / msrpMargin
+   ```
+   But: Need to know the original margins used
+
+3. **Query CSISTG for original quote/order MSRP?**
+   - Maybe coitem_mst has both selling price and MSRP?
+   - Maybe there's a separate pricing table?
+
+4. **Use CPQ Model Pricing?**
+   - Use `Models` / `ModelPricing` tables in warrantyparts_test?
+   - But these are catalog prices, not actual configured boat prices
+
+### What We Checked:
+
+✅ BoatOptions24 - Only has ExtSalesAmount (selling price)
+✅ Multiple invoices - Same order split into 2 invoices, total still $30,557
+✅ Order types - 'O' = regular order, 'C' = credits/returns (negative amounts)
+✅ Other BoatOptions tables - Hull not found in other tables
+✅ CPQ pricing logic - Found formula but it's for NEW quotes, not historical data
+
+### What We Need:
+
+**Someone who knows:**
+- Where the window sticker application gets MSRP from
+- What database/table has the $38,569 MSRP for hull ETWP5175I324
+- Whether MSRP is calculated or stored
+- What the data source is for the "MSRP" display mode
+
+---
+
+## Queries/Files Referenced:
+
+1. **Window sticker unregistered boats query:**
+   ```sql
+   -- WS_GET_UNREG_BOATS_ALL
+   SELECT t1.*
+   From SerialNumberMaster as t1
+   LEFT JOIN SerialNumberRegistrationStatus as t2
+   ON (t1.Boat_SerialNo = t2.Boat_SerialNo)
+   WHERE t2.Registered = 0
+   AND t1.SN_MY > 14
+   AND (t1.DealerNumber = @PARAM1 OR t1.DealerNumber = @PARAM2 OR t1.DealerNumber = @PARAM3)
+   ```
+
+2. **Get single boat:**
+   ```sql
+   -- SEL_ONE_SER_NO_MST
+   SELECT * FROM warrantyparts.SerialNumberMaster
+   WHERE Boat_SerialNo = @PARAM1
+   ```
+
+3. **CPQ Pricing File:**
+   - `/Users/michaelnseula/code/jquery/pricing.js`
+   - Contains: runPricing2021() function
+   - Calculates: Cost, Sale, MSRP from base cost + margins
+
+---
+
+## Next Steps:
+
+1. **Find the MSRP data source:**
+   - Check if there's an MSRP column somewhere we missed
+   - Check CSISTG coitem_mst table structure
+   - Check if configuration data stores MSRP
+   - Check if there's a pricing history table
+
+2. **Once found, update stored procedure to include:**
+   - Original MSRP (for "MSRP" display mode)
+   - Selling price from BoatOptions (for "Selling Price" mode)
+   - Both (for "Sale & MSRP" mode)
+
+3. **Alternatively, if MSRP not stored:**
+   - Determine if we should calculate it
+   - Get the MSRP margin percentages by model year/series
+   - Add calculation logic to stored procedure
+
+---
+
+## Files Created This Session:
+
+✅ `GetCompleteBoatInformation.sql` - Main stored procedure (WORKING)
+✅ `NODE_JS_USAGE.md` - Complete documentation
+✅ Tested with multiple boats:
+   - ETWP6278J324 (2024 20SVFSR) - ✅ Full data
+   - ETWP5175I324 (2024 20SVSRSR) - ✅ Full data, but MSRP mystery
+   - ETWS7074G526 (2025 22SSSE) - ✅ Header only, no line items (test boat)
+
+---
+
+## Key Contacts/Resources:
+
+- Window sticker code location: `jquery/get_unregistered_boats.js`
+- Pricing logic location: `jquery/pricing.js`
+- Database: warrantyparts (MySQL production)
+- Staging database: CSISTG (MSSQL)
+
+---
+
+## Summary:
+
+We built a complete SQL stored procedure that works perfectly for getting all boat data.
+The ONLY missing piece is: **Where does the MSRP ($38,569) come from?**
+
+BoatOptions tables have the actual selling prices ($30,557), but the window sticker shows
+a different MSRP ($38,569). We need to find the source of that MSRP data.
+
+**ASK:** Where does your current window sticker get the MSRP pricing from?
+Can someone show us the actual window sticker generation code or point us to the MSRP data source?
+
+---
+
+**Status**: Waiting for answer to MSRP data source question
+**Date**: January 30, 2026
+**Next Session**: Resume with MSRP data source information
