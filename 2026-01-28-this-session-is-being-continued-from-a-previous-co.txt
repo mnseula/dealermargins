@@ -1,0 +1,20 @@
+
+ ▐▛███▜▌   Claude Code v2.1.20
+▝▜█████▛▘  Sonnet 4.5 · Claude API
+  ▘▘ ▝▝    ~/code/dealermargins
+
+✻ Conversation compacted (ctrl+o for history)
+
+  ⎿  Read 2026-01-28-eos-backward-compatibility-implemented.md (505 lines)
+  ⎿  Referenced file EOS_LEGACY_SYSTEM.md
+  ⎿  Read window_sticker_20SVFSR_ETWP6278J324.txt (132 lines)
+  ⎿  Read EOS_BACKWARD_COMPATIBILITY.md (223 lines)
+  ⎿  Read stored_procedures_with_eos_fallback.sql (315 lines)
+  ⎿  You've hit your limit · resets 1pm (America/Detroit)
+     /upgrade to increase your usage limit.
+
+✻ Brewed for 5m 48s
+
+❯ 1 
+  ⎿  You've hit your limit · resets 1pm (America/Detroit)
+     /upgrade to increase your usage limit.

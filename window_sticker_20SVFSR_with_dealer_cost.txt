@@ -1,0 +1,145 @@
+/Users/michaelnseula/code/dealermargins/generate_window_sticker_with_pricing.py:137: DeprecationWarning: Call to deprecated function stored_results. Reason: The property counterpart 'stored_results' will be added in a future release, and this method will be removed.
+  for result in cursor.stored_results():
+/Users/michaelnseula/code/dealermargins/generate_window_sticker_with_pricing.py:71: DeprecationWarning: Call to deprecated function stored_results. Reason: The property counterpart 'stored_results' will be added in a future release, and this method will be removed.
+  for result in cursor.stored_results():
+════════════════════════════════════════════════════════════════════════════════════════════════════
+║                                                                                                  ║
+║                                        BENNINGTON MARINE                                         ║
+║                      WINDOW STICKER - MANUFACTURER'S SUGGESTED RETAIL PRICE                      ║
+║                                                                                                  ║
+════════════════════════════════════════════════════════════════════════════════════════════════════
+
+# Data Source: EOS (Backward Compatibility Mode)
+
+MODEL INFORMATION
+────────────────────────────────────────────────────────────────────────────────────────────────────
+Model Number:          20SVFSR
+Series:                SV (SV Series)
+Model Year:            2024
+Boat Identifier:       ETWP6278J324
+
+VESSEL SPECIFICATIONS
+────────────────────────────────────────────────────────────────────────────────────────────────────
+Hull Weight:           1,761 lbs
+Maximum HP:            90 HP
+Person Capacity:       10 People
+
+════════════════════════════════════════════════════════════════════════════════════════════════════
+║                                        PRICING BREAKDOWN                                         ║
+════════════════════════════════════════════════════════════════════════════════════════════════════
+
+Base Boat:             $25,895.00
+Engine Package:        $9,011.00
+Accessories:           $712.00
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TOTAL MSRP:            $35,618.00
+
+════════════════════════════════════════════════════════════════════════════════════════════════════
+║                              DEALER COST - NICHOLS MARINE - NORMAN                               ║
+║                                      (Source: DealerQuotes)                                      ║
+════════════════════════════════════════════════════════════════════════════════════════════════════
+
+Base Boat:             $21,492.85 (save 17%)
+Engine Package:        $7,479.13 (save 17%)
+Accessories:           $590.96 (save 17%)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+DEALER COST:           $29,562.94
+TOTAL SAVINGS:         $6,055.06
+
+Volume Discount Available: 10%
+
+STANDARD EQUIPMENT INCLUDED
+════════════════════════════════════════════════════════════════════════════════════════════════════
+CONSOLE FEATURES
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ✓ 12 Volt Receptacle USB A/C
+  ✓ All in One Kicker Stereo System (KMC45)
+  ✓ Console Courtesy Light
+  ✓ Custom Sterling Gauge Package: Fuel, Tachometer & Trim
+  ✓ Custom Sterling Gauge Package: Fuel, Tachometer &amp; Trim
+  ✓ Hour Meter
+  ✓ Locking Side Access Console Door
+  ✓ NEW Ironwood Dash Accents
+  ✓ NEW S Series Console
+  ✓ Polished Steering Wheel
+  ✓ Rocker Switches with Dash Mount Breakers
+  ✓ Sealed Deutsch Connectors
+
+EXTERIOR FEATURES
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ✓ Benny Quick Clip Fender Latch Kit
+
+EXTERIOR
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ✓ .250" Thick Bow & Stern Cross Channels
+  ✓ .250&quot; Thick Bow &amp; Stern Cross Channels
+  ✓ 25" Pontoons
+  ✓ 6" Stainless Steel Cleats
+  ✓ 6&quot; Stainless Steel Cleats
+  ✓ Anodized Raised Rails
+  ✓ Deep-Step Stern Boarding Ladder
+  ✓ Integrated Docking and Nav Lights
+  ✓ Mooring Cover Quick Clips
+  ✓ Quick Release 10&#039; Bimini Top with Surlast Embroidered Boot, 1.25&quot; Frame &amp; Trailering Struts
+  ✓ Quick Release 10' Bimini Top with Surlast Embroidered Boot, 1.25" Frame & Trailering Struts
+  ✓ Raised Bennington Logos
+  ✓ Rounded Solid Keels
+  ✓ S Series Anodized Streamline Rail System with Full Height Panels
+  ✓ Stainless Steel Cleats and Corner Castings
+  ✓ Stainless Steel Deck Bolts (Fanged Elevator Bolts secured with Stainless Steel Nylock Nut.)
+  ✓ Stern Deck
+  ✓ Surlast Mooring Cover
+  ✓ Underdeck Spray Deflectors
+
+INTERIOR
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ✓ Grano Woven Vinyl Flooring
+
+INTERIOR
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ✓ 1 Chaise Lounge
+  ✓ 1 Stainless Rimmed Portable Cupholder
+  ✓ 24 Gallon Fuel Tank, 21.4 Gallon Usable Capacity
+  ✓ 4 Pole Rod Holder
+  ✓ Bennington Deluxe Flush Mount Speakers
+  ✓ Duraframe Seat Bases
+  ✓ Fire Extinguisher
+  ✓ Kidney-Shaped Table
+  ✓ Lighted Gate Glides
+  ✓ Marideck Vinyl Flooring
+  ✓ NEW Serene Soft Touch Base Vinyl with Simtex Accent
+  ✓ Powder Coated Seat Hinges
+  ✓ Pure Comfort Reclining Captain's Chair
+  ✓ Stainless Steel Black Rimmed Cupholders
+  ✓ Stern Cupholder Box
+
+WARRANTY
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ✓ 10-Year Bow-to-Stern Warranty*
+  ✓ Industry Leading Factory Backed Lifetime Structural and Deck Warranty
+
+(50 standard features total)
+
+AVAILABLE PERFORMANCE PACKAGES
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  1. 2. With 25 Tubes (20" transom)" Max   90 HP, N/A Configuration
+  2. 2. With 25" Tubes              Max   90 HP, N/A Configuration
+  3. 2. With 25" Tubes              Max  115 HP, N/A Configuration
+  4. 2. With 25" Tubes (20" transom) Max   90 HP, N/A Configuration
+  5. 5. Express Performance Package Max  115 HP, N/A Configuration
+  6. 6. With 32" Elliptical Tubes   Max  150 HP, N/A Configuration
+  7. 8. SPS Performance Package     Max  150 HP, N/A Configuration
+  8. 9. SPS115 Performance Package  Max  140 HP, N/A Configuration
+
+FACTORY INSTALLED OPTIONS
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  • COVER TROLL MOTOR GATE                                                                
+  • ECHOMAP GARMIN GIMBLE MNT SV-S                                                 $600.00
+  • TROLL MTR HRN/GATE VALUE                                                       $112.00
+
+════════════════════════════════════════════════════════════════════════════════════════════════════
+Generated: January 28, 2026 at 01:34 PM
+
+This label has been affixed in accordance with federal and state regulations.
+Specifications are subject to change without notice.
+════════════════════════════════════════════════════════════════════════════════════════════════════
