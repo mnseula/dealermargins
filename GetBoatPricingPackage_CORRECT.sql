@@ -6,6 +6,13 @@
 --   msrpMargin  = 8/9 = 0.8889
 --   msrpVolume  = 1.0
 --   msrpLoyalty = 1.0
+--
+-- IMPORTANT: Excludes configuration items (colors, vinyl, furniture, etc.)
+-- These have ItemNo starting with '90' but are NOT accessories.
+-- Use ItemMasterMCT codes to exclude:
+--   A0, A0C, A0G, A0I, A0P, A0T, A0V = Colors, vinyl, graphics, trim
+--   A1, A6, FUR = Flooring and furniture
+-- This approach is FUTURE-PROOF for CPQ boats without item numbers.
 -- ============================================================================
 
 DROP PROCEDURE IF EXISTS GetBoatPricingPackage;
@@ -294,7 +301,7 @@ BEGIN
         'FROM warrantyparts.BoatOptions', v_model_year, ' ',
         'WHERE BoatSerialNo = ''', p_serial_number, ''' ',
         'AND MCTDesc NOT IN (''PONTOONS'', ''Pontoon Boats OB'', ''ENGINES'', ''ENGINES I/O'', ''PRE-RIG'', ''Lower Unit Eng'', ''GROW BOATING'') ',
-        'AND ItemMasterMCT NOT IN (''DIC'',''DIF'',''DIP'',''DIR'',''DIA'',''DIW'',''LOY'',''PRD'',''VOD'',''DIV'',''CAS'',''SHO'',''GRO'',''ZZZ'',''FRE'',''WAR'',''DLR'',''FRT'') ',
+        'AND ItemMasterMCT NOT IN (''DIC'',''DIF'',''DIP'',''DIR'',''DIA'',''DIW'',''LOY'',''PRD'',''VOD'',''DIV'',''CAS'',''SHO'',''GRO'',''ZZZ'',''FRE'',''WAR'',''DLR'',''FRT'',''A0'',''A0C'',''A0G'',''A0I'',''A0P'',''A0T'',''A0V'',''A1'',''A6'',''FUR'') ',
         'AND ItemMasterProdCat != ''111'' ',
         'ORDER BY ',
         '    CASE MCTDesc ',
