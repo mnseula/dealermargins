@@ -410,6 +410,7 @@ def load_to_mysql_batch(rows: List[Dict], table_name: str):
         cursor = conn.cursor()
 
         # Prepare insert query with all 23 fields
+        # Use ON DUPLICATE KEY UPDATE to handle existing records
         insert_query = f"""
         INSERT INTO {table_name} (
             ERP_OrderNo, BoatSerialNo, BoatModelNo, LineNo, ItemNo, ItemDesc1,
@@ -422,6 +423,28 @@ def load_to_mysql_batch(rows: List[Dict], table_name: str):
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s
         )
+        ON DUPLICATE KEY UPDATE
+            BoatSerialNo = VALUES(BoatSerialNo),
+            BoatModelNo = VALUES(BoatModelNo),
+            LineNo = VALUES(LineNo),
+            ItemNo = VALUES(ItemNo),
+            ItemDesc1 = VALUES(ItemDesc1),
+            ExtSalesAmount = VALUES(ExtSalesAmount),
+            QuantitySold = VALUES(QuantitySold),
+            Series = VALUES(Series),
+            WebOrderNo = VALUES(WebOrderNo),
+            Orig_Ord_Type = VALUES(Orig_Ord_Type),
+            ApplyToNo = VALUES(ApplyToNo),
+            InvoiceNo = VALUES(InvoiceNo),
+            InvoiceDate = VALUES(InvoiceDate),
+            ItemMasterProdCat = VALUES(ItemMasterProdCat),
+            ItemMasterProdCatDesc = VALUES(ItemMasterProdCatDesc),
+            ItemMasterMCT = VALUES(ItemMasterMCT),
+            MCTDesc = VALUES(MCTDesc),
+            ConfigID = VALUES(ConfigID),
+            ValueText = VALUES(ValueText),
+            OptionSerialNo = VALUES(OptionSerialNo),
+            C_Series = VALUES(C_Series)
         """
 
         batch_size = 1000
