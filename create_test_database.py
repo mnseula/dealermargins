@@ -33,7 +33,7 @@ def create_database():
         return False
 
 def create_tables():
-    """Create the BoatOptions tables"""
+    """Create ALL BoatOptions tables matching production structure"""
     try:
         # Connect to the test database
         config = MYSQL_CONFIG.copy()
@@ -76,17 +76,40 @@ def create_tables():
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """
 
-        tables = ['BoatOptions24', 'BoatOptions25_test', 'BoatOptions26_test']
+        # Complete list of tables matching production structure
+        tables = [
+            'BoatOptionsBefore_05',
+            'BoatOptions99_04',
+            'BoatOptions05_07',
+            'BoatOptions08_10',
+            'BoatOptions11_14',
+            'BoatOptions15',
+            'BoatOptions16',
+            'BoatOptions17',
+            'BoatOptions18',
+            'BoatOptions19',
+            'BoatOptions20',
+            'BoatOptions21',
+            'BoatOptions22',
+            'BoatOptions23',
+            'BoatOptions24',
+            'BoatOptions25',
+            'BoatOptions26',
+            'BoatOptions27',  # Future-proof
+            'BoatOptions28',
+            'BoatOptions29',
+            'BoatOptions30'
+        ]
 
+        print(f"\nCreating {len(tables)} BoatOptions tables...")
         for table in tables:
-            print(f"Creating table: {table}")
+            print(f"  Creating: {table}")
             cursor.execute(table_schema.format(table_name=table))
-            print(f"✅ {table} created")
 
         cursor.close()
         conn.close()
 
-        print("\n✅ All tables created successfully")
+        print(f"\n✅ All {len(tables)} tables created successfully")
         return True
 
     except Error as e:

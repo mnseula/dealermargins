@@ -313,22 +313,14 @@ def get_target_year(row: Dict) -> int:
     """
     Determine model year for this row.
 
-    Logic:
-    1. If CPQ order → Always 2026 (current CPQ year)
-    2. Otherwise → Detect from serial number suffix
+    IMPORTANT: ALL orders (CPQ and non-CPQ) are routed by MODEL YEAR from serial number.
+    A CPQ order for a 2025 model goes to BoatOptions25, not BoatOptions26.
 
     Returns: Full year (e.g., 2025, 2015, 1999)
     """
-    order_date = row.get('order_date')
-    external_confirmation_ref = row.get('external_confirmation_ref')
-    co_num = row.get('ERP_OrderNo')
     serial_no = row.get('BoatSerialNo')
 
-    # Check if CPQ order first
-    if is_cpq_order(order_date, external_confirmation_ref, co_num):
-        return 2026  # All CPQ orders → current year
-
-    # Non-CPQ order - detect year from serial number suffix
+    # Detect year from serial number (applies to ALL orders)
     return detect_model_year_from_serial(serial_no)
 
 def extract_from_mssql() -> List[Dict]:
@@ -525,8 +517,8 @@ def main():
     print("="*80)
     print(f"Target: warrantyparts_boatoptions_test (TEST DATABASE)")
     print(f"Filter: Invoiced orders from 12/14/2024 onwards")
-    print(f"Year Detection: Automatic from serial number (all years supported)")
-    print(f"CPQ Detection: ON (routes to BoatOptions26)")
+    print(f"Year Detection: Automatic from serial number (all years 1999-2030)")
+    print(f"CPQ Detection: Tracked for reporting (routes by model year)")
     print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("="*80)
     print()
