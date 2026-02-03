@@ -230,7 +230,7 @@ LEFT JOIN [CSISTG].[dbo].[serial_mst] ser
 WHERE coi.config_id IS NOT NULL
     AND coi.qty_invoiced = coi.qty_ordered
     AND coi.qty_invoiced > 0
-    AND ser.site_ref = 'BENN'
+    AND coi.site_ref = 'BENN'
     AND co.order_date >= '2024-12-14'
 
 ORDER BY [ERP_OrderNo], [LineSeqNo]
