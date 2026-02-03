@@ -57,14 +57,40 @@ MYSQL_CONFIG = {
 CPQ_GO_LIVE_DATE = date(2024, 12, 14)
 
 # ============================================================================
-# TABLE MAPPING BY YEAR
+# TABLE MAPPING BY YEAR - PRODUCTION STRUCTURE
 # ============================================================================
 
-TABLE_MAP = {
-    '24': 'BoatOptions24',
-    '25': 'BoatOptions25_test',
-    '26': 'BoatOptions26_test'
-}
+def get_table_for_year(year: int, is_production: bool = False) -> str:
+    """
+    Map model year to BoatOptions table name.
+
+    Production tables:
+    - BoatOptionsBefore_05  → Before 2005
+    - BoatOptions99_04      → 1999-2004
+    - BoatOptions05_07      → 2005-2007
+    - BoatOptions08_10      → 2008-2010
+    - BoatOptions11_14      → 2011-2014
+    - BoatOptions15-26      → Individual year tables
+
+    Test tables: Same naming (no _test suffix for consistency)
+    """
+    if year < 2005:
+        if 1999 <= year <= 2004:
+            return 'BoatOptions99_04'
+        else:
+            return 'BoatOptionsBefore_05'
+    elif 2005 <= year <= 2007:
+        return 'BoatOptions05_07'
+    elif 2008 <= year <= 2010:
+        return 'BoatOptions08_10'
+    elif 2011 <= year <= 2014:
+        return 'BoatOptions11_14'
+    elif year >= 2015:
+        # Individual year tables: BoatOptions15, BoatOptions16, ..., BoatOptions26
+        year_suffix = year % 100
+        return f'BoatOptions{year_suffix:02d}'
+    else:
+        return 'BoatOptionsBefore_05'
 
 # ============================================================================
 # COMPLETE SQL QUERY - INVOICED ORDERS ONLY, FROM 12/14/2025 ONWARDS
@@ -250,36 +276,48 @@ def is_cpq_order(order_date, external_confirmation_ref, co_num):
         str(external_confirmation_ref).startswith('SO')
     )
 
-def detect_model_year_from_serial(serial_number: str) -> str:
+def detect_model_year_from_serial(serial_number: str) -> int:
     """
     Detect model year from serial number suffix.
 
-    Serial format: ETWC4149F425 (ends with year suffix)
-    Examples: ...F425 = 2025, ...H324 = 2024, ...J426 = 2026
+    Serial format examples:
+    - ETWC4149F425 → ends with 25 → 2025
+    - ETWC1474F324 → ends with 24 → 2024
+    - ETWC6109F526 → ends with 26 → 2026
+    - ETWA2930E415 → ends with 15 → 2015
+    - ETWC5779C920 → ends with 20 → 2020
+    - ETW00789F899 → ends with 99 → 1999
 
-    Returns: '24', '25', or '26'
+    Returns: Full year (e.g., 2025, 2015, 1999)
     """
-    if not serial_number or len(serial_number) < 3:
-        return '25'  # Default to 2025
+    if not serial_number or len(serial_number) < 2:
+        return 2026  # Default to current year
 
     # Get last 2 characters (year digits)
     try:
-        year_digits = serial_number[-2:]
-        if year_digits in ['24', '25', '26']:
-            return year_digits
+        year_suffix = serial_number[-2:]
+        year_2digit = int(year_suffix)
+
+        # Determine century
+        # 00-50 = 2000s (2000-2050)
+        # 51-99 = 1900s (1951-1999)
+        if year_2digit <= 50:
+            return 2000 + year_2digit
+        else:
+            return 1900 + year_2digit
+
     except:
-        pass
+        return 2026  # Default to current year
 
-    # Default to 2025
-    return '25'
-
-def get_target_year(row: Dict) -> str:
+def get_target_year(row: Dict) -> int:
     """
-    Determine which BoatOptions table this row should go to.
+    Determine model year for this row.
 
     Logic:
-    1. If CPQ order → Always '26' (BoatOptions26_test)
+    1. If CPQ order → Always 2026 (current CPQ year)
     2. Otherwise → Detect from serial number suffix
+
+    Returns: Full year (e.g., 2025, 2015, 1999)
     """
     order_date = row.get('order_date')
     external_confirmation_ref = row.get('external_confirmation_ref')
@@ -288,7 +326,7 @@ def get_target_year(row: Dict) -> str:
 
     # Check if CPQ order first
     if is_cpq_order(order_date, external_confirmation_ref, co_num):
-        return '26'  # All CPQ orders → BoatOptions26_test
+        return 2026  # All CPQ orders → current year
 
     # Non-CPQ order - detect year from serial number suffix
     return detect_model_year_from_serial(serial_no)
@@ -322,22 +360,29 @@ def extract_from_mssql() -> List[Dict]:
         log(f"Unexpected error: {e}", "ERROR")
         raise
 
-def group_by_year(rows: List[Dict]) -> Dict[str, List[Dict]]:
-    """Group rows by target year (CPQ orders → 26, others by serial)"""
-    log("Grouping rows by target year...")
+def group_by_table(rows: List[Dict]) -> Dict[str, List[Dict]]:
+    """Group rows by target table (based on model year)"""
+    log("Grouping rows by target table...")
 
-    groups = {
-        '24': [],
-        '25': [],
-        '26': []
-    }
-
+    groups = {}
+    year_counts = {}
     cpq_count = 0
     non_cpq_count = 0
 
     for row in rows:
+        # Get model year
         year = get_target_year(row)
-        groups[year].append(row)
+
+        # Get target table for this year
+        table_name = get_table_for_year(year)
+
+        # Add to groups
+        if table_name not in groups:
+            groups[table_name] = []
+        groups[table_name].append(row)
+
+        # Track year counts
+        year_counts[year] = year_counts.get(year, 0) + 1
 
         # Track CPQ vs non-CPQ
         if is_cpq_order(row.get('order_date'), row.get('external_confirmation_ref'), row.get('ERP_OrderNo')):
@@ -345,9 +390,15 @@ def group_by_year(rows: List[Dict]) -> Dict[str, List[Dict]]:
         else:
             non_cpq_count += 1
 
-    log(f"Year 2024: {len(groups['24']):,} rows")
-    log(f"Year 2025: {len(groups['25']):,} rows")
-    log(f"Year 2026: {len(groups['26']):,} rows (CPQ orders)")
+    # Log summary
+    log(f"\nRows grouped by table:")
+    for table_name in sorted(groups.keys()):
+        log(f"  {table_name:25s}: {len(groups[table_name]):6,d} rows")
+
+    log(f"\nRows by model year:")
+    for year in sorted(year_counts.keys()):
+        log(f"  {year}: {year_counts[year]:,d} rows")
+
     log(f"\nCPQ orders: {cpq_count:,}")
     log(f"Non-CPQ orders: {non_cpq_count:,}")
 
@@ -440,31 +491,30 @@ def load_to_mysql_batch(rows: List[Dict], table_name: str):
         log(f"Unexpected error: {e}", "ERROR")
         raise
 
-def print_summary(year_groups: Dict[str, List[Dict]], results: Dict[str, int]):
+def print_summary(table_groups: Dict[str, List[Dict]], results: Dict[str, int]):
     """Print summary statistics"""
     print("\n" + "="*80)
     print("IMPORT SUMMARY - TEST DATABASE")
     print("="*80)
 
-    total_extracted = sum(len(rows) for rows in year_groups.values())
+    total_extracted = sum(len(rows) for rows in table_groups.values())
     total_imported = sum(results.values())
 
     print(f"\nExtracted: {total_extracted:,} rows from MSSQL")
     print(f"Imported:  {total_imported:,} rows to MySQL")
 
     print(f"\nBreakdown by table:")
-    for year in ['24', '25', '26']:
-        count = results.get(year, 0)
-        table = TABLE_MAP[year]
+    for table_name in sorted(results.keys()):
+        count = results[table_name]
         if count > 0:
-            print(f"  {table:25s}: {count:8,d} rows")
+            print(f"  {table_name:25s}: {count:8,d} rows")
 
     print("\n" + "="*80)
     print("✅ TEST IMPORT COMPLETE")
     print("="*80)
     print("\nNext Steps:")
     print("1. Verify data in warrantyparts_boatoptions_test database")
-    print("2. Check CPQ orders are in BoatOptions26_test")
+    print("2. Check CPQ orders are in BoatOptions26")
     print("3. Run test queries to validate data integrity")
     print("4. If successful, run import to PRODUCTION database")
     print("="*80)
@@ -475,7 +525,8 @@ def main():
     print("="*80)
     print(f"Target: warrantyparts_boatoptions_test (TEST DATABASE)")
     print(f"Filter: Invoiced orders from 12/14/2024 onwards")
-    print(f"CPQ Detection: ON (routes to BoatOptions26_test)")
+    print(f"Year Detection: Automatic from serial number (all years supported)")
+    print(f"CPQ Detection: ON (routes to BoatOptions26)")
     print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("="*80)
     print()
@@ -489,25 +540,22 @@ def main():
             log("This could mean no orders have been invoiced since 12/14/2024", "WARNING")
             sys.exit(1)
 
-        # Step 2: Group by year
-        year_groups = group_by_year(rows)
+        # Step 2: Group by table (based on model year)
+        table_groups = group_by_table(rows)
 
         # Step 3: Load to MySQL tables
         results = {}
-        for year in ['24', '25', '26']:
-            year_rows = year_groups[year]
-
-            if len(year_rows) == 0:
-                log(f"No data for year 20{year}, skipping...", "WARNING")
-                results[year] = 0
+        for table_name, table_rows in table_groups.items():
+            if len(table_rows) == 0:
+                log(f"No data for {table_name}, skipping...", "WARNING")
+                results[table_name] = 0
                 continue
 
-            table_name = TABLE_MAP[year]
-            imported = load_to_mysql_batch(year_rows, table_name)
-            results[year] = imported
+            imported = load_to_mysql_batch(table_rows, table_name)
+            results[table_name] = imported
 
         # Step 4: Print summary
-        print_summary(year_groups, results)
+        print_summary(table_groups, results)
 
         log("Import completed successfully!", "SUCCESS")
 
