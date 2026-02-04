@@ -54,7 +54,7 @@ MYSQL_CONFIG = {
 }
 
 # CPQ Go-Live Date
-CPQ_GO_LIVE_DATE = date(2024, 12, 14)
+CPQ_GO_LIVE_DATE = date(2025, 12, 14)
 
 # ============================================================================
 # TABLE MAPPING BY YEAR - PRODUCTION STRUCTURE
@@ -157,7 +157,7 @@ WHERE coi.site_ref = 'BENN'
     AND coi.Uf_BENN_BoatSerialNumber != ''
     AND iim.inv_num IS NOT NULL
     AND coi.qty_invoiced > 0
-    AND co.order_date >= '2024-12-14'
+    AND co.order_date >= '2025-12-14'
 
 UNION ALL
 
@@ -231,7 +231,7 @@ WHERE coi.config_id IS NOT NULL
     AND coi.qty_invoiced = coi.qty_ordered
     AND coi.qty_invoiced > 0
     AND coi.site_ref = 'BENN'
-    AND co.order_date >= '2024-12-14'
+    AND co.order_date >= '2025-12-14'
 
 ORDER BY [ERP_OrderNo], [LineSeqNo]
 """
@@ -251,7 +251,7 @@ def is_cpq_order(order_date, external_confirmation_ref, co_num):
     CPQ orders always go to BoatOptions26_test.
 
     Criteria:
-    - order_date >= 2024-12-14 (CPQ Go Live)
+    - order_date >= 2025-12-14 (CPQ Go Live)
     - co_num starts with 'SO'
     - external_confirmation_ref starts with 'SO'
     """
@@ -324,7 +324,7 @@ def extract_from_mssql() -> List[Dict]:
         cursor = conn.cursor(as_dict=True)
         log("✅ Connected to MSSQL", "SUCCESS")
 
-        log("Extracting INVOICED orders from 12/14/2024 onwards...")
+        log("Extracting INVOICED orders from 12/14/2025 onwards...")
         log("This includes both regular items and CPQ configured items...")
 
         cursor.execute(MSSQL_QUERY)
@@ -541,7 +541,7 @@ def main():
     print("BOATOPTIONS IMPORT - TEST VERSION")
     print("="*80)
     print(f"Target: warrantyparts_boatoptions_test (TEST DATABASE)")
-    print(f"Filter: Invoiced orders from 12/14/2024 onwards")
+    print(f"Filter: Invoiced orders from 12/14/2025 onwards")
     print(f"Year Detection: Automatic from serial number (all years 1999-2030)")
     print(f"CPQ Detection: Tracked for reporting (routes by model year)")
     print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -554,7 +554,7 @@ def main():
 
         if len(rows) == 0:
             log("No data extracted from MSSQL!", "ERROR")
-            log("This could mean no orders have been invoiced since 12/14/2024", "WARNING")
+            log("This could mean no orders have been invoiced since 12/14/2025", "WARNING")
             sys.exit(1)
 
         # Step 2: Group by table (based on model year)
