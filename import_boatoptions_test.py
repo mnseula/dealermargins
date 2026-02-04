@@ -97,6 +97,9 @@ def get_table_for_year(year: int, is_production: bool = False) -> str:
 # ============================================================================
 
 MSSQL_QUERY = """
+-- Use ROW_NUMBER to generate unique LineSeqNo for each row per order
+-- This fixes the issue where configured items all have the same co_line value
+WITH OrderedRows AS (
 -- Part 1: Main order lines (e.g., boat itself, engine, accessories)
 SELECT
     LEFT(coi.Uf_BENN_BoatWebOrderNumber, 30) AS [WebOrderNo],
@@ -233,7 +236,35 @@ WHERE coi.config_id IS NOT NULL
     AND coi.site_ref = 'BENN'
     AND co.order_date >= '2025-12-14'
 
-ORDER BY [ERP_OrderNo], [LineSeqNo]
+)
+-- Now assign unique LineSeqNo using ROW_NUMBER per order
+SELECT
+    WebOrderNo,
+    C_Series,
+    QuantitySold,
+    Orig_Ord_Type,
+    OptionSerialNo,
+    MCTDesc,
+    ROW_NUMBER() OVER (PARTITION BY ERP_OrderNo ORDER BY LineSeqNo, ItemNo) AS LineSeqNo,
+    LineNo,
+    ItemNo,
+    ItemMasterProdCatDesc,
+    ItemMasterProdCat,
+    ItemMasterMCT,
+    ItemDesc1,
+    InvoiceNo,
+    InvoiceDate,
+    ExtSalesAmount,
+    ERP_OrderNo,
+    BoatSerialNo,
+    BoatModelNo,
+    ApplyToNo,
+    ConfigID,
+    ValueText,
+    order_date,
+    external_confirmation_ref
+FROM OrderedRows
+ORDER BY ERP_OrderNo, LineSeqNo
 """
 
 # ============================================================================
