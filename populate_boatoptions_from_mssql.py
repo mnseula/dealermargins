@@ -15,12 +15,12 @@ MSSQL_CONFIG = {
     'password': 'CNKmoFxEsXs0D9egZQXH'
 }
 
-# MySQL Configuration
+# MySQL Configuration - TEST DATABASE (NOT PRODUCTION!)
 MYSQL_CONFIG = {
     'host': 'ben.c0fnidwvz1hv.us-east-1.rds.amazonaws.com',
     'user': 'awsmaster',
     'password': 'VWvHG9vfG23g7gD',
-    'database': 'warrantyparts',
+    'database': 'warrantyparts_test',  # TEST DATABASE - NOT PRODUCTION!
     'charset': 'utf8mb4'
 }
 
@@ -28,6 +28,7 @@ def main():
     print("="*120)
     print("POPULATING BOATOPTIONS25 FROM MSSQL")
     print("="*120)
+    print(f"⚠️  TARGET: warrantyparts_test.BoatOptions25 (TEST DATABASE)")
     print(f"Started: {datetime.now()}\n")
 
     try:
