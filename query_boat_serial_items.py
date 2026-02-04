@@ -58,10 +58,40 @@ def main():
             test_serial = 'ETWC4149F425'  # Fallback
             print(f"\n>>> Using fallback serial: {test_serial}")
 
-        # 2. Get ALL items for this serial number
+        # 2. Check if serial is linked via order number instead
+        print("\n" + "="*120)
+        print("CHECKING SERIAL TO ORDER RELATIONSHIP:")
+        print("="*120)
+        cursor.execute(f"""
+            SELECT
+                ser.ser_num,
+                ser.ref_num as order_num,
+                ser.item as boat_item,
+                COUNT(coi.co_line) as line_count
+            FROM serial_mst ser
+            LEFT JOIN coitem_mst coi ON ser.ref_num = coi.co_num AND ser.site_ref = coi.site_ref
+            WHERE ser.ser_num = '{test_serial}'
+              AND ser.site_ref = 'BENN'
+            GROUP BY ser.ser_num, ser.ref_num, ser.item
+        """)
+
+        rel = cursor.fetchone()
+        if rel:
+            order_num = rel[1]
+            print(f"\n  Serial: {rel[0]}")
+            print(f"  Order#: {order_num}")
+            print(f"  Boat Item: {rel[2]}")
+            print(f"  Order Line Items: {rel[3]}")
+        else:
+            order_num = None
+            print(f"  No relationship found")
+
+        # 3. Get ALL items for this serial number (try both methods)
         print("\n" + "="*120)
         print(f"ALL LINE ITEMS FOR BOAT SERIAL {test_serial}:")
         print("="*120)
+
+        # Try via Uf_BENN_BoatSerialNumber first
         cursor.execute(f"""
             SELECT
                 coi.co_num,
@@ -73,18 +103,42 @@ def main():
                 itm.Uf_BENN_ProductCategory,
                 coi.qty_ordered,
                 coi.price,
-                coi.price * coi.qty_ordered as ext_amount
+                coi.price * coi.qty_ordered as ext_amount,
+                'SERIAL_FIELD' as source
             FROM coitem_mst coi
             JOIN item_mst itm ON coi.item = itm.item AND coi.site_ref = itm.site_ref
             LEFT JOIN prodcode_mst pc ON itm.product_code = pc.product_code AND itm.site_ref = pc.site_ref
             WHERE coi.Uf_BENN_BoatSerialNumber = '{test_serial}'
               AND coi.site_ref = 'BENN'
-            ORDER BY coi.co_line
+
+            UNION ALL
+
+            -- Try via order number from serial_mst
+            SELECT
+                coi.co_num,
+                coi.co_line,
+                coi.item,
+                itm.description,
+                itm.product_code,
+                pc.description as product_code_desc,
+                itm.Uf_BENN_ProductCategory,
+                coi.qty_ordered,
+                coi.price,
+                coi.price * coi.qty_ordered as ext_amount,
+                'ORDER_NUM' as source
+            FROM serial_mst ser
+            JOIN coitem_mst coi ON ser.ref_num = coi.co_num AND ser.site_ref = coi.site_ref
+            JOIN item_mst itm ON coi.item = itm.item AND coi.site_ref = itm.site_ref
+            LEFT JOIN prodcode_mst pc ON itm.product_code = pc.product_code AND itm.site_ref = pc.site_ref
+            WHERE ser.ser_num = '{test_serial}'
+              AND ser.site_ref = 'BENN'
+
+            ORDER BY co_line
         """)
 
         all_items = cursor.fetchall()
         if all_items:
-            print(f"\n{'Line':<6} {'Item':<20} {'ProdCode':<8} {'MCT Description':<30} {'Cat':<6} {'Qty':<8} {'Price':<12} {'Ext$':<12} {'Item Description':<40}")
+            print(f"\n{'Line':<6} {'Item':<20} {'ProdCode':<8} {'MCT Description':<30} {'Cat':<6} {'Qty':<8} {'Price':<12} {'Ext$':<12} {'Source':<12} {'Item Description':<40}")
             print("-"*120)
             for row in all_items:
                 order = row[0] or ''
@@ -97,30 +151,49 @@ def main():
                 qty = row[7] or 0
                 price = row[8] or 0
                 ext = row[9] or 0
-                print(f"{line:<6} {item:<20} {prod_code:<8} {prod_desc:<30} {cat:<6} {qty:<8.2f} ${price:<11.2f} ${ext:<11.2f} {item_desc:<40}")
+                source = row[10] or ''
+                print(f"{line:<6} {item:<20} {prod_code:<8} {prod_desc:<30} {cat:<6} {qty:<8.2f} ${price:<11.2f} ${ext:<11.2f} {source:<12} {item_desc:<40}")
 
             print(f"\n  Total items: {len(all_items)}")
         else:
             print(f"  No items found for serial {test_serial}")
 
-        # 3. Group by product code to see categories
+        # 4. Group by product code to see categories
         print("\n" + "="*120)
         print("ITEMS GROUPED BY PRODUCT CODE:")
         print("="*120)
-        cursor.execute(f"""
-            SELECT
-                itm.product_code,
-                pc.description as product_code_desc,
-                COUNT(*) as item_count,
-                SUM(coi.price * coi.qty_ordered) as total_amount
-            FROM coitem_mst coi
-            JOIN item_mst itm ON coi.item = itm.item AND coi.site_ref = itm.site_ref
-            LEFT JOIN prodcode_mst pc ON itm.product_code = pc.product_code AND itm.site_ref = pc.site_ref
-            WHERE coi.Uf_BENN_BoatSerialNumber = '{test_serial}'
-              AND coi.site_ref = 'BENN'
-            GROUP BY itm.product_code, pc.description
-            ORDER BY itm.product_code
-        """)
+
+        if order_num:
+            cursor.execute(f"""
+                SELECT
+                    itm.product_code,
+                    pc.description as product_code_desc,
+                    COUNT(*) as item_count,
+                    SUM(coi.price * coi.qty_ordered) as total_amount
+                FROM serial_mst ser
+                JOIN coitem_mst coi ON ser.ref_num = coi.co_num AND ser.site_ref = coi.site_ref
+                JOIN item_mst itm ON coi.item = itm.item AND coi.site_ref = itm.site_ref
+                LEFT JOIN prodcode_mst pc ON itm.product_code = pc.product_code AND itm.site_ref = pc.site_ref
+                WHERE ser.ser_num = '{test_serial}'
+                  AND ser.site_ref = 'BENN'
+                GROUP BY itm.product_code, pc.description
+                ORDER BY itm.product_code
+            """)
+        else:
+            cursor.execute(f"""
+                SELECT
+                    itm.product_code,
+                    pc.description as product_code_desc,
+                    COUNT(*) as item_count,
+                    SUM(coi.price * coi.qty_ordered) as total_amount
+                FROM coitem_mst coi
+                JOIN item_mst itm ON coi.item = itm.item AND coi.site_ref = itm.site_ref
+                LEFT JOIN prodcode_mst pc ON itm.product_code = pc.product_code AND itm.site_ref = pc.site_ref
+                WHERE coi.Uf_BENN_BoatSerialNumber = '{test_serial}'
+                  AND coi.site_ref = 'BENN'
+                GROUP BY itm.product_code, pc.description
+                ORDER BY itm.product_code
+            """)
 
         groups = cursor.fetchall()
         if groups:
@@ -136,45 +209,84 @@ def main():
 
             print("\n  >>> = Configuration/Non-Physical Items (should be filtered out)")
 
-        # 4. Show what SHOULD be included (physical items only)
+        # 5. Show what SHOULD be included (physical items only)
         print("\n" + "="*120)
         print("PHYSICAL ITEMS ONLY (FILTERED):")
         print("="*120)
-        cursor.execute(f"""
-            SELECT
-                coi.co_line,
-                coi.item,
-                itm.description,
-                itm.product_code,
-                pc.description as product_code_desc,
-                coi.qty_ordered,
-                coi.price * coi.qty_ordered as ext_amount
-            FROM coitem_mst coi
-            JOIN item_mst itm ON coi.item = itm.item AND coi.site_ref = itm.site_ref
-            LEFT JOIN prodcode_mst pc ON itm.product_code = pc.product_code AND itm.site_ref = pc.site_ref
-            WHERE coi.Uf_BENN_BoatSerialNumber = '{test_serial}'
-              AND coi.site_ref = 'BENN'
-              AND itm.product_code NOT IN (
-                'DIC','DIF','DIP','DIR','DIA','DIW','LOY','PRD','VOD','DIV',
-                'SHO','GRO','ZZZ','FRE','WAR','DLR','FRT',
-                'A0','A0C','A0G','A0I','A0P','A0T','A0V','A1','A6','FUR',
-                'DIS','ENZ','TAX','CAS','INT','LAB','MKT','ADV','DLM',
-                'DMG','DSP','OTD','OTI','PGA','MKA','MIG','DON','REW','SNAP'
-              )
-            ORDER BY
-              CASE pc.description
-                WHEN 'Pontoon Boats OB' THEN 1
-                WHEN 'Pontoon Boats IO' THEN 1
-                WHEN 'Engine' THEN 2
-                WHEN 'Engine IO' THEN 2
-                WHEN 'Engine Accessory' THEN 2
-                WHEN 'Prerig' THEN 3
-                WHEN 'Accessory' THEN 4
-                WHEN 'Trailer' THEN 5
-                ELSE 6
-              END,
-              coi.co_line
-        """)
+
+        if order_num:
+            cursor.execute(f"""
+                SELECT
+                    coi.co_line,
+                    coi.item,
+                    itm.description,
+                    itm.product_code,
+                    pc.description as product_code_desc,
+                    coi.qty_ordered,
+                    coi.price * coi.qty_ordered as ext_amount
+                FROM serial_mst ser
+                JOIN coitem_mst coi ON ser.ref_num = coi.co_num AND ser.site_ref = coi.site_ref
+                JOIN item_mst itm ON coi.item = itm.item AND coi.site_ref = itm.site_ref
+                LEFT JOIN prodcode_mst pc ON itm.product_code = pc.product_code AND itm.site_ref = pc.site_ref
+                WHERE ser.ser_num = '{test_serial}'
+                  AND ser.site_ref = 'BENN'
+                  AND itm.product_code NOT IN (
+                    'DIC','DIF','DIP','DIR','DIA','DIW','LOY','PRD','VOD','DIV',
+                    'SHO','GRO','ZZZ','FRE','WAR','DLR','FRT',
+                    'A0','A0C','A0G','A0I','A0P','A0T','A0V','A1','A6','FUR',
+                    'DIS','ENZ','TAX','CAS','INT','LAB','MKT','ADV','DLM',
+                    'DMG','DSP','OTD','OTI','PGA','MKA','MIG','DON','REW','SNAP'
+                  )
+                ORDER BY
+                  CASE pc.description
+                    WHEN 'Pontoon Boats OB' THEN 1
+                    WHEN 'Pontoon Boats IO' THEN 1
+                    WHEN 'Engine' THEN 2
+                    WHEN 'Engine IO' THEN 2
+                    WHEN 'Engine Accessory' THEN 2
+                    WHEN 'Prerig' THEN 3
+                    WHEN 'Accessory' THEN 4
+                    WHEN 'Trailer' THEN 5
+                    ELSE 6
+                  END,
+                  coi.co_line
+            """)
+        else:
+            cursor.execute(f"""
+                SELECT
+                    coi.co_line,
+                    coi.item,
+                    itm.description,
+                    itm.product_code,
+                    pc.description as product_code_desc,
+                    coi.qty_ordered,
+                    coi.price * coi.qty_ordered as ext_amount
+                FROM coitem_mst coi
+                JOIN item_mst itm ON coi.item = itm.item AND coi.site_ref = itm.site_ref
+                LEFT JOIN prodcode_mst pc ON itm.product_code = pc.product_code AND itm.site_ref = pc.site_ref
+                WHERE coi.Uf_BENN_BoatSerialNumber = '{test_serial}'
+                  AND coi.site_ref = 'BENN'
+                  AND itm.product_code NOT IN (
+                    'DIC','DIF','DIP','DIR','DIA','DIW','LOY','PRD','VOD','DIV',
+                    'SHO','GRO','ZZZ','FRE','WAR','DLR','FRT',
+                    'A0','A0C','A0G','A0I','A0P','A0T','A0V','A1','A6','FUR',
+                    'DIS','ENZ','TAX','CAS','INT','LAB','MKT','ADV','DLM',
+                    'DMG','DSP','OTD','OTI','PGA','MKA','MIG','DON','REW','SNAP'
+                  )
+                ORDER BY
+                  CASE pc.description
+                    WHEN 'Pontoon Boats OB' THEN 1
+                    WHEN 'Pontoon Boats IO' THEN 1
+                    WHEN 'Engine' THEN 2
+                    WHEN 'Engine IO' THEN 2
+                    WHEN 'Engine Accessory' THEN 2
+                    WHEN 'Prerig' THEN 3
+                    WHEN 'Accessory' THEN 4
+                    WHEN 'Trailer' THEN 5
+                    ELSE 6
+                  END,
+                  coi.co_line
+            """)
 
         physical_items = cursor.fetchall()
         if physical_items:
