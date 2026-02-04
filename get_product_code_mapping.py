@@ -145,13 +145,28 @@ def main():
             except:
                 pass  # Skip databases we can't access
 
-        # 6. Sample actual data from BoatOptions25 (try different databases)
+        # 6. Find BoatOptions25 in CSISTG schemas
+        print("\n" + "="*80)
+        print("SEARCHING FOR BOATOPTIONS25 IN CSISTG:")
+        print("="*80)
+        cursor.execute("""
+            SELECT TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE
+            FROM CSISTG.INFORMATION_SCHEMA.TABLES
+            WHERE TABLE_NAME LIKE '%BoatOptions%'
+        """)
+        tables = cursor.fetchall()
+        if tables:
+            print("\n  Found tables:")
+            for table in tables:
+                print(f"    {table[0]}.{table[1]} ({table[2]})")
+
+        # 7. Sample actual data from BoatOptions25
         print("\n" + "="*80)
         print("SAMPLE DATA FROM BOATOPTIONS25:")
         print("="*80)
 
-        # Try warrantyparts first, then CSISTG
-        for db_name in ['warrantyparts', 'CSISTG']:
+        # Try different schema names
+        for schema in ['dbo', 'warrantyparts']:
             try:
                 cursor.execute(f"""
                     SELECT TOP 10
@@ -161,14 +176,14 @@ def main():
                         ItemMasterMCT,
                         ItemMasterProdCat,
                         ExtSalesAmount
-                    FROM {db_name}.dbo.BoatOptions25
+                    FROM CSISTG.{schema}.BoatOptions25
                     WHERE BoatSerialNo = 'ETWC4149F425'
-                    ORDER BY LineNo
+                    ORDER BY [LineNo]
                 """)
 
                 rows = cursor.fetchall()
                 if rows:
-                    print(f"\n  Found data in {db_name}.dbo.BoatOptions25:")
+                    print(f"\n  Found data in CSISTG.{schema}.BoatOptions25:")
                     print(f"\n  {'ItemNo':<15} {'MCTDesc':<20} {'MCT':<8} {'Cat':<8} {'Amount':<12} {'Description':<30}")
                     print("  " + "-"*100)
                     for row in rows:
@@ -180,12 +195,12 @@ def main():
                         amt = f"${row[5]:,.2f}" if row[5] else ''
                         print(f"  {item:<15} {mct_desc:<20} {mct:<8} {cat:<8} {amt:<12} {desc:<30}")
 
-                    # 7. Try to get the view definition
+                    # 8. Try to get the view definition
                     print("\n" + "="*80)
-                    print(f"BOATOPTIONS25 VIEW DEFINITION ({db_name}):")
+                    print(f"BOATOPTIONS25 VIEW DEFINITION (CSISTG.{schema}):")
                     print("="*80)
                     cursor.execute(f"""
-                        SELECT OBJECT_DEFINITION(OBJECT_ID('{db_name}.dbo.BoatOptions25'))
+                        SELECT OBJECT_DEFINITION(OBJECT_ID('CSISTG.{schema}.BoatOptions25'))
                     """)
                     view_def = cursor.fetchone()
                     if view_def and view_def[0]:
@@ -194,7 +209,7 @@ def main():
                         print("  Could not retrieve view definition")
                     break
             except Exception as e:
-                print(f"  {db_name} - {e}")
+                print(f"  CSISTG.{schema} - {e}")
 
         cursor.close()
         conn.close()
