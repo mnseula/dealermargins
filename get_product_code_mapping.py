@@ -98,81 +98,103 @@ def main():
             cat = row[3] or ''
             print(f"{prod:<10} {item:<20} {desc:<40} {cat:<10}")
 
-        # 4. Check warrantyparts database for BoatOptions25
+        # 4. Get ALL product code descriptions
         print("\n" + "="*80)
-        print("CHECKING WARRANTYPARTS.BOATOPTIONS25:")
+        print("PRODUCT CODE DESCRIPTIONS:")
         print("="*80)
 
         cursor.execute("""
-            SELECT TOP 1 TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE
-            FROM warrantyparts.INFORMATION_SCHEMA.TABLES
-            WHERE TABLE_NAME = 'BoatOptions25'
+            SELECT
+                product_code,
+                description
+            FROM prodcode_mst
+            WHERE site_ref = 'BENN'
+            ORDER BY product_code
         """)
-        table_info = cursor.fetchone()
-        if table_info:
-            print(f"  Found: {table_info[0]}.{table_info[1]}.{table_info[2]} ({table_info[3]})")
 
-            # Get columns
-            cursor.execute("""
-                SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH
-                FROM warrantyparts.INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_NAME = 'BoatOptions25'
-                  AND TABLE_SCHEMA = 'dbo'
-                ORDER BY ORDINAL_POSITION
-            """)
+        print(f"\n{'Code':<10} {'Description':<50}")
+        print("-"*60)
+        for row in cursor.fetchall():
+            code = row[0] or ''
+            desc = (row[1] or '')[:50]
+            print(f"{code:<10} {desc:<50}")
 
-            print(f"\n  Columns in BoatOptions25:")
-            for col in cursor.fetchall():
-                col_name = col[0]
-                if 'MCT' in col_name.upper() or 'PRODUCT' in col_name.upper() or 'CATEGORY' in col_name.upper():
-                    print(f"    *** {col_name} ({col[1]}) ***")
-                else:
-                    print(f"    {col_name} ({col[1]})")
-        else:
-            print("  BoatOptions25 not found!")
+        # 5. Check which database has BoatOptions25
+        print("\n" + "="*80)
+        print("SEARCHING FOR BOATOPTIONS25 TABLE:")
+        print("="*80)
 
-        # 5. Sample actual data from BoatOptions25
+        # First, list all databases
+        cursor.execute("SELECT name FROM sys.databases ORDER BY name")
+        databases = [row[0] for row in cursor.fetchall()]
+        print(f"\n  Available databases: {', '.join(databases)}")
+
+        # Search for BoatOptions25 in each database
+        for db in databases:
+            try:
+                cursor.execute(f"""
+                    SELECT TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE
+                    FROM {db}.INFORMATION_SCHEMA.TABLES
+                    WHERE TABLE_NAME LIKE '%BoatOptions%'
+                """)
+                tables = cursor.fetchall()
+                if tables:
+                    print(f"\n  Found in {db}:")
+                    for table in tables:
+                        print(f"    {table[0]}.{table[1]} ({table[2]})")
+            except:
+                pass  # Skip databases we can't access
+
+        # 6. Sample actual data from BoatOptions25 (try different databases)
         print("\n" + "="*80)
         print("SAMPLE DATA FROM BOATOPTIONS25:")
         print("="*80)
-        cursor.execute("""
-            SELECT TOP 10
-                ItemNo,
-                ItemDesc1,
-                MCTDesc,
-                ItemMasterMCT,
-                ItemMasterProdCat,
-                ExtSalesAmount
-            FROM warrantyparts.BoatOptions25
-            WHERE BoatSerialNo = 'ETWC4149F425'
-            ORDER BY LineNo
-        """)
 
-        print(f"\n{'ItemNo':<15} {'MCTDesc':<20} {'MCT':<8} {'Cat':<8} {'Amount':<12} {'Description':<30}")
-        print("-"*100)
-        for row in cursor.fetchall():
-            item = (row[0] or '')[:15]
-            desc = (row[1] or '')[:30]
-            mct_desc = (row[2] or '')[:20]
-            mct = row[3] or ''
-            cat = row[4] or ''
-            amt = f"${row[5]:,.2f}" if row[5] else ''
-            print(f"{item:<15} {mct_desc:<20} {mct:<8} {cat:<8} {amt:<12} {desc:<30}")
+        # Try warrantyparts first, then CSISTG
+        for db_name in ['warrantyparts', 'CSISTG']:
+            try:
+                cursor.execute(f"""
+                    SELECT TOP 10
+                        ItemNo,
+                        ItemDesc1,
+                        MCTDesc,
+                        ItemMasterMCT,
+                        ItemMasterProdCat,
+                        ExtSalesAmount
+                    FROM {db_name}.dbo.BoatOptions25
+                    WHERE BoatSerialNo = 'ETWC4149F425'
+                    ORDER BY LineNo
+                """)
 
-        # 6. Try to get the view definition
-        print("\n" + "="*80)
-        print("BOATOPTIONS25 VIEW DEFINITION:")
-        print("="*80)
-        cursor.execute("""
-            SELECT OBJECT_DEFINITION(OBJECT_ID('warrantyparts.dbo.BoatOptions25'))
-        """)
-        view_def = cursor.fetchone()
-        if view_def and view_def[0]:
-            print("\n" + view_def[0][:2000])  # First 2000 chars
-            if len(view_def[0]) > 2000:
-                print(f"\n... (truncated, total length: {len(view_def[0])} chars)")
-        else:
-            print("  Could not retrieve view definition")
+                rows = cursor.fetchall()
+                if rows:
+                    print(f"\n  Found data in {db_name}.dbo.BoatOptions25:")
+                    print(f"\n  {'ItemNo':<15} {'MCTDesc':<20} {'MCT':<8} {'Cat':<8} {'Amount':<12} {'Description':<30}")
+                    print("  " + "-"*100)
+                    for row in rows:
+                        item = (row[0] or '')[:15]
+                        desc = (row[1] or '')[:30]
+                        mct_desc = (row[2] or '')[:20]
+                        mct = row[3] or ''
+                        cat = row[4] or ''
+                        amt = f"${row[5]:,.2f}" if row[5] else ''
+                        print(f"  {item:<15} {mct_desc:<20} {mct:<8} {cat:<8} {amt:<12} {desc:<30}")
+
+                    # 7. Try to get the view definition
+                    print("\n" + "="*80)
+                    print(f"BOATOPTIONS25 VIEW DEFINITION ({db_name}):")
+                    print("="*80)
+                    cursor.execute(f"""
+                        SELECT OBJECT_DEFINITION(OBJECT_ID('{db_name}.dbo.BoatOptions25'))
+                    """)
+                    view_def = cursor.fetchone()
+                    if view_def and view_def[0]:
+                        print("\n" + view_def[0])
+                    else:
+                        print("  Could not retrieve view definition")
+                    break
+            except Exception as e:
+                print(f"  {db_name} - {e}")
 
         cursor.close()
         conn.close()
