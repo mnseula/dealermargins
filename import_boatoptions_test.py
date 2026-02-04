@@ -239,32 +239,32 @@ WHERE coi.config_id IS NOT NULL
 )
 -- Now assign unique LineSeqNo using ROW_NUMBER per order
 SELECT
-    WebOrderNo,
-    C_Series,
-    QuantitySold,
-    Orig_Ord_Type,
-    OptionSerialNo,
-    MCTDesc,
-    ROW_NUMBER() OVER (PARTITION BY ERP_OrderNo ORDER BY LineSeqNo, ItemNo) AS LineSeqNo,
-    LineNo,
-    ItemNo,
-    ItemMasterProdCatDesc,
-    ItemMasterProdCat,
-    ItemMasterMCT,
-    ItemDesc1,
-    InvoiceNo,
-    InvoiceDate,
-    ExtSalesAmount,
-    ERP_OrderNo,
-    BoatSerialNo,
-    BoatModelNo,
-    ApplyToNo,
-    ConfigID,
-    ValueText,
-    order_date,
-    external_confirmation_ref
+    [WebOrderNo],
+    [C_Series],
+    [QuantitySold],
+    [Orig_Ord_Type],
+    [OptionSerialNo],
+    [MCTDesc],
+    ROW_NUMBER() OVER (PARTITION BY [ERP_OrderNo] ORDER BY [LineSeqNo], [ItemNo]) AS [LineSeqNo],
+    [LineNo],
+    [ItemNo],
+    [ItemMasterProdCatDesc],
+    [ItemMasterProdCat],
+    [ItemMasterMCT],
+    [ItemDesc1],
+    [InvoiceNo],
+    [InvoiceDate],
+    [ExtSalesAmount],
+    [ERP_OrderNo],
+    [BoatSerialNo],
+    [BoatModelNo],
+    [ApplyToNo],
+    [ConfigID],
+    [ValueText],
+    [order_date],
+    [external_confirmation_ref]
 FROM OrderedRows
-ORDER BY ERP_OrderNo, LineSeqNo
+ORDER BY [ERP_OrderNo], [LineSeqNo]
 """
 
 # ============================================================================
