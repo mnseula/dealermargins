@@ -35,11 +35,11 @@ TABLES = [
 ]
 
 ALTER_STATEMENTS = [
-    "ALTER TABLE `{table}` ADD COLUMN IF NOT EXISTS `ConfigID` varchar(30) DEFAULT NULL COMMENT 'CPQ Configuration ID'",
-    "ALTER TABLE `{table}` ADD COLUMN IF NOT EXISTS `ValueText` varchar(100) DEFAULT NULL COMMENT 'CPQ Configuration Value'",
-    "ALTER TABLE `{table}` ADD COLUMN IF NOT EXISTS `C_Series` varchar(5) DEFAULT NULL COMMENT 'Series from item master'",
-    "ALTER TABLE `{table}` ADD COLUMN IF NOT EXISTS `order_date` date DEFAULT NULL COMMENT 'Order date from co_mst'",
-    "ALTER TABLE `{table}` ADD COLUMN IF NOT EXISTS `external_confirmation_ref` varchar(30) DEFAULT NULL COMMENT 'CPQ order reference'",
+    "ALTER TABLE `{table}` ADD COLUMN `ConfigID` varchar(30) DEFAULT NULL COMMENT 'CPQ Configuration ID'",
+    "ALTER TABLE `{table}` ADD COLUMN `ValueText` varchar(100) DEFAULT NULL COMMENT 'CPQ Configuration Value'",
+    "ALTER TABLE `{table}` ADD COLUMN `C_Series` varchar(5) DEFAULT NULL COMMENT 'Series from item master'",
+    "ALTER TABLE `{table}` ADD COLUMN `order_date` date DEFAULT NULL COMMENT 'Order date from co_mst'",
+    "ALTER TABLE `{table}` ADD COLUMN `external_confirmation_ref` varchar(30) DEFAULT NULL COMMENT 'CPQ order reference'",
 ]
 
 def main():
