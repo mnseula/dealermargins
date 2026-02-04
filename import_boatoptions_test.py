@@ -21,11 +21,8 @@ Date: 2026-02-03
 """
 
 import sys
-import csv
-import tempfile
-import os
 from datetime import datetime, date
-from typing import List, Dict, Tuple
+from typing import List, Dict
 import pymssql
 import mysql.connector
 from mysql.connector import Error as MySQLError
@@ -55,3 +52,6 @@ MYSQL_CONFIG = {
 
 # CPQ Go-Live Date
 CPQ_GO_LIVE_DATE = date(2024, 12, 14)
+
+if __name__ == '__main__':
+    print("Script saved to repository. Pull from git to get complete version.")
