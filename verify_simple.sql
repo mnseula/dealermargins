@@ -8,7 +8,7 @@ SELECT TABLE_NAME, CAST(TABLE_ROWS AS CHAR)
 FROM information_schema.TABLES
 WHERE TABLE_SCHEMA = 'warrantyparts_boatoptions_test'
     AND TABLE_NAME IN ('BoatOptions24', 'BoatOptions25', 'BoatOptions26')
-ORDER BY TABLE_NAME;
+ORDER BY metric;
 
 -- 2. CPQ order count
 SELECT '' as metric, '' as value
@@ -44,13 +44,12 @@ SELECT 'CONFIGURED ITEMS', CAST(COUNT(*) AS CHAR)
 FROM BoatOptions25
 WHERE ValueText IS NOT NULL AND ValueText != '';
 
--- 6. MCT breakdown
-SELECT '' as metric, '' as value
+SELECT '' as metric, '' as value, 0 as sort_col
 UNION ALL
-SELECT 'MCT TYPES', '' as value
+SELECT 'MCT TYPES', '' as value, 1 as sort_col
 UNION ALL
-SELECT MCTDesc, CAST(COUNT(*) AS CHAR)
+SELECT MCTDesc, CAST(COUNT(*) AS CHAR), COUNT(*) as sort_col
 FROM BoatOptions25
 GROUP BY MCTDesc
-ORDER BY COUNT(*) DESC
+ORDER BY sort_col DESC, metric
 LIMIT 10;
