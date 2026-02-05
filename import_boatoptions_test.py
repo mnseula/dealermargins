@@ -100,16 +100,22 @@ MSSQL_QUERY = """
 -- Use ROW_NUMBER to generate unique LineSeqNo for each row per order
 -- This fixes the issue where configured items all have the same co_line value
 WITH BoatOrders AS (
-    -- First, identify all orders that have boats
+    -- First, identify all orders that have boats (traditional or CPQ)
     SELECT DISTINCT
         co_num,
         site_ref,
         Uf_BENN_BoatSerialNumber,
-        Uf_BENN_BoatModel
+        Uf_BENN_BoatModel,
+        config_id
     FROM [CSISTG].[dbo].[coitem_mst]
     WHERE site_ref = 'BENN'
-        AND Uf_BENN_BoatSerialNumber IS NOT NULL
-        AND Uf_BENN_BoatSerialNumber != ''
+        AND (
+            -- Traditional boats: have BoatSerialNumber
+            (Uf_BENN_BoatSerialNumber IS NOT NULL AND Uf_BENN_BoatSerialNumber != '')
+            OR
+            -- CPQ boats: have config_id (boat line item)
+            (config_id IS NOT NULL AND config_id != '')
+        )
 ),
 OrderedRows AS (
 -- Part 1: Main order lines (boat, engine, prerigs, accessories)
