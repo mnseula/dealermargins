@@ -171,13 +171,30 @@ SELECT
     coi.qty_invoiced AS [QuantitySold],
     LEFT(co.type, 1) AS [Orig_Ord_Type],
     LEFT(coi.Uf_BENN_BoatModel, 14) AS [OptionSerialNo],
-    pcm.description AS [MCTDesc],
+    -- Classify MCTDesc based on configuration attribute name
+    CASE
+        WHEN attr_detail.attr_name = 'Base Boat' THEN 'PONTOONS'
+        WHEN attr_detail.attr_name LIKE '%Pre-Rig%'
+             OR attr_detail.attr_name LIKE '%Rigging%'
+             OR attr_detail.attr_name LIKE '%Pre Rig%' THEN 'PRE-RIG'
+        WHEN attr_detail.Uf_BENN_Cfg_Price > 0 THEN 'ACCESSORIES'
+        ELSE 'STANDARD FEATURES'
+    END AS [MCTDesc],
     coi.co_line AS [LineSeqNo],
     coi.co_line AS [LineNo],
     LEFT(attr_detail.attr_name, 50) AS [ItemNo],
     NULL AS [ItemMasterProdCatDesc],
+    -- Keep boat's product category for CPQ attributes
     LEFT(im.Uf_BENN_ProductCategory, 3) AS [ItemMasterProdCat],
-    LEFT(im.Uf_BENN_MaterialCostType, 10) AS [ItemMasterMCT],
+    -- Classify ItemMasterMCT based on configuration attribute name
+    CASE
+        WHEN attr_detail.attr_name = 'Base Boat' THEN 'BOA'
+        WHEN attr_detail.attr_name LIKE '%Pre-Rig%'
+             OR attr_detail.attr_name LIKE '%Rigging%'
+             OR attr_detail.attr_name LIKE '%Pre Rig%' THEN 'PRE'
+        WHEN attr_detail.Uf_BENN_Cfg_Price > 0 THEN 'ACC'
+        ELSE 'STD'
+    END AS [ItemMasterMCT],
     LEFT(attr_detail.attr_value, 30) AS [ItemDesc1],
     LEFT(iim.inv_num, 30) AS [InvoiceNo],
     CASE
