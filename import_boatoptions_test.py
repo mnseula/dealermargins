@@ -185,7 +185,7 @@ SELECT
         THEN CONVERT(INT, CONVERT(VARCHAR(8), ah.inv_date, 112))
         ELSE NULL
     END AS [InvoiceDate],
-    CAST((coi.price * coi.qty_invoiced) AS DECIMAL(10,2)) AS [ExtSalesAmount],
+    CAST(ISNULL(attr_detail.Uf_BENN_Cfg_Price, 0) AS DECIMAL(10,2)) AS [ExtSalesAmount],
     LEFT(coi.co_num, 30) AS [ERP_OrderNo],
     LEFT(ser.ser_num, 15) AS [BoatSerialNo],
     LEFT(coi.Uf_BENN_BoatModel, 14) AS [BoatModelNo],
