@@ -101,20 +101,32 @@ MSSQL_QUERY = """
 -- This fixes the issue where configured items all have the same co_line value
 WITH BoatOrders AS (
     -- First, identify all orders that have boats (traditional or CPQ)
+    -- Also get the HIN from serial_mst for CPQ boats
     SELECT DISTINCT
-        co_num,
-        site_ref,
-        Uf_BENN_BoatSerialNumber,
-        Uf_BENN_BoatModel,
-        config_id
-    FROM [CSISTG].[dbo].[coitem_mst]
-    WHERE site_ref = 'BENN'
+        coi.co_num,
+        coi.site_ref,
+        -- Get BoatSerialNumber from either coitem or serial_mst (for CPQ boats)
+        COALESCE(
+            NULLIF(coi.Uf_BENN_BoatSerialNumber, ''),
+            ser.ser_num
+        ) AS Uf_BENN_BoatSerialNumber,
+        coi.Uf_BENN_BoatModel,
+        coi.config_id
+    FROM [CSISTG].[dbo].[coitem_mst] coi
+    LEFT JOIN [CSISTG].[dbo].[serial_mst] ser
+        ON coi.co_num = ser.ref_num
+        AND coi.co_line = ser.ref_line
+        AND coi.co_release = ser.ref_release
+        AND coi.item = ser.item
+        AND coi.site_ref = ser.site_ref
+        AND ser.ref_type = 'O'
+    WHERE coi.site_ref = 'BENN'
         AND (
             -- Traditional boats: have BoatSerialNumber
-            (Uf_BENN_BoatSerialNumber IS NOT NULL AND Uf_BENN_BoatSerialNumber != '')
+            (coi.Uf_BENN_BoatSerialNumber IS NOT NULL AND coi.Uf_BENN_BoatSerialNumber != '')
             OR
             -- CPQ boats: have config_id (boat line item)
-            (config_id IS NOT NULL AND config_id != '')
+            (coi.config_id IS NOT NULL AND coi.config_id != '')
         )
 ),
 OrderedRows AS (
