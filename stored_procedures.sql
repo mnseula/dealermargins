@@ -44,15 +44,15 @@ END //
 -- ============================================================================
 -- Gets complete window sticker data for a model
 -- Parameters:
---   p_model_id: Model ID (e.g., '25QXFBWA')
+--   p_model_id: Model ID (e.g., '25QXFBWA' or '22SVSR')
 --   p_dealer_id: Dealer ID (e.g., '00333836')
---   p_year: Model year (e.g., 2025)
---   p_identifier: Optional HIN or Order Number to filter specific boat (NULL for all)
+--   p_year: Model year (e.g., 2024, 2025, 2026)
+--   p_identifier: HIN (Hull ID) or Order Number to filter specific boat (e.g., 'ETWP1438F324')
 -- Returns multiple result sets:
---   1. Model basic info with pricing
---   2. Performance specifications (filtered by identifier if provided)
---   3. Standard features by area
---   4. Included options from sales database (filtered by identifier if provided)
+--   1. Model basic info with pricing (from CPQ Models/ModelPricing)
+--   2. Performance specifications (from CPQ ModelPerformance/PerformancePackages)
+--   3. Standard features by area (from CPQ StandardFeatures/ModelStandardFeatures)
+--   4. ALL boat items with pricing (from BoatOptions{year} - boats, engines, options, everything)
 
 CREATE PROCEDURE GetWindowStickerData(
     IN p_model_id VARCHAR(20),
@@ -149,31 +149,42 @@ BEGIN
     SET @table_name = CONCAT('warrantyparts.BoatOptions', @year_suffix);
 
     SET @query = CONCAT('
-        SELECT DISTINCT
+        SELECT
             ItemNo,
             ItemDesc1 AS ItemDescription,
             QuantitySold AS Quantity,
             ExtSalesAmount AS SalePrice,
-            ExtSalesAmount AS MSRP
+            ExtSalesAmount AS MSRP,
+            MCTDesc,
+            ItemMasterMCT
         FROM ', @table_name, '
-        WHERE BoatModelNo = ?
-          AND ItemMasterProdCat = ''ACC''
-          AND ItemNo IS NOT NULL
+        WHERE ItemNo IS NOT NULL
           AND ItemNo != ''''
           AND (
-              ? IS NULL
+              (? IS NULL AND BoatModelNo = ?)
               OR BoatSerialNo = ?
               OR ERP_OrderNo = ?
           )
-        ORDER BY ItemDesc1
+        ORDER BY
+            CASE MCTDesc
+                WHEN ''PONTOONS'' THEN 1
+                WHEN ''Pontoon Boats OB'' THEN 1
+                WHEN ''ENGINES'' THEN 2
+                WHEN ''Engine'' THEN 2
+                WHEN ''PRE-RIG'' THEN 3
+                WHEN ''Prerig'' THEN 3
+                ELSE 4
+            END,
+            ExtSalesAmount DESC,
+            ItemDesc1
     ');
 
     PREPARE stmt FROM @query;
-    SET @model_param = p_model_id;
     SET @identifier_param1 = p_identifier;
+    SET @model_param = p_model_id;
     SET @identifier_param2 = p_identifier;
     SET @identifier_param3 = p_identifier;
-    EXECUTE stmt USING @model_param, @identifier_param1, @identifier_param2, @identifier_param3;
+    EXECUTE stmt USING @identifier_param1, @model_param, @identifier_param2, @identifier_param3;
     DEALLOCATE PREPARE stmt;
 END //
 
