@@ -164,7 +164,7 @@ WHERE coi.site_ref = 'BENN'
 
 UNION ALL
 
--- Part 2: Component "Description" attributes for invoiced, configured items (CPQ boats)
+-- Part 2: ALL configuration attributes for invoiced, configured items (CPQ boats)
 SELECT
     LEFT(coi.Uf_BENN_BoatWebOrderNumber, 30) AS [WebOrderNo],
     LEFT(im.Uf_BENN_Series, 5) AS [C_Series],
@@ -174,7 +174,7 @@ SELECT
     pcm.description AS [MCTDesc],
     coi.co_line AS [LineSeqNo],
     coi.co_line AS [LineNo],
-    LEFT(ISNULL(ccm.comp_name, attr_detail.comp_id), 15) AS [ItemNo],
+    LEFT(ISNULL(ccm.comp_name, attr_detail.attr_name), 30) AS [ItemNo],
     NULL AS [ItemMasterProdCatDesc],
     LEFT(im.Uf_BENN_ProductCategory, 3) AS [ItemMasterProdCat],
     LEFT(im.Uf_BENN_MaterialCostType, 10) AS [ItemMasterMCT],
@@ -198,9 +198,6 @@ FROM [CSISTG].[dbo].[coitem_mst] coi
 INNER JOIN [CSISTG].[dbo].[cfg_attr_mst] attr_detail
     ON coi.config_id = attr_detail.config_id
     AND coi.site_ref = attr_detail.site_ref
-    AND attr_detail.attr_name = 'Description'
-    AND attr_detail.sl_field = 'jobmatl.description'
-    AND attr_detail.attr_type = 'Schema'
     AND attr_detail.attr_value IS NOT NULL
 LEFT JOIN [CSISTG].[dbo].[cfg_comp_mst] ccm
     ON attr_detail.config_id = ccm.config_id
