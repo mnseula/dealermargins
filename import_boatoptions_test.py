@@ -99,13 +99,26 @@ def get_table_for_year(year: int, is_production: bool = False) -> str:
 MSSQL_QUERY = """
 -- Use ROW_NUMBER to generate unique LineSeqNo for each row per order
 -- This fixes the issue where configured items all have the same co_line value
-WITH OrderedRows AS (
--- Part 1: Main order lines (e.g., boat itself, engine, accessories)
+WITH BoatOrders AS (
+    -- First, identify all orders that have boats
+    SELECT DISTINCT
+        co_num,
+        site_ref,
+        Uf_BENN_BoatSerialNumber,
+        Uf_BENN_BoatModel
+    FROM [CSISTG].[dbo].[coitem_mst]
+    WHERE site_ref = 'BENN'
+        AND Uf_BENN_BoatSerialNumber IS NOT NULL
+        AND Uf_BENN_BoatSerialNumber != ''
+),
+OrderedRows AS (
+-- Part 1: Main order lines (boat, engine, prerigs, accessories)
 SELECT
     LEFT(coi.Uf_BENN_BoatWebOrderNumber, 30) AS [WebOrderNo],
     LEFT(im.Uf_BENN_Series, 5) AS [C_Series],
     coi.qty_invoiced AS [QuantitySold],
     LEFT(co.type, 1) AS [Orig_Ord_Type],
+    -- OptionSerialNo = Engine serial number from serial_mst (for engine lines)
     LEFT(ser.ser_num, 12) AS [OptionSerialNo],
     pcm.description AS [MCTDesc],
     coi.co_line AS [LineSeqNo],
@@ -123,14 +136,18 @@ SELECT
     END AS [InvoiceDate],
     CAST((coi.price * coi.qty_invoiced) AS DECIMAL(10,2)) AS [ExtSalesAmount],
     LEFT(coi.co_num, 30) AS [ERP_OrderNo],
-    LEFT(coi.Uf_BENN_BoatSerialNumber, 15) AS [BoatSerialNo],
-    LEFT(coi.Uf_BENN_BoatModel, 14) AS [BoatModelNo],
+    -- Use boat serial from order if line doesn't have it (for engines/prerigs)
+    LEFT(COALESCE(coi.Uf_BENN_BoatSerialNumber, bo.Uf_BENN_BoatSerialNumber), 15) AS [BoatSerialNo],
+    LEFT(COALESCE(coi.Uf_BENN_BoatModel, bo.Uf_BENN_BoatModel), 14) AS [BoatModelNo],
     ah.apply_to_inv_num AS [ApplyToNo],
     '' AS [ConfigID],
     '' AS [ValueText],
     co.order_date AS [order_date],
     co.external_confirmation_ref AS [external_confirmation_ref]
 FROM [CSISTG].[dbo].[coitem_mst] coi
+INNER JOIN BoatOrders bo
+    ON coi.co_num = bo.co_num
+    AND coi.site_ref = bo.site_ref
 LEFT JOIN [CSISTG].[dbo].[inv_item_mst] iim
     ON coi.co_num = iim.co_num
     AND coi.co_line = iim.co_line
@@ -148,6 +165,8 @@ LEFT JOIN [CSISTG].[dbo].[item_mst] im
 LEFT JOIN [CSISTG].[dbo].[prodcode_mst] pcm
     ON im.Uf_BENN_MaterialCostType = pcm.product_code
     AND im.site_ref = pcm.site_ref
+-- Join serial_mst to get engine serial numbers (ser_num -> OptionSerialNo)
+-- Matches on co_line so each line item gets its own serial (e.g., engine serial for engine line)
 LEFT JOIN [CSISTG].[dbo].[serial_mst] ser
     ON coi.co_num = ser.ref_num
     AND coi.co_line = ser.ref_line
@@ -156,8 +175,6 @@ LEFT JOIN [CSISTG].[dbo].[serial_mst] ser
     AND coi.site_ref = ser.site_ref
     AND ser.ref_type = 'O'
 WHERE coi.site_ref = 'BENN'
-    AND coi.Uf_BENN_BoatSerialNumber IS NOT NULL
-    AND coi.Uf_BENN_BoatSerialNumber != ''
     AND iim.inv_num IS NOT NULL
     AND coi.qty_invoiced > 0
     AND co.order_date >= '2025-12-14'
