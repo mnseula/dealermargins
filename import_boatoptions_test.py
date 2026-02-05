@@ -199,10 +199,7 @@ INNER JOIN [CSISTG].[dbo].[cfg_attr_mst] attr_detail
     ON coi.config_id = attr_detail.config_id
     AND coi.site_ref = attr_detail.site_ref
     AND attr_detail.attr_value IS NOT NULL
-INNER JOIN [CSISTG].[dbo].[cfg_main_mst] cmm
-    ON attr_detail.config_id = cmm.config_id
-    AND attr_detail.attr_name = cmm.attr_name
-    AND attr_detail.site_ref = cmm.site_ref
+    AND attr_detail.print_flag = 'E'
 LEFT JOIN [CSISTG].[dbo].[cfg_comp_mst] ccm
     ON attr_detail.config_id = ccm.config_id
     AND attr_detail.comp_id = ccm.comp_id
