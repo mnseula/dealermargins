@@ -174,7 +174,7 @@ SELECT
     pcm.description AS [MCTDesc],
     coi.co_line AS [LineSeqNo],
     coi.co_line AS [LineNo],
-    LEFT(ISNULL(ccm.comp_name, attr_detail.attr_name), 30) AS [ItemNo],
+    LEFT(attr_detail.attr_name, 50) AS [ItemNo],
     NULL AS [ItemMasterProdCatDesc],
     LEFT(im.Uf_BENN_ProductCategory, 3) AS [ItemMasterProdCat],
     LEFT(im.Uf_BENN_MaterialCostType, 10) AS [ItemMasterMCT],
