@@ -211,13 +211,27 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
 
     window.blo = loadByListName('Boats_ListOrder_20' + two, "WHERE REALMODELNAME = '" + realmodel + "'");
     console.log(blo);
-    if (blo.length === 0) {
+
+    // CPQ FALLBACK - If Boats_ListOrder is empty, get SERIES from boatoptions
+    if (blo.length === 0 && boatoptions && boatoptions.length > 0) {
+        // Extract SERIES from the boat record (already loaded in boatoptions)
+        var boatRecord = $.grep(boatoptions, function (rec) {
+            return rec.ItemMasterMCT === 'BOA' || rec.ItemMasterMCT === 'BOI';
+        });
+
+        if (boatRecord.length > 0 && boatRecord[0].Series) {
+            console.log('CPQ boat: Using SERIES from boatoptions:', boatRecord[0].Series);
+            window.series = boatRecord[0].Series;
+            window.boatpricingtype = 'reg';  // CPQ boats use regular pricing
+        } else {
+            alert('Model was not found! Contact your administrator to report about this error.');
+        }
+    } else if (blo.length === 0) {
         alert('Model was not found! Contact your administrator to report about this error.');
     } else {
-
+        window.boatpricingtype = blo[0].PRICING || ''; //pp, ppd or reg
+        window.series = blo[0].SERIES || '';
     }
-    window.boatpricingtype = blo[0] && blo[0].PRICING || ''; //pp, ppd or reg
-    window.series = blo[0] && blo[0].SERIES || '';
 
 
     if (serialYear > 13) {
