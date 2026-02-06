@@ -212,8 +212,10 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
     window.blo = loadByListName('Boats_ListOrder_20' + two, "WHERE REALMODELNAME = '" + realmodel + "'");
     console.log(blo);
 
-    // CPQ FALLBACK - If Boats_ListOrder is empty, get SERIES from boatoptions
-    if (blo.length === 0 && boatoptions && boatoptions.length > 0) {
+    // CPQ FALLBACK - If Boats_ListOrder is empty or invalid, get SERIES from boatoptions
+    // blo might be an empty object {} instead of an array, so check if blo[0] is undefined
+    if ((!blo || !blo[0] || blo.length === 0) && boatoptions && boatoptions.length > 0) {
+        console.log('Boats_ListOrder query failed or empty - using CPQ fallback');
         // Extract SERIES from the boat record (already loaded in boatoptions)
         var boatRecord = $.grep(boatoptions, function (rec) {
             return rec.ItemMasterMCT === 'BOA' || rec.ItemMasterMCT === 'BOI';
@@ -224,10 +226,15 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
             window.series = boatRecord[0].Series;
             window.boatpricingtype = 'reg';  // CPQ boats use regular pricing
         } else {
+            console.log('ERROR: Could not find boat record in boatoptions');
             alert('Model was not found! Contact your administrator to report about this error.');
+            window.series = '';
+            window.boatpricingtype = '';
         }
-    } else if (blo.length === 0) {
+    } else if (!blo || !blo[0] || blo.length === 0) {
         alert('Model was not found! Contact your administrator to report about this error.');
+        window.series = '';
+        window.boatpricingtype = '';
     } else {
         window.boatpricingtype = blo[0].PRICING || ''; //pp, ppd or reg
         window.series = blo[0].SERIES || '';
