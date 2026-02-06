@@ -209,7 +209,7 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
     window.currentmodelyear = '20' + two;
 
 
-    window.blo = loadByListName('Boats_ListOrder_20' + two, 'LIST/REALMODELNAME[= "' + realmodel + '"]');
+    window.blo = loadByListName('Boats_ListOrder_20' + two, "WHERE REALMODELNAME = '" + realmodel + "'");
     console.log(blo);
     if (blo.length === 0) {
         alert('Model was not found! Contact your administrator to report about this error.');
