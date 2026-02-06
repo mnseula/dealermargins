@@ -38,6 +38,15 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
 
     }
 
+    // MAP EXTSALESAMOUNT TO MSRP - Added 2026-02-06
+    // Window sticker expects MSRP field, but BoatOptions26 has ExtSalesAmount
+    if (window.boatoptions && window.boatoptions.length > 0) {
+        console.log('Mapping ExtSalesAmount to MSRP for ' + window.boatoptions.length + ' items');
+        for (var i = 0; i < window.boatoptions.length; i++) {
+            window.boatoptions[i].MSRP = window.boatoptions[i].ExtSalesAmount || 0;
+        }
+    }
+
     console.log("BEFORE fAILURE");
     window.productids = loadByListName('Product List');
 
