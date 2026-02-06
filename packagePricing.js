@@ -103,7 +103,7 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
         if (serialYear === 25) {
             window.optionsMatrix = loadByListName('options_matrix_2024', "WHERE MODEL ='" + realmodel + "'");       //TAKE THIS OUT FOR MODEL YEAR CUTOVER~!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         } else if (CleanserialYear === 26) {
-            window.optionsMatrix = loadByListName('options_matrix_2025', "WHERE MODEL ='" + realmodel + "'");		// Added for fakies 6.17.2025 delete at cutover
+            window.optionsMatrix = loadByListName('options_matrix_2025', "WHERE MODEL ='" + realmodel + "'");        // Added for fakies 6.17.2025 delete at cutover
         } else {
             window.optionsMatrix = loadByListName('options_matrix_20' + boatYear, "WHERE MODEL ='" + realmodel + "'");
         }
