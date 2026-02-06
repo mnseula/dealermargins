@@ -165,6 +165,35 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
         //}
     }
 
+    // CPQ CATCHALL - Added 2026-02-06
+    // CPQ boats use floorplan codes (ML, QB, etc.) not year codes
+    // If no year code matched (two still '0'), use serialYear to determine year
+    if (two === '0') {
+        console.log('CPQ boat detected (no year code match) - using serialYear:', serialYear);
+        if (serialYear === 26) {
+            two = '25';  // 2026 boats use 2025 model year lists
+        } else if (serialYear === 25) {
+            two = '24';
+        } else if (serialYear === 24) {
+            two = '23';
+        } else if (serialYear === 23) {
+            two = '22';
+        } else if (serialYear >= 14) {
+            // General formula for other years
+            two = String(serialYear - 1);
+            if (two.length === 1) {
+                two = '0' + two;  // Pad single digit (e.g., '9' -> '09')
+            }
+        } else {
+            console.warn('Unable to determine year for model:', realmodel, 'serialYear:', serialYear);
+            two = String(serialYear);
+            if (two.length === 1) {
+                two = '0' + two;
+            }
+        }
+        console.log('CPQ boat year calculated: two =', two);
+    }
+
     console.log('two', two);
     console.log('RealModel', realmodel)
     //Completed: SFC substitution - 188SFCSF is changed to 188SSSF, then SF->SE logic makes it 188SSSE
