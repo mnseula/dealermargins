@@ -260,7 +260,8 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
 
 
     if (serialYear > 13) {
-        window.stndsMtrx = loadByListName('standards_matrix' + '_20' + two, "WHERE (MODEL ='" + realmodel + "')");
+        // Use _view suffix for correct column mapping (CATEGORY, STANDARD, OPT_NAME)
+        window.stndsMtrx = loadByListName('standards_matrix' + '_20' + two + '_view', "WHERE (MODEL ='" + realmodel + "')");
     }
 
     if (serialYear < 21) {
