@@ -161,7 +161,14 @@ SELECT
     '' AS [ConfigID],
     '' AS [ValueText],
     co.order_date AS [order_date],
-    co.external_confirmation_ref AS [external_confirmation_ref]
+    co.external_confirmation_ref AS [external_confirmation_ref],
+    -- NEW FIELDS: NULL for non-CPQ items (Part 1)
+    NULL AS [MSRP],
+    NULL AS [CfgName],
+    NULL AS [CfgPage],
+    NULL AS [CfgScreen],
+    NULL AS [CfgValue],
+    NULL AS [CfgAttrType]
 FROM [CSISTG].[dbo].[coitem_mst] coi
 INNER JOIN BoatOrders bo
     ON coi.co_num = bo.co_num
@@ -245,7 +252,14 @@ SELECT
     LEFT(coi.config_id, 30) AS [ConfigID],
     LEFT(attr_detail.attr_value, 100) AS [ValueText],
     co.order_date AS [order_date],
-    co.external_confirmation_ref AS [external_confirmation_ref]
+    co.external_confirmation_ref AS [external_confirmation_ref],
+    -- NEW FIELDS: Configuration metadata from cfg_attr_mst
+    CAST(ISNULL(attr_detail.Uf_BENN_Cfg_MSRP, 0) AS DECIMAL(10,2)) AS [MSRP],
+    LEFT(attr_detail.Uf_BENN_Cfg_Name, 100) AS [CfgName],
+    LEFT(attr_detail.Uf_BENN_Cfg_Page, 50) AS [CfgPage],
+    LEFT(attr_detail.Uf_BENN_Cfg_Screen, 50) AS [CfgScreen],
+    LEFT(attr_detail.Uf_BENN_Cfg_Value, 100) AS [CfgValue],
+    LEFT(attr_detail.attr_type, 20) AS [CfgAttrType]
 FROM [CSISTG].[dbo].[coitem_mst] coi
 INNER JOIN [CSISTG].[dbo].[cfg_attr_mst] attr_detail
     ON coi.config_id = attr_detail.config_id
@@ -312,7 +326,13 @@ SELECT
     [ConfigID],
     [ValueText],
     [order_date],
-    [external_confirmation_ref]
+    [external_confirmation_ref],
+    [MSRP],
+    [CfgName],
+    [CfgPage],
+    [CfgScreen],
+    [CfgValue],
+    [CfgAttrType]
 FROM OrderedRows
 ORDER BY [ERP_OrderNo], [LineSeqNo]
 """
@@ -493,11 +513,13 @@ def load_to_mysql_batch(rows: List[Dict], table_name: str):
             ExtSalesAmount, QuantitySold, Series, WebOrderNo, Orig_Ord_Type,
             ApplyToNo, InvoiceNo, InvoiceDate, ItemMasterProdCat, ItemMasterProdCatDesc,
             ItemMasterMCT, MCTDesc, LineSeqNo, ConfigID, ValueText,
-            OptionSerialNo, C_Series, order_date, external_confirmation_ref
+            OptionSerialNo, C_Series, order_date, external_confirmation_ref,
+            MSRP, CfgName, CfgPage, CfgScreen, CfgValue, CfgAttrType
         ) VALUES (
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-            %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+            %s
         )
         ON DUPLICATE KEY UPDATE
             BoatSerialNo = VALUES(BoatSerialNo),
@@ -522,7 +544,13 @@ def load_to_mysql_batch(rows: List[Dict], table_name: str):
             OptionSerialNo = VALUES(OptionSerialNo),
             C_Series = VALUES(C_Series),
             order_date = VALUES(order_date),
-            external_confirmation_ref = VALUES(external_confirmation_ref)
+            external_confirmation_ref = VALUES(external_confirmation_ref),
+            MSRP = VALUES(MSRP),
+            CfgName = VALUES(CfgName),
+            CfgPage = VALUES(CfgPage),
+            CfgScreen = VALUES(CfgScreen),
+            CfgValue = VALUES(CfgValue),
+            CfgAttrType = VALUES(CfgAttrType)
         """
 
         batch_size = 1000
@@ -557,7 +585,13 @@ def load_to_mysql_batch(rows: List[Dict], table_name: str):
                     row.get('OptionSerialNo'),
                     row.get('C_Series'),
                     row.get('order_date'),
-                    row.get('external_confirmation_ref')
+                    row.get('external_confirmation_ref'),
+                    row.get('MSRP'),
+                    row.get('CfgName'),
+                    row.get('CfgPage'),
+                    row.get('CfgScreen'),
+                    row.get('CfgValue'),
+                    row.get('CfgAttrType')
                 )
                 batch_data.append(row_tuple)
 
