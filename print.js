@@ -36,6 +36,15 @@ else if (hasAnswer('PRICING_TYPE','BOTH'))      { type = 'MSRP & SELLING PRICE'}
 total = Number(total).toFixed(2);
 
 model = getValue('BOAT_INFO', 'BOAT_REAL_MODEL');
+
+// CPQ FALLBACK - If BOAT_INFO returns 'Base Boat', use window.realmodel instead
+// This supports CPQ boats while preserving legacy boat functionality
+if (!model || model === 'Base Boat' || model === 'Base Bo') {
+    console.log('CPQ boat detected - BOAT_INFO/BOAT_REAL_MODEL is "' + model + '", using window.realmodel instead');
+    model = window.realmodel;
+    console.log('Using model from window.realmodel:', model);
+}
+
 shortmodel = model.substring(0, model.length - 2); //strip the model year designator
 var perfpkgid = getValue('BOAT_INFO', 'STD_PERF_PKG');
 
@@ -89,6 +98,10 @@ if (!hasAnswer('PRINT_PHOTO', 'PRINT_PHOTO')) {
 
 var img = '<img src="' + imgUrl + '" height="90px">';
 console.log('perfpkgid', perfpkgid);
+
+// Initialize prfPkgs to prevent undefined error
+var prfPkgs = [];
+
 // Get Performance Packages
 if (perfpkgid.length !== 0 && perfpkgid.length < 3) {
     console.log('got here');
