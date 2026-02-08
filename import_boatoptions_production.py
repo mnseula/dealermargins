@@ -147,7 +147,7 @@ SELECT
     LEFT(im.Uf_BENN_ProductCategory, 3) AS [ItemMasterProdCat],
     LEFT(im.Uf_BENN_MaterialCostType, 10) AS [ItemMasterMCT],
     LEFT(coi.description, 30) AS [ItemDesc1],
-    LEFT(iim.inv_num, 30) AS [InvoiceNo],
+    LEFT(LTRIM(RTRIM(iim.inv_num)), 30) AS [InvoiceNo],
     CASE
         WHEN ah.inv_date IS NOT NULL
         THEN CONVERT(INT, CONVERT(VARCHAR(8), ah.inv_date, 112))
@@ -239,7 +239,7 @@ SELECT
         ELSE 'STD'
     END AS [ItemMasterMCT],
     LEFT(attr_detail.attr_value, 30) AS [ItemDesc1],
-    LEFT(iim.inv_num, 30) AS [InvoiceNo],
+    LEFT(LTRIM(RTRIM(iim.inv_num)), 30) AS [InvoiceNo],
     CASE
         WHEN ah.inv_date IS NOT NULL
         THEN CONVERT(INT, CONVERT(VARCHAR(8), ah.inv_date, 112))
