@@ -63,17 +63,11 @@ if (two > 13) {
             model = model.substring(0, model.length - 2) + 'SE';
         } //Modified for fakies DG
 
-    // CPQ boats query cpq_* VIEWs (pointing to warrantyparts_test), legacy boats query regular tables
-    if (window.isCPQBoat) {
-        console.log('CPQ boat: querying cpq_boat_specs');
-        boatSpecs = loadByListName('cpq_boat_specs', "WHERE MODEL = '" + model + "'");
-    } else {
-        boatSpecs = loadByListName('boat_specs', "WHERE MODEL = '" + model + "'");
-    }
+    boatSpecs = loadByListName('boat_specs', "WHERE MODEL = '" + model + "'");
 
-    // Initialize empty array if needed
+    // CPQ boats may not have boat_specs data - initialize empty array if needed
     if (!boatSpecs || boatSpecs.length === 0) {
-        console.log('No boat_specs found for model:', model);
+        console.log('No boat_specs found for model:', model, '(likely CPQ boat)');
         boatSpecs = [];
     }
 }
@@ -604,13 +598,7 @@ function createStandardsList(model, modelyear) {
 
     var standardsmatrixlist = 'standards_matrix' + '_20' + modelyear;
 
-    // CPQ boats query cpq_* VIEWs (pointing to warrantyparts_test), legacy boats query regular tables
-    if (window.isCPQBoat) {
-        console.log('CPQ boat: querying cpq_standards_list');
-        standardsList = loadByListName('cpq_standards_list');
-    } else {
-        standardsList = loadByListName('standards_list');
-    }
+    standardsList = loadByListName('standards_list');
 
     console.log('model year is ', model_year);
     if (model_year === '14' || model_year === '15' || model_year === '16' || model_year === '17') {

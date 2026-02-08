@@ -260,13 +260,7 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
 
     if (serialYear > 13) {
         // Table now has correct column names: CATEGORY, STANDARD, OPT_NAME
-        // CPQ boats query cpq_* VIEWs (pointing to warrantyparts_test), legacy boats query regular tables
-        if (window.isCPQBoat) {
-            console.log('CPQ boat: querying cpq_standards_matrix_2025');
-            window.stndsMtrx = loadByListName('cpq_standards_matrix' + '_20' + two, "WHERE (MODEL ='" + realmodel + "')");
-        } else {
-            window.stndsMtrx = loadByListName('standards_matrix' + '_20' + two, "WHERE (MODEL ='" + realmodel + "')");
-        }
+        window.stndsMtrx = loadByListName('standards_matrix' + '_20' + two, "WHERE (MODEL ='" + realmodel + "')");
     }
 
     if (serialYear < 21) {
