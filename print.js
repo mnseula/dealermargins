@@ -641,9 +641,9 @@ function createStandardsList(model, modelyear) {
                 standard = thisstandard[0].STAND_DESC;
             }
             else {
-                standard = "";
+                // For CPQ boats, use OPT_NAME directly when STANDARD not found in standards_list
+                standard = thisModelStandards[j].OPT_NAME || "";
             }
-            // standard = thisModelStandards[j].OPT_NAME;
             catdivname = category.replace(/\s/g, "_"); //div ids can't have spaces
 
             if (loop > 0) {
