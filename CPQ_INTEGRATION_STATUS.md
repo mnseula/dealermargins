@@ -18,7 +18,45 @@
 ---
 
 ## Summary
-Successfully integrated CPQ boats (using floorplan codes like ML, QB) into the window sticker system. Window stickers now load and display pricing correctly for CPQ boats. Both legacy boats and CPQ boats now work correctly. Print functionality for CPQ boats has a remaining issue that needs to be addressed.
+Successfully integrated CPQ boats (using floorplan codes like ML, QB) into the window sticker system. Window stickers now load and display pricing correctly for CPQ boats. Both legacy boats and CPQ boats now work correctly. Print functionality for CPQ boats is now working.
+
+---
+
+## 🚨 CRITICAL TODO - MUST IMPLEMENT
+
+### Automate Production Table Refresh for New CPQ Models
+
+**ISSUE:** When new CPQ models are added, production tables must be manually refreshed or new models won't work.
+
+**Current Manual Process:**
+```bash
+# Step 1: Load CPQ data from API to test database
+python3 load_cpq_data.py
+
+# Step 2: Manually run SQL to refresh production tables
+# TRUNCATE + INSERT for:
+#   - Boats_ListOrder_2025
+#   - options_matrix_2025
+#   - standards_matrix_2025
+```
+
+**What Breaks Without This:**
+- New CPQ models won't appear in window sticker
+- Boat specs missing
+- Performance packages missing
+- Standard features missing
+- **Dealers can't generate window stickers for new models** ❌
+
+**NEED TO CREATE:**
+Script to automate Step 2: `refresh_cpq_production_tables.py`
+- Truncates 3 production tables
+- Repopulates from warrantyparts_test
+- Can run on-demand or scheduled
+- Logs what was updated
+
+**Priority:** HIGH - Required before adding any new CPQ models to production
+
+**Task Created:** Task #1
 
 ---
 
