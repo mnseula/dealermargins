@@ -28,7 +28,6 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
     if (serialYear > 10 && serialYear < 15) {
         window.boatoptions = loadByListName('boat_options11_14', "Where BoatSerialNo = " + serial);
     } else if (serialYear > 14) {
-        debugger;
         //ZS 5.15.2024
         //Product Code is being imported as the MCT... need to adjust the filter to take both old and new "MCTs"
         //One below commented out because invoice number causing issues for old boats
