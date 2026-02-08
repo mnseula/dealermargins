@@ -1,7 +1,24 @@
-# CPQ Integration Status - 2026-02-06
+# CPQ Integration Status - 2026-02-07
+
+## 🔥 CRITICAL FIX - 2026-02-07
+
+**Issue:** Yesterday's CPQ integration broke old/legacy boats. Dealers couldn't print window stickers for non-CPQ boats.
+
+**Root Cause:** CPQ fallback logic was triggering for ALL boats when Boats_ListOrder query failed, not just CPQ boats. Since Boats_ListOrder tables don't exist for older model years, the fallback ran for old boats too but with incompatible data structures.
+
+**Fix Applied:** Added `isCPQBoat` flag that only triggers CPQ fallback when:
+1. Year code detection failed (two === '0') AND
+2. Boats_ListOrder query failed
+
+**Status:** ✅ FIXED (commit 90fdce8)
+- Old boats: Use original error handling when Boats_ListOrder missing
+- CPQ boats: Use new fallback to extract SERIES from boatoptions
+- Both boat types now work correctly
+
+---
 
 ## Summary
-Successfully integrated CPQ boats (using floorplan codes like ML, QB) into the window sticker system. Window stickers now load and display pricing correctly for CPQ boats. Print functionality has a remaining issue that needs to be addressed.
+Successfully integrated CPQ boats (using floorplan codes like ML, QB) into the window sticker system. Window stickers now load and display pricing correctly for CPQ boats. Both legacy boats and CPQ boats now work correctly. Print functionality for CPQ boats has a remaining issue that needs to be addressed.
 
 ---
 
@@ -289,8 +306,9 @@ Database: warrantyparts (production)
 
 ---
 
-## 📝 Git Commits (Today's Work)
+## 📝 Git Commits
 
+### 2026-02-06 (Initial CPQ Integration)
 ```
 c70b9ac - Backup: Original packagePricing.js before modifications
 0346ffc - Add CPQ catchall logic for floorplan codes (ML, QB, etc.)
@@ -298,6 +316,12 @@ c70b9ac - Backup: Original packagePricing.js before modifications
 ac424b4 - Fix: Change Boats_ListOrder query to standard WHERE syntax
 0a40390 - Add CPQ fallback: Extract SERIES from boatoptions
 2fae170 - Fix: CPQ fallback condition to handle empty Object
+cf01e4f - Add comprehensive CPQ integration status document
+```
+
+### 2026-02-07 (Critical Fix for Legacy Boats)
+```
+90fdce8 - Fix: Only use CPQ fallback for actual CPQ boats, not all boats
 ```
 
 All changes pushed to: `github.com:mnseula/dealermargins.git`
