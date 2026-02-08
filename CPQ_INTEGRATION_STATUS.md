@@ -32,12 +32,23 @@
   - Part 1 (legacy items): Sets as NULL (no CPQ configuration data)
   - Enables complete pricing transparency (dealer cost + MSRP)
 
+- ✅ **import_boatoptions_production.py** - Production ETL script
+  - Targets `warrantyparts` database (not test)
+  - Added LTRIM(RTRIM()) to InvoiceNo field to fix spacing issues
+  - Fixed duplicate data problem from ERP inconsistent invoice number spacing
+  - Successfully loads CPQ boat orders with MSRP data to production
+  - Commit: 36518b9 (TRIM fix), dc8f242 (initial production script)
+
 ### JavaScript Fixes
 - ✅ **packagePricing.js** - CPQ boat detection and data loading
   - Filters out "Base Boat" records
   - Detects CPQ boats via year code fallback (two === '0')
   - Sets `window.isCPQBoat = true`
   - CPQ fallback for SERIES extraction
+  - **MSRP Fallback Logic**: Uses real MSRP if present, falls back to ExtSalesAmount for legacy boats
+    - CPQ boats: Display MSRP (retail price)
+    - Legacy boats: Display ExtSalesAmount (dealer cost)
+    - Commit: 7d426ac
 
 - ✅ **print.js** - Window sticker generation
   - Uses `window.realmodel` for CPQ boats instead of BOAT_INFO
@@ -61,6 +72,15 @@
   - Feature descriptions showing correctly
 
 - ✅ No JavaScript errors
+
+### MSRP Data Verification (Test Boat: ETWTEST26)
+- ✅ **4 items with MSRP data loaded**:
+  - Base Boat - 23ML: MSRP $58,171.00 (dealer cost $41,131.00)
+  - Battery Switch: MSRP $747.00 (dealer cost $528.00)
+  - Power Hydraulic Steering: MSRP $5,046.00 (dealer cost $3,568.00)
+  - Yamaha Mechanical Pre-Rig: MSRP $2,387.00 (dealer cost $1,688.00)
+- ✅ Duplicate invoice number issue resolved (cleaned old rows with leading spaces)
+- ✅ Production database (warrantyparts.BoatOptions26) now has clean MSRP data
 
 ## ⚠️ NEEDS PRODUCTION POLISH
 
@@ -92,17 +112,21 @@
 
 - **sync_cpq_to_eos.py** (commit: 4eda714) - NEW: Automated CPQ data sync script
 - **import_boatoptions_test.py** (commit: 6c7a4f4) - Added 6 MSRP/config fields
+- **import_boatoptions_production.py** (commits: 36518b9, dc8f242) - NEW: Production ETL with TRIM fix
 - **print.js** (commits: f04d90a, 060dd5f) - CPQ boat support
-- **packagePricing.js** (previous commits) - CPQ detection
+- **packagePricing.js** (commit: 7d426ac) - MSRP fallback logic
 - **Emergency rollback**: old_print.js, old_packagePricing.js
 
 ## 🔄 Next Steps
 
 1. ✅ ~~Create automated sync script (sync_cpq_to_eos.py)~~ COMPLETED
 2. ✅ ~~Add MSRP and configuration metadata to BoatOptions ETL~~ COMPLETED
-3. Determine default performance package logic (for boat_specs single record)
-4. Test with multiple CPQ boat models (beyond 23ML)
-5. Run sync script on production: `python3 sync_cpq_to_eos.py`
-6. Verify JavaScript queries work with synced data
-7. Test legacy boats still work correctly
-8. Create production deployment plan
+3. ✅ ~~Create production ETL script with TRIM fix~~ COMPLETED
+4. ✅ ~~Clean duplicate invoice data from production database~~ COMPLETED
+5. **🧪 TEST WINDOW STICKER** - Verify MSRP displays correctly for ETWTEST26
+6. Determine default performance package logic (for boat_specs single record)
+7. Test with multiple CPQ boat models (beyond 23ML)
+8. Run sync script on production: `python3 sync_cpq_to_eos.py`
+9. Verify JavaScript queries work with synced data
+10. Test legacy boats still work correctly
+11. Create production deployment plan
