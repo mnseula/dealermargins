@@ -64,6 +64,12 @@ if (two > 13) {
         } //Modified for fakies DG
 
     boatSpecs = loadByListName('boat_specs', "WHERE MODEL = '" + model + "'");
+
+    // CPQ boats may not have boat_specs data - initialize empty array if needed
+    if (!boatSpecs || boatSpecs.length === 0) {
+        console.log('No boat_specs found for model:', model, '(likely CPQ boat)');
+        boatSpecs = [];
+    }
 }
 
 if(hasAnswer('PRINT_PHOTO','PRINT_PHOTO')){
@@ -112,9 +118,11 @@ if (perfpkgid.length !== 0 && perfpkgid.length < 3) {
 
 console.log(prfPkgs);
 //Lookup the description of the Engine Config and the Fuel Type from Local Lists to print words instead of a number.
+var engConfigDesc = '';
+var fuelTypeDesc = '';
 if (boatSpecs.length > 0) {
-    var engConfigDesc = loadList('54f4b35d8ff57802739e8f84', 'LIST/engineConfigID["' + boatSpecs[0].ENG_CONFIG_ID + '"]')[0].engineConfigName;
-    var fuelTypeDesc = loadList('54f4cdb98ff578e6799e8f84', 'LIST/FUEL_TYPE_ID["' + boatSpecs[0].FUEL_TYPE_ID + '"]')[0].FUEL_TYPE_NAME;
+    engConfigDesc = loadList('54f4b35d8ff57802739e8f84', 'LIST/engineConfigID["' + boatSpecs[0].ENG_CONFIG_ID + '"]')[0].engineConfigName;
+    fuelTypeDesc = loadList('54f4cdb98ff578e6799e8f84', 'LIST/FUEL_TYPE_ID["' + boatSpecs[0].FUEL_TYPE_ID + '"]')[0].FUEL_TYPE_NAME;
 }
 var stds = createStandardsList(model, '20' + model_year);  //function is at the bottom of this action.
 stockno = getValue('DEALER_QUESTIONS','STOCK_NO');
@@ -403,44 +411,50 @@ wsContents += "     "+ dealerphone+"<\/p>";
 wsContents += "    <\/div>";
 wsContents += "     <div class=\"title\" id=\"boatinfo\">BOAT INFORMATION<\/div>";
 wsContents += "    <div id=\"stockhull\">Stock #:<u>" + stockno + "<\/u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hull #: <u>"+ serial +" <\/u><\/div>";
-wsContents += "    <div id=\"spectable\">";
-wsContents += "      <table width=\"300\" border=\"1\" align=\"center\">";
-wsContents += "        <tbody>";
-wsContents += "          <tr>";
-wsContents += "            <td width=\"163\"><strong>SPEC\/CAPACITY</strong><\/td>";
-wsContents += "            <td width=\"121\"><strong>US</strong><\/td>";
-wsContents += "          <\/tr>";
-wsContents += "          <tr>";
-wsContents += "            <td align=\"left\">LOA:<\/td>";
-wsContents += "            <td>" + boatSpecs[0].LOA + "<\/td>";
-wsContents += "          <\/tr>";
-wsContents += "          <tr>";
-wsContents += "            <td align=\"left\">Pontoon Length:<\/td>";
-wsContents += "            <td>" + boatSpecs[0].PONT_LEN + "<\/td>";
-wsContents += "          <\/tr>";
-wsContents += "          <tr>";
-wsContents += "            <td align=\"left\">Deck Length:<\/td>";
-wsContents += "            <td>" + boatSpecs[0].DECK_LEN + "<\/td>";
-wsContents += "          <\/tr>";
-wsContents += "          <tr>";
-wsContents += "            <td align=\"left\">Beam:<\/td>";
-wsContents += "            <td>" + boatSpecs[0].BEAM + "<\/td>";
-wsContents += "          <\/tr>";
-wsContents += "          <tr>";
-wsContents += "            <td align=\"left\">Pontoon Diameter:<\/td>";
-wsContents += "            <td>" + boatSpecs[0].PONT_DIAM + "<\/td>";
-wsContents += "          <\/tr>";
-wsContents += "          <tr>";
-wsContents += "            <td align=\"left\">Engine Configuration:<\/td>";
-wsContents += "            <td>" + engConfigDesc + "<\/td>";
-wsContents += "          <\/tr>";
-wsContents += "          <tr>";
-wsContents += "            <td align=\"left\">Fuel Capacity (standard, see options):<\/td>";
-wsContents += "            <td>" + boatSpecs[0].FUEL_CAP + "<\/td>";
-wsContents += "          <\/tr>";
-wsContents += "        <\/tbody>";
-wsContents += "      <\/table>";
-wsContents += "    <\/div>";
+
+// Only show boat specs if data exists (CPQ boats may not have boat_specs)
+if (boatSpecs.length > 0) {
+    wsContents += "    <div id=\"spectable\">";
+    wsContents += "      <table width=\"300\" border=\"1\" align=\"center\">";
+    wsContents += "        <tbody>";
+    wsContents += "          <tr>";
+    wsContents += "            <td width=\"163\"><strong>SPEC\/CAPACITY</strong><\/td>";
+    wsContents += "            <td width=\"121\"><strong>US</strong><\/td>";
+    wsContents += "          <\/tr>";
+    wsContents += "          <tr>";
+    wsContents += "            <td align=\"left\">LOA:<\/td>";
+    wsContents += "            <td>" + boatSpecs[0].LOA + "<\/td>";
+    wsContents += "          <\/tr>";
+    wsContents += "          <tr>";
+    wsContents += "            <td align=\"left\">Pontoon Length:<\/td>";
+    wsContents += "            <td>" + boatSpecs[0].PONT_LEN + "<\/td>";
+    wsContents += "          <\/tr>";
+    wsContents += "          <tr>";
+    wsContents += "            <td align=\"left\">Deck Length:<\/td>";
+    wsContents += "            <td>" + boatSpecs[0].DECK_LEN + "<\/td>";
+    wsContents += "          <\/tr>";
+    wsContents += "          <tr>";
+    wsContents += "            <td align=\"left\">Beam:<\/td>";
+    wsContents += "            <td>" + boatSpecs[0].BEAM + "<\/td>";
+    wsContents += "          <\/tr>";
+    wsContents += "          <tr>";
+    wsContents += "            <td align=\"left\">Pontoon Diameter:<\/td>";
+    wsContents += "            <td>" + boatSpecs[0].PONT_DIAM + "<\/td>";
+    wsContents += "          <\/tr>";
+    wsContents += "          <tr>";
+    wsContents += "            <td align=\"left\">Engine Configuration:<\/td>";
+    wsContents += "            <td>" + engConfigDesc + "<\/td>";
+    wsContents += "          <\/tr>";
+    wsContents += "          <tr>";
+    wsContents += "            <td align=\"left\">Fuel Capacity (standard, see options):<\/td>";
+    wsContents += "            <td>" + boatSpecs[0].FUEL_CAP + "<\/td>";
+    wsContents += "          <\/tr>";
+    wsContents += "        <\/tbody>";
+    wsContents += "      <\/table>";
+    wsContents += "    <\/div>";
+} else {
+    console.log('Skipping boat specs section - no data available for this model');
+}
 
 if (perfpkgid.length !== 0 && perfpkgid.length < 3 && perfpkgid !== undefined) {
     wsContents += "    <div class=\"title\">PERFORMANCE PACKAGE SPECS<\/div>";
