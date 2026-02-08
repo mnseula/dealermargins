@@ -37,10 +37,12 @@ total = Number(total).toFixed(2);
 
 model = getValue('BOAT_INFO', 'BOAT_REAL_MODEL');
 
-// CPQ FALLBACK - If BOAT_INFO returns 'Base Boat', use window.realmodel instead
-// This supports CPQ boats while preserving legacy boat functionality
-if (!model || model === 'Base Boat' || model === 'Base Bo') {
-    console.log('CPQ boat detected - BOAT_INFO/BOAT_REAL_MODEL is "' + model + '", using window.realmodel instead');
+// CPQ FALLBACK - Use window.realmodel for CPQ boats
+// window.isCPQBoat is set in packagePricing.js (true when year code detection fails)
+// This is more reliable than checking if model equals 'Base Boat'
+if (window.isCPQBoat) {
+    console.log('CPQ boat detected (isCPQBoat = true) - using window.realmodel instead of BOAT_INFO');
+    console.log('BOAT_INFO/BOAT_REAL_MODEL was:', model);
     model = window.realmodel;
     console.log('Using model from window.realmodel:', model);
 }
