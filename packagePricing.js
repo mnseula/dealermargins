@@ -73,6 +73,19 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
     window.boatmodel = $.grep(boatoptions, function (rec) {
         return rec.ItemMasterMCT === 'BOA' || rec.ItemMasterMCT === 'BOI';
     });
+
+    // CPQ FALLBACK: For CPQ boats, filter out "Base Boat" records if multiple boat records exist
+    // CPQ boats may have both a "Base Boat" line and the actual configured boat line
+    if (boatmodel.length > 1) {
+        var nonBaseBoats = $.grep(boatmodel, function (rec) {
+            return rec.ItemNo !== 'Base Boat' && rec.BoatModelNo !== 'Base Boat' && rec.ItemDesc1 !== 'Base Boat';
+        });
+        if (nonBaseBoats.length > 0) {
+            console.log('CPQ boat: Filtered out Base Boat records, found', nonBaseBoats.length, 'actual boat records');
+            window.boatmodel = nonBaseBoats;
+        }
+    }
+
     window.fullmodel = boatmodel[0].ItemDesc1;
     window.model = boatmodel[0].ItemNo;
     window.realmodel = boatmodel[0].BoatModelNo;
