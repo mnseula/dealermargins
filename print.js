@@ -47,7 +47,14 @@ if (window.isCPQBoat) {
     console.log('Using model from window.realmodel:', model);
 }
 
-shortmodel = model.substring(0, model.length - 2); //strip the model year designator
+// CPQ boats: preserve full model name (e.g., 23ML stays 23ML)
+// Legacy boats: strip year code (e.g., 2550GBRDE becomes 2550GBR)
+if (window.isCPQBoat) {
+    shortmodel = model; // Keep full model name for CPQ boats
+    console.log('CPQ boat: Using full model name:', shortmodel);
+} else {
+    shortmodel = model.substring(0, model.length - 2); //strip the model year designator
+}
 var perfpkgid = getValue('BOAT_INFO', 'STD_PERF_PKG');
 
 
