@@ -37,12 +37,18 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
 
     }
 
-    // MAP EXTSALESAMOUNT TO MSRP - Added 2026-02-06
-    // Window sticker expects MSRP field, but BoatOptions26 has ExtSalesAmount
+    // MSRP FALLBACK - Updated 2026-02-08
+    // CPQ boats have real MSRP from cfg_attr_mst, legacy boats need to fall back to ExtSalesAmount
     if (window.boatoptions && window.boatoptions.length > 0) {
-        console.log('Mapping ExtSalesAmount to MSRP for ' + window.boatoptions.length + ' items');
+        console.log('Setting MSRP fallback for ' + window.boatoptions.length + ' items');
         for (var i = 0; i < window.boatoptions.length; i++) {
-            window.boatoptions[i].MSRP = window.boatoptions[i].ExtSalesAmount || 0;
+            // Use real MSRP if present (CPQ boats), otherwise fall back to ExtSalesAmount (legacy boats)
+            if (!window.boatoptions[i].MSRP || window.boatoptions[i].MSRP === 0) {
+                window.boatoptions[i].MSRP = window.boatoptions[i].ExtSalesAmount || 0;
+                console.log('  Item ' + i + ': Using ExtSalesAmount fallback ($' + window.boatoptions[i].MSRP + ')');
+            } else {
+                console.log('  Item ' + i + ': Using real MSRP ($' + window.boatoptions[i].MSRP + ')');
+            }
         }
     }
 
