@@ -63,10 +63,10 @@ if (two > 13) {
             model = model.substring(0, model.length - 2) + 'SE';
         } //Modified for fakies DG
 
-    // CPQ boats query warrantyparts_test, legacy boats query Eos
+    // CPQ boats query cpq_* VIEWs (pointing to warrantyparts_test), legacy boats query regular tables
     if (window.isCPQBoat) {
-        console.log('CPQ boat: querying warrantyparts_test.boat_specs');
-        boatSpecs = loadByListName('warrantyparts_test.boat_specs', "WHERE MODEL = '" + model + "'");
+        console.log('CPQ boat: querying cpq_boat_specs');
+        boatSpecs = loadByListName('cpq_boat_specs', "WHERE MODEL = '" + model + "'");
     } else {
         boatSpecs = loadByListName('boat_specs', "WHERE MODEL = '" + model + "'");
     }
@@ -604,10 +604,10 @@ function createStandardsList(model, modelyear) {
 
     var standardsmatrixlist = 'standards_matrix' + '_20' + modelyear;
 
-    // CPQ boats query warrantyparts_test, legacy boats query Eos
+    // CPQ boats query cpq_* VIEWs (pointing to warrantyparts_test), legacy boats query regular tables
     if (window.isCPQBoat) {
-        console.log('CPQ boat: querying warrantyparts_test.standards_list');
-        standardsList = loadByListName('warrantyparts_test.standards_list');
+        console.log('CPQ boat: querying cpq_standards_list');
+        standardsList = loadByListName('cpq_standards_list');
     } else {
         standardsList = loadByListName('standards_list');
     }
