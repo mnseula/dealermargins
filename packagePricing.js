@@ -177,7 +177,9 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
     // CPQ CATCHALL - Added 2026-02-06
     // CPQ boats use floorplan codes (ML, QB, etc.) not year codes
     // If no year code matched (two still '0'), use serialYear to determine year
+    var isCPQBoat = false;  // Flag to track if this is a CPQ boat
     if (two === '0') {
+        isCPQBoat = true;  // Mark as CPQ boat
         console.log('CPQ boat detected (no year code match) - using serialYear:', serialYear);
         if (serialYear === 26) {
             two = '25';  // 2026 boats use 2025 model year lists
@@ -212,10 +214,11 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
     window.blo = loadByListName('Boats_ListOrder_20' + two, "WHERE REALMODELNAME = '" + realmodel + "'");
     console.log(blo);
 
-    // CPQ FALLBACK - If Boats_ListOrder is empty or invalid, get SERIES from boatoptions
+    // CPQ FALLBACK - ONLY for CPQ boats (isCPQBoat = true)
+    // If Boats_ListOrder is empty for a CPQ boat, get SERIES from boatoptions
     // blo might be an empty object {} instead of an array, so check if blo[0] is undefined
-    if ((!blo || !blo[0] || blo.length === 0) && boatoptions && boatoptions.length > 0) {
-        console.log('Boats_ListOrder query failed or empty - using CPQ fallback');
+    if ((!blo || !blo[0] || blo.length === 0) && isCPQBoat && boatoptions && boatoptions.length > 0) {
+        console.log('CPQ boat detected and Boats_ListOrder query failed - using CPQ fallback');
         // Extract SERIES from the boat record (already loaded in boatoptions)
         var boatRecord = $.grep(boatoptions, function (rec) {
             return rec.ItemMasterMCT === 'BOA' || rec.ItemMasterMCT === 'BOI';
@@ -226,16 +229,18 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
             window.series = boatRecord[0].Series;
             window.boatpricingtype = 'reg';  // CPQ boats use regular pricing
         } else {
-            console.log('ERROR: Could not find boat record in boatoptions');
+            console.log('ERROR: Could not find boat record in boatoptions for CPQ boat');
             alert('Model was not found! Contact your administrator to report about this error.');
             window.series = '';
             window.boatpricingtype = '';
         }
     } else if (!blo || !blo[0] || blo.length === 0) {
+        // For non-CPQ boats, if Boats_ListOrder fails, show error (original behavior)
         alert('Model was not found! Contact your administrator to report about this error.');
         window.series = '';
         window.boatpricingtype = '';
     } else {
+        // Normal path: Boats_ListOrder query succeeded
         window.boatpricingtype = blo[0].PRICING || ''; //pp, ppd or reg
         window.series = blo[0].SERIES || '';
     }
