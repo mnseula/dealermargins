@@ -120,9 +120,15 @@ console.log(prfPkgs);
 //Lookup the description of the Engine Config and the Fuel Type from Local Lists to print words instead of a number.
 var engConfigDesc = '';
 var fuelTypeDesc = '';
-if (boatSpecs.length > 0) {
-    engConfigDesc = loadList('54f4b35d8ff57802739e8f84', 'LIST/engineConfigID["' + boatSpecs[0].ENG_CONFIG_ID + '"]')[0].engineConfigName;
-    fuelTypeDesc = loadList('54f4cdb98ff578e6799e8f84', 'LIST/FUEL_TYPE_ID["' + boatSpecs[0].FUEL_TYPE_ID + '"]')[0].FUEL_TYPE_NAME;
+if (boatSpecs.length > 0 && boatSpecs[0].ENG_CONFIG_ID && boatSpecs[0].FUEL_TYPE_ID) {
+    var engConfigLookup = loadList('54f4b35d8ff57802739e8f84', 'LIST/engineConfigID["' + boatSpecs[0].ENG_CONFIG_ID + '"]');
+    var fuelTypeLookup = loadList('54f4cdb98ff578e6799e8f84', 'LIST/FUEL_TYPE_ID["' + boatSpecs[0].FUEL_TYPE_ID + '"]');
+    if (engConfigLookup && engConfigLookup.length > 0) {
+        engConfigDesc = engConfigLookup[0].engineConfigName;
+    }
+    if (fuelTypeLookup && fuelTypeLookup.length > 0) {
+        fuelTypeDesc = fuelTypeLookup[0].FUEL_TYPE_NAME;
+    }
 }
 var stds = createStandardsList(model, '20' + model_year);  //function is at the bottom of this action.
 stockno = getValue('DEALER_QUESTIONS','STOCK_NO');
