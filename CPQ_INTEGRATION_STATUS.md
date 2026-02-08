@@ -1,6 +1,6 @@
 # CPQ Integration Status - Window Stickers
 
-## ✅ WORKING (as of 2026-02-07)
+## ✅ WORKING (as of 2026-02-08)
 
 ### Data Loading
 - ✅ CPQ API data loads to `warrantyparts_test` database via `load_cpq_data.py`
@@ -15,11 +15,22 @@
   - DealerMargins
 
 ### Data Synchronization to Eos Database
-- ✅ Manually copied CPQ data from warrantyparts_test → Eos database:
-  - `Eos.standards_list` (2,878 total features)
-  - `Eos.standards_matrix_2025` (15,365 mappings, 48 for model 23ML)
-  - `Eos.perf_pkg_spec` (1,073 packages, 7 for model 23ML)
-  - `Eos.boat_specs` (265 CPQ boats with specs)
+- ✅ **Automated sync script created**: `sync_cpq_to_eos.py`
+  - Transforms normalized CPQ data (warrantyparts_test) → flattened tables (Eos)
+  - Syncs: Models → boat_specs (89 records for 2025)
+  - Syncs: ModelPerformance → perf_pkg_spec (377 packages with sequential PKG_ID)
+  - Syncs: StandardFeatures → standards_list (2,475 features)
+  - Syncs: ModelStandardFeatures → standards_matrix_2025 (5,029 mappings)
+  - Uses INSERT...ON DUPLICATE KEY UPDATE for upserts
+  - Run with: `python3 sync_cpq_to_eos.py` or `--dry-run` to preview
+
+### ETL Script Updates
+- ✅ **import_boatoptions_test.py** - MSSQL query updated with 6 new fields
+  - Added MSRP (retail price) from `Uf_BENN_Cfg_MSRP`
+  - Added configuration metadata: CfgName, CfgPage, CfgScreen, CfgValue, CfgAttrType
+  - Part 2 (CPQ items): Extracts from cfg_attr_mst table
+  - Part 1 (legacy items): Sets as NULL (no CPQ configuration data)
+  - Enables complete pricing transparency (dealer cost + MSRP)
 
 ### JavaScript Fixes
 - ✅ **packagePricing.js** - CPQ boat detection and data loading
@@ -53,15 +64,12 @@
 
 ## ⚠️ NEEDS PRODUCTION POLISH
 
-### 1. Automated Data Sync Script (HIGH PRIORITY)
-- **Task #1**: Create `sync_cpq_to_eos.py` script
-- Purpose: Automate copying CPQ data from warrantyparts_test → Eos
-- Should sync:
-  - StandardFeatures + ModelStandardFeatures → Eos.standards_list, standards_matrix_2025
-  - ModelPerformance + PerformancePackages → Eos.perf_pkg_spec
-  - Models → Eos.boat_specs
-- Run after `load_cpq_data.py` completes
-- Data flow: `CPQ API → load_cpq_data.py → warrantyparts_test → sync_cpq_to_eos.py → Eos`
+### 1. ✅ Automated Data Sync Script ~~(HIGH PRIORITY)~~ COMPLETED
+- ✅ **Created**: `sync_cpq_to_eos.py` script (commit: 4eda714)
+- ✅ Transforms normalized CPQ data (warrantyparts_test) → flattened tables (Eos)
+- ✅ Generates sequential PKG_ID per model using ROW_NUMBER()
+- ✅ Supports dry-run mode for testing
+- ✅ Data flow: `CPQ API → load_cpq_data.py → warrantyparts_test → sync_cpq_to_eos.py → Eos`
 
 ### 2. Performance Package Selection
 - Currently using FIRST performance package for boat_specs
@@ -82,14 +90,19 @@
 
 ## 📝 Key Files Modified
 
-- **print.js** (commits: f04d90a, 060dd5f)
-- **packagePricing.js** (previous commits)
+- **sync_cpq_to_eos.py** (commit: 4eda714) - NEW: Automated CPQ data sync script
+- **import_boatoptions_test.py** (commit: 6c7a4f4) - Added 6 MSRP/config fields
+- **print.js** (commits: f04d90a, 060dd5f) - CPQ boat support
+- **packagePricing.js** (previous commits) - CPQ detection
 - **Emergency rollback**: old_print.js, old_packagePricing.js
 
-## 🔄 Next Steps for Tomorrow
+## 🔄 Next Steps
 
-1. Create automated sync script (sync_cpq_to_eos.py)
-2. Determine default performance package logic
-3. Test with multiple CPQ boat models
-4. Polish formatting/display issues
-5. Create production deployment plan
+1. ✅ ~~Create automated sync script (sync_cpq_to_eos.py)~~ COMPLETED
+2. ✅ ~~Add MSRP and configuration metadata to BoatOptions ETL~~ COMPLETED
+3. Determine default performance package logic (for boat_specs single record)
+4. Test with multiple CPQ boat models (beyond 23ML)
+5. Run sync script on production: `python3 sync_cpq_to_eos.py`
+6. Verify JavaScript queries work with synced data
+7. Test legacy boats still work correctly
+8. Create production deployment plan
