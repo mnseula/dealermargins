@@ -211,7 +211,7 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
     window.currentmodelyear = '20' + two;
 
 
-    window.blo = loadByListName('Boats_ListOrder_20' + two, "WHERE REALMODELNAME = '" + realmodel + "'");
+    window.blo = loadByListName('Boats_ListOrder_20' + two, 'LIST/REALMODELNAME[= "' + realmodel + '"]');
     console.log(blo);
 
     // CPQ FALLBACK - ONLY for CPQ boats (window.isCPQBoat = true)
