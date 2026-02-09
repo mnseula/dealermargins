@@ -493,6 +493,13 @@ wsContents += "    <div class=\"title\" id=\"standardstitle\">STANDARD FEATURES<
 wsContents += "    <div id=\"standards\">" + stds + "<\/div> ";
 wsContents += "  <\/div>";
 wsContents += "  <div class=\"column\" id=\"column2\">";
+// DEBUG: Log values right before title construction
+console.log('===== TITLE CONSTRUCTION DEBUG =====');
+console.log('model_year:', model_year);
+console.log('shortmodel:', shortmodel);
+console.log('type:', type);
+console.log('Title will be: 20' + model_year + ' ' + shortmodel + ' ' + type);
+console.log('===== END TITLE DEBUG =====');
 if(boatPricing =='SV'){
     wsContents += "    <div id=\"pagetitle\">20"+model_year +" " + shortmodel + "<\/div>";
 }else{
