@@ -83,19 +83,23 @@
 - ✅ Production database (warrantyparts.BoatOptions26) now has clean MSRP data
 
 ### Calculate2021.js MSRP Fix (2026-02-08) ✅ COMPLETE
-- ✅ **ROOT CAUSE IDENTIFIED**: Calculate2021.js was calculating MSRP AND sale price from dealer cost instead of using real MSRP from database
-- ✅ **FIXED**: Modified to check `boatoptions[i].MSRP` first for BOTH MSRP display AND sale price calculation
-  - If MSRP exists and > 0 (CPQ boat): Use real MSRP directly for both MSRP and sale price (no margin calculation)
-  - If not (legacy boat): Fall back to calculating from dealer cost using margins
+- ✅ **ROOT CAUSE IDENTIFIED**: Calculate2021.js was calculating MSRP from dealer cost instead of using real MSRP from database
+- ✅ **FIXED**: Modified to check `boatoptions[i].MSRP` first for MSRP display
+  - If MSRP exists and > 0 (CPQ boat): Use real MSRP for display
+  - If not (legacy boat): Calculate MSRP from dealer cost using margins
+- ✅ **SALE PRICE BEHAVIOR** (2026-02-08 update):
+  - **Sale price is ALWAYS calculated from dealer cost** (for both CPQ and legacy boats)
+  - This ensures Sale Price < MSRP for CPQ boats (dealer cost vs retail price)
+  - MSRP display uses real CPQ data, but sale price uses margin calculations
 - ✅ **Applied to all calculation points**:
-  - PONTOONS (base boat pricing) - lines 195-213, 425-446
-  - Options (accessories, batteries, steering, etc.) - line 468
-  - Discounts (value series discounts) - line 481
-  - Engines (engine increments) - line 534
-  - Pre-rig (pre-rig increments) - line 572
-  - Tube upgrades (performance packages) - line 608
+  - PONTOONS (base boat pricing) - lines 195-213, 416-436
+  - Options (accessories, batteries, steering, etc.) - line 458
+  - Discounts (value series discounts) - line 476
+  - Engines (engine increments) - line 525
+  - Pre-rig (pre-rig increments) - line 563
+  - Tube upgrades (performance packages) - line 607
 - ✅ **Backup created**: old_calculate.js (original Calculate function preserved)
-- ✅ **Commits**: ced0b15 (initial fix), 115b5f0 (complete fix for all sections)
+- ✅ **Commits**: ced0b15 (initial MSRP display fix), 115b5f0 (sale price attempt), 26fbac0 (reverted sale price to use dealer cost)
 
 ### packagePricing.js Column Swap Fix (2026-02-08) ✅ FIXED
 - ✅ **ROOT CAUSE IDENTIFIED**: loadByListName('BoatOptions26') query had only 20 columns
@@ -154,15 +158,14 @@
 3. ✅ ~~Create production ETL script with TRIM fix~~ COMPLETED
 4. ✅ ~~Clean duplicate invoice data from production database~~ COMPLETED
 5. ✅ ~~Fix Calculate2021.js to use real MSRP for MSRP display~~ COMPLETED (commit: ced0b15)
-6. ✅ ~~Fix Calculate2021.js to use real MSRP for sale price calculation~~ COMPLETED (commit: 115b5f0)
-   - Updated OPTIONS, ENGINES, and PRE-RIG sections
-   - Sale price now uses real MSRP when available (not calculated from dealer cost)
-   - CPQ boats: Sale Price = MSRP (retail price)
-   - Legacy boats: Sale Price = calculated from dealer cost with margins
+6. ✅ ~~Sale price calculation reverted to use dealer cost~~ COMPLETED (commit: 26fbac0)
+   - Sale price ALWAYS calculated from dealer cost (both CPQ and legacy boats)
+   - CPQ boats: MSRP = real retail price (higher), Sale Price = calculated dealer cost (lower)
+   - Legacy boats: Both MSRP and Sale Price calculated from dealer cost with margins
 7. ✅ ~~Fix loadByListName('BoatOptions26') query to include MSRP column~~ COMPLETED
 8. ✅ ~~TEST WINDOW STICKER - Verify MSRP displays correctly for ETWTEST26~~ READY FOR TESTING
-   - Expected: MSRP = $107,562 (retail)
-   - Expected: Sale Price = $107,562 (should equal MSRP for CPQ boats)
+   - Expected: MSRP = $107,562 (real retail price from CPQ)
+   - Expected: Sale Price = ~$75,000 (calculated dealer cost - should be LOWER than MSRP)
    - Right-hand side (RHS) pricing section CODE COMPLETE ✅ - NEEDS DEPLOYMENT & TESTING
 9. **🎨 LEFT-HAND SIDE (LHS)** - Boat specs and standard features
    - Verify boat specifications display (LOA, BEAM, etc.)
