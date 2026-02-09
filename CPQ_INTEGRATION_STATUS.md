@@ -82,20 +82,20 @@
 - ✅ Duplicate invoice number issue resolved (cleaned old rows with leading spaces)
 - ✅ Production database (warrantyparts.BoatOptions26) now has clean MSRP data
 
-### Calculate2021.js MSRP Fix (2026-02-08)
-- ✅ **ROOT CAUSE IDENTIFIED**: Calculate2021.js was calculating MSRP from dealer cost instead of using real MSRP from database
-- ✅ **FIXED**: Modified to check `boatoptions[i].MSRP` first
-  - If MSRP exists and > 0 (CPQ boat): Use real MSRP directly
+### Calculate2021.js MSRP Fix (2026-02-08) ✅ COMPLETE
+- ✅ **ROOT CAUSE IDENTIFIED**: Calculate2021.js was calculating MSRP AND sale price from dealer cost instead of using real MSRP from database
+- ✅ **FIXED**: Modified to check `boatoptions[i].MSRP` first for BOTH MSRP display AND sale price calculation
+  - If MSRP exists and > 0 (CPQ boat): Use real MSRP directly for both MSRP and sale price (no margin calculation)
   - If not (legacy boat): Fall back to calculating from dealer cost using margins
 - ✅ **Applied to all calculation points**:
-  - PONTOONS (base boat pricing)
-  - Options (accessories, batteries, steering, etc.)
-  - Discounts (value series discounts)
-  - Engines (engine increments)
-  - Pre-rig (pre-rig increments)
-  - Tube upgrades (performance packages)
+  - PONTOONS (base boat pricing) - lines 195-213, 425-446
+  - Options (accessories, batteries, steering, etc.) - line 468
+  - Discounts (value series discounts) - line 481
+  - Engines (engine increments) - line 534
+  - Pre-rig (pre-rig increments) - line 572
+  - Tube upgrades (performance packages) - line 608
 - ✅ **Backup created**: old_calculate.js (original Calculate function preserved)
-- ✅ **Commit**: ced0b15
+- ✅ **Commits**: ced0b15 (initial fix), 115b5f0 (complete fix for all sections)
 
 ### packagePricing.js Column Swap Fix (2026-02-08) ✅ FIXED
 - ✅ **ROOT CAUSE IDENTIFIED**: loadByListName('BoatOptions26') query had only 20 columns
@@ -153,18 +153,23 @@
 2. ✅ ~~Add MSRP and configuration metadata to BoatOptions ETL~~ COMPLETED
 3. ✅ ~~Create production ETL script with TRIM fix~~ COMPLETED
 4. ✅ ~~Clean duplicate invoice data from production database~~ COMPLETED
-5. ✅ ~~Fix Calculate2021.js to use real MSRP instead of calculating~~ COMPLETED
-6. ✅ ~~Fix loadByListName('BoatOptions26') query to include MSRP column~~ COMPLETED
-7. ✅ ~~TEST WINDOW STICKER - Verify MSRP displays correctly for ETWTEST26~~ COMPLETED
-   - MSRP showing correct retail prices ($107,562)
-   - Sale Price showing correct dealer cost ($66,831)
-   - Right-hand side (RHS) pricing section COMPLETE ✅
-8. **🎨 LEFT-HAND SIDE (LHS)** - Boat specs and standard features
+5. ✅ ~~Fix Calculate2021.js to use real MSRP for MSRP display~~ COMPLETED (commit: ced0b15)
+6. ✅ ~~Fix Calculate2021.js to use real MSRP for sale price calculation~~ COMPLETED (commit: 115b5f0)
+   - Updated OPTIONS, ENGINES, and PRE-RIG sections
+   - Sale price now uses real MSRP when available (not calculated from dealer cost)
+   - CPQ boats: Sale Price = MSRP (retail price)
+   - Legacy boats: Sale Price = calculated from dealer cost with margins
+7. ✅ ~~Fix loadByListName('BoatOptions26') query to include MSRP column~~ COMPLETED
+8. ✅ ~~TEST WINDOW STICKER - Verify MSRP displays correctly for ETWTEST26~~ READY FOR TESTING
+   - Expected: MSRP = $107,562 (retail)
+   - Expected: Sale Price = $107,562 (should equal MSRP for CPQ boats)
+   - Right-hand side (RHS) pricing section CODE COMPLETE ✅ - NEEDS DEPLOYMENT & TESTING
+9. **🎨 LEFT-HAND SIDE (LHS)** - Boat specs and standard features
    - Verify boat specifications display (LOA, BEAM, etc.)
    - Verify standard features list correctly
    - Test with multiple CPQ boat models (beyond 23ML)
-9. Determine default performance package logic (for boat_specs single record)
-10. Run sync script on production: `python3 sync_cpq_to_eos.py`
-11. Verify JavaScript queries work with synced data
-12. Test legacy boats still work correctly (ensure margin calculations still work)
-13. Create production deployment plan
+10. Determine default performance package logic (for boat_specs single record)
+11. Run sync script on production: `python3 sync_cpq_to_eos.py`
+12. Verify JavaScript queries work with synced data
+13. Test legacy boats still work correctly (ensure margin calculations still work)
+14. Create production deployment plan
