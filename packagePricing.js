@@ -37,48 +37,33 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
 
     }
 
-    // LOAD MSRP DATA SEPARATELY - Added 2026-02-08
-    // The BoatOptions list doesn't include MSRP column, so we load it separately and merge
+    // FIX SWAPPED MSRP/ExtSalesAmount - Added 2026-02-08
+    // For CPQ boats, if MSRP and ExtSalesAmount appear swapped (MSRP is lower), swap them back
+    // This handles cases where loadByListName returns columns in wrong order
     if (serialYear > 14 && window.boatoptions && window.boatoptions.length > 0) {
-        console.log('Loading MSRP data separately for ' + serial);
-        try {
-            // Load MSRP data from separate list (includes ItemNo, MSRP, LineNo)
-            var msrpData = loadByListName('BoatOptions' + serialYear + '_MSRP',
-                "WHERE BoatSerialNo = '" + serial + "' AND InvoiceNo = '" + snmInvoiceNo + "'");
-
-            if (msrpData && msrpData.length > 0) {
-                console.log('Found ' + msrpData.length + ' MSRP records, merging into boatoptions');
-
-                // Merge MSRP into boatoptions by matching LineNo (more reliable than ItemNo for CPQ)
-                for (var i = 0; i < window.boatoptions.length; i++) {
-                    var msrpMatch = $.grep(msrpData, function(m) {
-                        return m.LineNo === window.boatoptions[i].LineNo;
-                    });
-
-                    if (msrpMatch.length > 0 && msrpMatch[0].MSRP && Number(msrpMatch[0].MSRP) > 0) {
-                        window.boatoptions[i].MSRP = Number(msrpMatch[0].MSRP);
-                        console.log('  Merged MSRP for ' + window.boatoptions[i].ItemDesc1 + ': $' + window.boatoptions[i].MSRP);
-                    }
-                }
-            } else {
-                console.log('No MSRP data found, will use fallback logic');
-            }
-        } catch (err) {
-            console.log('Error loading MSRP data: ' + err.message + ', will use fallback logic');
-        }
-    }
-
-    // MSRP FALLBACK - Updated 2026-02-08
-    // CPQ boats have real MSRP from cfg_attr_mst, legacy boats need to fall back to ExtSalesAmount
-    if (window.boatoptions && window.boatoptions.length > 0) {
-        console.log('Setting MSRP fallback for ' + window.boatoptions.length + ' items');
+        console.log('Checking for swapped MSRP/ExtSalesAmount values for ' + window.boatoptions.length + ' items');
         for (var i = 0; i < window.boatoptions.length; i++) {
-            // Use real MSRP if present (CPQ boats), otherwise fall back to ExtSalesAmount (legacy boats)
-            if (!window.boatoptions[i].MSRP || window.boatoptions[i].MSRP === 0) {
-                window.boatoptions[i].MSRP = window.boatoptions[i].ExtSalesAmount || 0;
-                console.log('  Item ' + i + ': Using ExtSalesAmount fallback ($' + window.boatoptions[i].MSRP + ')');
-            } else {
-                console.log('  Item ' + i + ': Using real MSRP ($' + window.boatoptions[i].MSRP + ')');
+            var msrp = Number(window.boatoptions[i].MSRP) || 0;
+            var dealerCost = Number(window.boatoptions[i].ExtSalesAmount) || 0;
+
+            // If both values exist and MSRP is less than dealer cost, they're swapped
+            if (msrp > 0 && dealerCost > 0 && msrp < dealerCost) {
+                console.log('  ⚠️  SWAPPED detected for ' + window.boatoptions[i].ItemDesc1);
+                console.log('      Before swap: MSRP=$' + msrp + ', DealerCost=$' + dealerCost);
+
+                // Swap them
+                window.boatoptions[i].MSRP = dealerCost;
+                window.boatoptions[i].ExtSalesAmount = msrp;
+
+                console.log('      After swap:  MSRP=$' + window.boatoptions[i].MSRP + ', DealerCost=$' + window.boatoptions[i].ExtSalesAmount);
+            } else if (msrp > 0 && dealerCost > 0) {
+                console.log('  ✅ Correct order for ' + window.boatoptions[i].ItemDesc1 + ': MSRP=$' + msrp + ', DealerCost=$' + dealerCost);
+            } else if (msrp === 0 && dealerCost > 0) {
+                // Legacy boat - no MSRP in database, use dealer cost as fallback
+                window.boatoptions[i].MSRP = dealerCost;
+                console.log('  📦 Legacy item ' + window.boatoptions[i].ItemDesc1 + ': Using DealerCost as MSRP ($' + dealerCost + ')');
+            } else if (msrp === 0 && dealerCost === 0) {
+                console.log('  ⚪ Zero values for ' + window.boatoptions[i].ItemDesc1 + ' (likely standard feature)');
             }
         }
     }
