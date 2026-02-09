@@ -434,8 +434,59 @@ wsContents += "    <\/div>";
 wsContents += "     <div class=\"title\" id=\"boatinfo\">BOAT INFORMATION<\/div>";
 wsContents += "    <div id=\"stockhull\">Stock #:<u>" + stockno + "<\/u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hull #: <u>"+ serial +" <\/u><\/div>";
 
-// Only show boat specs if data exists (CPQ boats may not have boat_specs)
-if (boatSpecs.length > 0) {
+// CPQ boats: Use window.cpqLhsData if available, otherwise use legacy boatSpecs
+if (window.cpqLhsData && window.cpqLhsData.model_id) {
+    console.log('Using CPQ LHS data for specs section');
+    var cpqData = window.cpqLhsData;
+
+    // Convert pontoon gauge to diameter display (0.08 -> 25")
+    var pontoonDiameter = '';
+    if (cpqData.pontoon_gauge === '0.08') {
+        pontoonDiameter = '25"';
+    } else if (cpqData.tube_height) {
+        pontoonDiameter = cpqData.tube_height;
+    }
+
+    wsContents += "    <div id=\"spectable\">";
+    wsContents += "      <table width=\"300\" border=\"1\" align=\"center\">";
+    wsContents += "        <tbody>";
+    wsContents += "          <tr>";
+    wsContents += "            <td width=\"163\"><strong>SPEC\/CAPACITY</strong><\/td>";
+    wsContents += "            <td width=\"121\"><strong>US</strong><\/td>";
+    wsContents += "          <\/tr>";
+    wsContents += "          <tr>";
+    wsContents += "            <td align=\"left\">LOA:<\/td>";
+    wsContents += "            <td>" + (cpqData.loa || '') + "<\/td>";
+    wsContents += "          <\/tr>";
+    wsContents += "          <tr>";
+    wsContents += "            <td align=\"left\">Pontoon Length:<\/td>";
+    wsContents += "            <td>" + (cpqData.pontoon_length || cpqData.loa || '') + "<\/td>";
+    wsContents += "          <\/tr>";
+    wsContents += "          <tr>";
+    wsContents += "            <td align=\"left\">Deck Length:<\/td>";
+    wsContents += "            <td>" + (cpqData.deck_length || '') + "<\/td>";
+    wsContents += "          <\/tr>";
+    wsContents += "          <tr>";
+    wsContents += "            <td align=\"left\">Beam:<\/td>";
+    wsContents += "            <td>" + (cpqData.beam || '') + "<\/td>";
+    wsContents += "          <\/tr>";
+    wsContents += "          <tr>";
+    wsContents += "            <td align=\"left\">Pontoon Diameter:<\/td>";
+    wsContents += "            <td>" + pontoonDiameter + "<\/td>";
+    wsContents += "          <\/tr>";
+    wsContents += "          <tr>";
+    wsContents += "            <td align=\"left\">Engine Configuration:<\/td>";
+    wsContents += "            <td>" + (cpqData.engine_configuration || '') + "<\/td>";
+    wsContents += "          <\/tr>";
+    wsContents += "          <tr>";
+    wsContents += "            <td align=\"left\">Fuel Capacity (standard, see options):<\/td>";
+    wsContents += "            <td>" + (cpqData.fuel_capacity || '') + "<\/td>";
+    wsContents += "          <\/tr>";
+    wsContents += "        <\/tbody>";
+    wsContents += "      <\/table>";
+    wsContents += "    <\/div>";
+} else if (boatSpecs.length > 0) {
+    // Legacy boats: Use boatSpecs from EOS list
     wsContents += "    <div id=\"spectable\">";
     wsContents += "      <table width=\"300\" border=\"1\" align=\"center\">";
     wsContents += "        <tbody>";
@@ -478,7 +529,40 @@ if (boatSpecs.length > 0) {
     console.log('Skipping boat specs section - no data available for this model');
 }
 
-if (perfpkgid.length !== 0 && perfpkgid.length < 3 && perfpkgid !== undefined) {
+// CPQ boats: Use window.cpqLhsData for performance specs, otherwise use legacy prfPkgs
+if (window.cpqLhsData && window.cpqLhsData.model_id) {
+    console.log('Using CPQ LHS data for performance specs section');
+    var cpqData = window.cpqLhsData;
+
+    // Format hull weight with commas (2988.0 -> 2,988 lbs)
+    var hullWeight = '';
+    if (cpqData.hull_weight) {
+        var weight = parseFloat(cpqData.hull_weight);
+        hullWeight = Math.round(weight).toLocaleString() + ' lbs';
+    }
+
+    // Format max HP (150.0 -> 150 HP)
+    var maxHP = '';
+    if (cpqData.max_hp) {
+        maxHP = Math.round(parseFloat(cpqData.max_hp)) + ' HP';
+    }
+
+    // Format pontoon gauge (0.08 -> 0.080")
+    var pontoonGauge = '';
+    if (cpqData.pontoon_gauge) {
+        pontoonGauge = parseFloat(cpqData.pontoon_gauge).toFixed(3) + '"';
+    }
+
+    wsContents += "    <div class=\"title\">PERFORMANCE PACKAGE SPECS<\/div>";
+    wsContents += "    <div id=\"perfpkgtbl\">";
+    wsContents += "    <table width=\"355\" border=\"1\"><tbody><tr>";
+    wsContents += "            <td colspan=\"4\" align=\"center\">Standard Package<\/td><\/tr>";
+    wsContents += "          <tr><td>Person Capacity<\/td><td>Hull Weight<\/td><td>Max HP<\/td><td>Pontoon Gauge<\/td><\/tr>";
+    wsContents += "          <tr><td>" + (cpqData.person_capacity || '') + "<\/td><td>" + hullWeight + "<\/td><td>" + maxHP + "<\/td><td>" + pontoonGauge + "<\/td><\/tr>";
+    wsContents += "        <\/tbody><\/table>";
+    wsContents += "    <\/div>";
+} else if (perfpkgid.length !== 0 && perfpkgid.length < 3 && perfpkgid !== undefined) {
+    // Legacy boats: Use prfPkgs from EOS list
     wsContents += "    <div class=\"title\">PERFORMANCE PACKAGE SPECS<\/div>";
     wsContents += "    <div id=\"perfpkgtbl\">";
     wsContents += "    <table width=\"355\" border=\"1\"><tbody><tr>";
