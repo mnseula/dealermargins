@@ -37,6 +37,37 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
 
     }
 
+    // LOAD MSRP DATA SEPARATELY - Added 2026-02-08
+    // The BoatOptions list doesn't include MSRP column, so we load it separately and merge
+    if (serialYear > 14 && window.boatoptions && window.boatoptions.length > 0) {
+        console.log('Loading MSRP data separately for ' + serial);
+        try {
+            // Load MSRP data from separate list (includes ItemNo, MSRP, LineNo)
+            var msrpData = loadByListName('BoatOptions' + serialYear + '_MSRP',
+                "WHERE BoatSerialNo = '" + serial + "' AND InvoiceNo = '" + snmInvoiceNo + "'");
+
+            if (msrpData && msrpData.length > 0) {
+                console.log('Found ' + msrpData.length + ' MSRP records, merging into boatoptions');
+
+                // Merge MSRP into boatoptions by matching LineNo (more reliable than ItemNo for CPQ)
+                for (var i = 0; i < window.boatoptions.length; i++) {
+                    var msrpMatch = $.grep(msrpData, function(m) {
+                        return m.LineNo === window.boatoptions[i].LineNo;
+                    });
+
+                    if (msrpMatch.length > 0 && msrpMatch[0].MSRP && Number(msrpMatch[0].MSRP) > 0) {
+                        window.boatoptions[i].MSRP = Number(msrpMatch[0].MSRP);
+                        console.log('  Merged MSRP for ' + window.boatoptions[i].ItemDesc1 + ': $' + window.boatoptions[i].MSRP);
+                    }
+                }
+            } else {
+                console.log('No MSRP data found, will use fallback logic');
+            }
+        } catch (err) {
+            console.log('Error loading MSRP data: ' + err.message + ', will use fallback logic');
+        }
+    }
+
     // MSRP FALLBACK - Updated 2026-02-08
     // CPQ boats have real MSRP from cfg_attr_mst, legacy boats need to fall back to ExtSalesAmount
     if (window.boatoptions && window.boatoptions.length > 0) {
