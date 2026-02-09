@@ -97,17 +97,19 @@
 - ✅ **Backup created**: old_calculate.js (original Calculate function preserved)
 - ✅ **Commit**: ced0b15
 
-### packagePricing.js Column Swap Fix (2026-02-08)
-- ✅ **ROOT CAUSE IDENTIFIED**: loadByListName('BoatOptions26') returns only first 20 columns
-  - Stops at ExtSalesAmount, doesn't include MSRP or CPQ columns (CfgName, etc.)
-  - MSRP column was added to table in position 21, after ExtSalesAmount
-  - loadByListName uses cached column list from before MSRP was added
-- ✅ **SOLUTION**: Created BoatOptions26_Complete VIEW with ALL 31 columns explicitly listed
-  - VIEW includes: ExtSalesAmount, MSRP, CfgName, CfgPage, CfgScreen, CfgValue, CfgAttrType, etc.
-  - Updated packagePricing.js to query 'BoatOptions26_Complete' instead of 'BoatOptions26'
-  - Swap logic now works because MSRP column is actually present in data
-- ✅ **Added comprehensive debug logging** to diagnose column issues
-- ✅ **Commits**: 096fd9c (swap logic), de0d3ac (debug logging), 3b134a4 (VIEW solution)
+### packagePricing.js Column Swap Fix (2026-02-08) ✅ FIXED
+- ✅ **ROOT CAUSE IDENTIFIED**: loadByListName('BoatOptions26') query had only 20 columns
+  - Query stopped at ExtSalesAmount, didn't include MSRP or CPQ columns (CfgName, etc.)
+  - MSRP column was added to table but not to the SELECT statement in list definition
+  - loadByListName returned incomplete data, causing fallback to set MSRP = dealer cost
+- ✅ **SOLUTION**: Updated BoatOptions26 list query definition in EOS
+  - Added 11 new columns: MSRP, CfgName, CfgPage, CfgScreen, CfgValue, CfgAttrType, order_date, external_confirmation_ref, ConfigID, ValueText, C_Series
+  - Query now returns all 31 columns from BoatOptions26 table
+  - Created old_loadlistbyname26.sql (backup) and new_loadlistbyname26.sql (updated query)
+- ✅ **VERIFIED WORKING**: MSRP now displays correctly on window stickers
+  - ETWTEST26: MSRP = $107,562 (retail), Sale Price = $66,831 (dealer cost)
+  - Swap logic works correctly - detects CPQ items via CfgName field
+- ✅ **Commits**: 096fd9c (swap logic), de0d3ac (debug logging), 4831721 (query files)
 
 ## ⚠️ NEEDS PRODUCTION POLISH
 
@@ -152,15 +154,16 @@
 3. ✅ ~~Create production ETL script with TRIM fix~~ COMPLETED
 4. ✅ ~~Clean duplicate invoice data from production database~~ COMPLETED
 5. ✅ ~~Fix Calculate2021.js to use real MSRP instead of calculating~~ COMPLETED
-6. ✅ ~~Fix packagePricing.js to detect and swap reversed MSRP/ExtSalesAmount~~ COMPLETED
-7. **🧪 TEST WINDOW STICKER** - Verify MSRP displays correctly for ETWTEST26
-   - Deploy updated packagePricing.js to bennington.eoscpq.com
-   - Open window sticker for ETWTEST26
-   - Should see: MSRP = $58,171 (retail), Sale Price = $41,131 (dealer cost)
-   - Console should log "⚠️ SWAPPED detected" for the 4 CPQ items
-   - After swap, should log "After swap: MSRP=$58171, DealerCost=$41131"
-8. Determine default performance package logic (for boat_specs single record)
-9. Test with multiple CPQ boat models (beyond 23ML)
+6. ✅ ~~Fix loadByListName('BoatOptions26') query to include MSRP column~~ COMPLETED
+7. ✅ ~~TEST WINDOW STICKER - Verify MSRP displays correctly for ETWTEST26~~ COMPLETED
+   - MSRP showing correct retail prices ($107,562)
+   - Sale Price showing correct dealer cost ($66,831)
+   - Right-hand side (RHS) pricing section COMPLETE ✅
+8. **🎨 LEFT-HAND SIDE (LHS)** - Boat specs and standard features
+   - Verify boat specifications display (LOA, BEAM, etc.)
+   - Verify standard features list correctly
+   - Test with multiple CPQ boat models (beyond 23ML)
+9. Determine default performance package logic (for boat_specs single record)
 10. Run sync script on production: `python3 sync_cpq_to_eos.py`
 11. Verify JavaScript queries work with synced data
 12. Test legacy boats still work correctly (ensure margin calculations still work)
