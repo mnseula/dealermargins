@@ -619,7 +619,7 @@ wsContents += "    <div class=\"title\" id=\"standardstitle\">STANDARD FEATURES<
 // CPQ boats: Use window.cpqStandardFeatures if available, otherwise use legacy stds
 if (window.cpqStandardFeatures) {
     console.log('Using CPQ standard features');
-    var standardsHtml = '';
+    var standardsHtml = '<br>'; // Add space before first section
 
     // Format: Area • feature1 • feature2 • feature3 •
     var areas = ['Interior Features', 'Exterior Features', 'Console Features', 'Warranty'];
