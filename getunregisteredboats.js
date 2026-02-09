@@ -217,19 +217,22 @@ function bindSelect() {
             console.log('===== CPQ LHS DATA LOAD =====');
 
             var cpqYear = 2025; // CPQ boats are 2025 model year
+            var cpqHullNo = serial; // Hull number to get specific performance package
 
             console.log('Calling GET_CPQ_LHS_DATA with params:');
             console.log('  @PARAM1 (model_id):', realmodel);
             console.log('  @PARAM2 (year):', cpqYear);
+            console.log('  @PARAM3 (hull_no):', cpqHullNo);
 
             try {
-                var cpqLhsData = sStatement('GET_CPQ_LHS_DATA', [realmodel, cpqYear]);
+                var cpqLhsData = sStatement('GET_CPQ_LHS_DATA', [realmodel, cpqYear, cpqHullNo]);
                 console.log('CPQ LHS Data returned:', cpqLhsData);
                 console.log('Type:', typeof cpqLhsData);
                 console.log('Is array?', Array.isArray(cpqLhsData));
 
                 if (cpqLhsData && cpqLhsData.length > 0) {
-                    console.log('✅ SUCCESS: Got LHS data for model', realmodel);
+                    console.log('✅ SUCCESS: Got LHS data for model', realmodel, 'hull', cpqHullNo);
+                    console.log('Performance Package:', cpqLhsData[0].perf_package_id || 'N/A');
                     console.log('Data:', cpqLhsData[0]);
 
                     // Store in window variable for print.js to use

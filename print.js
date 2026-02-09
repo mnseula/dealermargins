@@ -547,16 +547,26 @@ if (window.cpqLhsData && window.cpqLhsData.model_id) {
         maxHP = Math.round(parseFloat(cpqData.max_hp)) + ' HP';
     }
 
-    // Format pontoon gauge (0.08 -> 0.080")
+    // Format pontoon gauge (0.08 -> 0.08) - no extra formatting
     var pontoonGauge = '';
     if (cpqData.pontoon_gauge) {
-        pontoonGauge = parseFloat(cpqData.pontoon_gauge).toFixed(3) + '"';
+        pontoonGauge = parseFloat(cpqData.pontoon_gauge).toFixed(2);
+    }
+
+    // Format package name - show tube count and description
+    var packageName = 'Standard Package';
+    if (cpqData.perf_package_id && cpqData.no_of_tubes) {
+        var tubes = Math.round(parseFloat(cpqData.no_of_tubes));
+        packageName = tubes + '. With ' + (tubes === 3 ? '27' : '25') + '" Tubes';
+        if (cpqData.package_name) {
+            packageName += ' (' + cpqData.package_name + ')';
+        }
     }
 
     wsContents += "    <div class=\"title\">PERFORMANCE PACKAGE SPECS<\/div>";
     wsContents += "    <div id=\"perfpkgtbl\">";
     wsContents += "    <table width=\"355\" border=\"1\"><tbody><tr>";
-    wsContents += "            <td colspan=\"4\" align=\"center\">Standard Package<\/td><\/tr>";
+    wsContents += "            <td colspan=\"4\" align=\"center\">" + packageName + "<\/td><\/tr>";
     wsContents += "          <tr><td>Person Capacity<\/td><td>Hull Weight<\/td><td>Max HP<\/td><td>Pontoon Gauge<\/td><\/tr>";
     wsContents += "          <tr><td>" + (cpqData.person_capacity || '') + "<\/td><td>" + hullWeight + "<\/td><td>" + maxHP + "<\/td><td>" + pontoonGauge + "<\/td><\/tr>";
     wsContents += "        <\/tbody><\/table>";
