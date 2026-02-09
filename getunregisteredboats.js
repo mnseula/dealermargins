@@ -213,23 +213,21 @@ function bindSelect() {
             console.log('CPQ boat detected - using full model name:', realmodel);
             setValue('BOAT_INFO', 'BOAT_MODEL', realmodel);
 
-            // CPQ TEST: Load specs from MySQL stored procedure
+            // CPQ TEST: Load model data from MySQL database
             console.log('===== CPQ DATA LOAD TEST =====');
-            var cpqYear = parseInt('20' + model_year); // Convert "25" to 2025
-            var cpqDealerNo = getValue('DLR', 'DLR_NO'); // Get dealer number from form
             console.log('Calling GET_CPQ_WINDOW_STICKER_DATA with params:');
             console.log('  model_id:', realmodel);
-            console.log('  dealer_id:', cpqDealerNo);
-            console.log('  year:', cpqYear);
-            console.log('  serial:', serial);
 
             try {
-                var cpqData = sStatement('GET_CPQ_WINDOW_STICKER_DATA', [realmodel, cpqDealerNo, cpqYear, serial]);
+                var cpqData = sStatement('GET_CPQ_WINDOW_STICKER_DATA', [realmodel]);
                 console.log('CPQ Data returned:', cpqData);
                 console.log('Type of cpqData:', typeof cpqData);
                 console.log('Is array?', Array.isArray(cpqData));
                 if (cpqData) {
                     console.log('Number of items in cpqData:', cpqData.length);
+                    if (cpqData.length > 0) {
+                        console.log('First item:', cpqData[0]);
+                    }
                 }
 
                 // Store in window variables for print.js to use
