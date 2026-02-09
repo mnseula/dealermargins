@@ -82,6 +82,21 @@
 - ✅ Duplicate invoice number issue resolved (cleaned old rows with leading spaces)
 - ✅ Production database (warrantyparts.BoatOptions26) now has clean MSRP data
 
+### Calculate2021.js MSRP Fix (2026-02-08)
+- ✅ **ROOT CAUSE IDENTIFIED**: Calculate2021.js was calculating MSRP from dealer cost instead of using real MSRP from database
+- ✅ **FIXED**: Modified to check `boatoptions[i].MSRP` first
+  - If MSRP exists and > 0 (CPQ boat): Use real MSRP directly
+  - If not (legacy boat): Fall back to calculating from dealer cost using margins
+- ✅ **Applied to all calculation points**:
+  - PONTOONS (base boat pricing)
+  - Options (accessories, batteries, steering, etc.)
+  - Discounts (value series discounts)
+  - Engines (engine increments)
+  - Pre-rig (pre-rig increments)
+  - Tube upgrades (performance packages)
+- ✅ **Backup created**: old_calculate.js (original Calculate function preserved)
+- ✅ **Commit**: ced0b15
+
 ## ⚠️ NEEDS PRODUCTION POLISH
 
 ### 1. ✅ Automated Data Sync Script ~~(HIGH PRIORITY)~~ COMPLETED
@@ -113,9 +128,10 @@
 - **sync_cpq_to_eos.py** (commit: 4eda714) - NEW: Automated CPQ data sync script
 - **import_boatoptions_test.py** (commit: 6c7a4f4) - Added 6 MSRP/config fields
 - **import_boatoptions_production.py** (commits: 36518b9, dc8f242) - NEW: Production ETL with TRIM fix
+- **Calculate2021.js** (commit: ced0b15) - Use real MSRP from CPQ instead of calculating from dealer cost
 - **print.js** (commits: f04d90a, 060dd5f) - CPQ boat support
 - **packagePricing.js** (commit: 7d426ac) - MSRP fallback logic
-- **Emergency rollback**: old_print.js, old_packagePricing.js
+- **Emergency rollback**: old_print.js, old_packagePricing.js, old_calculate.js
 
 ## 🔄 Next Steps
 
@@ -123,10 +139,13 @@
 2. ✅ ~~Add MSRP and configuration metadata to BoatOptions ETL~~ COMPLETED
 3. ✅ ~~Create production ETL script with TRIM fix~~ COMPLETED
 4. ✅ ~~Clean duplicate invoice data from production database~~ COMPLETED
-5. **🧪 TEST WINDOW STICKER** - Verify MSRP displays correctly for ETWTEST26
-6. Determine default performance package logic (for boat_specs single record)
-7. Test with multiple CPQ boat models (beyond 23ML)
-8. Run sync script on production: `python3 sync_cpq_to_eos.py`
-9. Verify JavaScript queries work with synced data
-10. Test legacy boats still work correctly
-11. Create production deployment plan
+5. ✅ ~~Fix Calculate2021.js to use real MSRP instead of calculating~~ COMPLETED
+6. **🧪 TEST WINDOW STICKER** - Verify MSRP displays correctly for ETWTEST26
+   - Should now see real MSRP ($58,171, $747, $5,046, $2,387) instead of calculated values
+   - Console should log "Using real MSRP from CPQ" for the 4 items
+7. Determine default performance package logic (for boat_specs single record)
+8. Test with multiple CPQ boat models (beyond 23ML)
+9. Run sync script on production: `python3 sync_cpq_to_eos.py`
+10. Verify JavaScript queries work with synced data
+11. Test legacy boats still work correctly (ensure margin calculations still work)
+12. Create production deployment plan
