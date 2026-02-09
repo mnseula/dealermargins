@@ -213,30 +213,41 @@ function bindSelect() {
             console.log('CPQ boat detected - using full model name:', realmodel);
             setValue('BOAT_INFO', 'BOAT_MODEL', realmodel);
 
-            // CPQ TEST: Load model data from MySQL database
-            console.log('===== CPQ DATA LOAD TEST =====');
-            console.log('Calling GET_CPQ_WINDOW_STICKER_DATA with params:');
-            console.log('  model_id:', realmodel);
+            // CPQ: Load complete window sticker data from MySQL stored procedure
+            console.log('===== CPQ STORED PROCEDURE TEST =====');
+
+            // Get parameters for stored procedure
+            var cpqDealerNo = getValue('DLR', 'DLR_NO');
+            var cpqYear = 2025; // CPQ boats are 2025 model year
+            var cpqIdentifier = serial; // Hull ID like 'ETWTEST26'
+
+            console.log('Calling GetWindowStickerData stored procedure with params:');
+            console.log('  @PARAM1 (model_id):', realmodel);
+            console.log('  @PARAM2 (dealer_id):', cpqDealerNo);
+            console.log('  @PARAM3 (year):', cpqYear);
+            console.log('  @PARAM4 (identifier):', cpqIdentifier);
 
             try {
-                var cpqData = sStatement('GET_CPQ_WINDOW_STICKER_DATA', [realmodel]);
+                var cpqData = sStatement('GET_CPQ_WINDOW_STICKER_DATA', [realmodel, cpqDealerNo, cpqYear, cpqIdentifier]);
                 console.log('CPQ Data returned:', cpqData);
                 console.log('Type of cpqData:', typeof cpqData);
                 console.log('Is array?', Array.isArray(cpqData));
                 if (cpqData) {
-                    console.log('Number of items in cpqData:', cpqData.length);
-                    if (cpqData.length > 0) {
-                        console.log('First item:', cpqData[0]);
-                    }
+                    console.log('Number of result sets:', cpqData.length);
+                    console.log('Result Set 1 (Model Info):', cpqData[0]);
+                    if (cpqData.length > 1) console.log('Result Set 2 (Performance):', cpqData[1]);
+                    if (cpqData.length > 2) console.log('Result Set 3 (Features):', cpqData[2]);
+                    if (cpqData.length > 3) console.log('Result Set 4 (Options):', cpqData[3]);
                 }
 
                 // Store in window variables for print.js to use
                 window.cpqData = cpqData;
                 console.log('CPQ data stored in window.cpqData');
             } catch (error) {
-                console.error('Error loading CPQ data:', error);
+                console.error('Error calling stored procedure:', error);
+                console.error('Error details:', JSON.stringify(error));
             }
-            console.log('===== END CPQ DATA LOAD TEST =====');
+            console.log('===== END CPQ STORED PROCEDURE TEST =====');
         } else {
             console.log('Legacy boat detected - stripping last 2 chars from:', realmodel);
             setValue('BOAT_INFO', 'BOAT_MODEL', realmodel.substring(0, realmodel.length - 2));
