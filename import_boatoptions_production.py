@@ -204,6 +204,8 @@ WHERE coi.site_ref = 'BENN'
     AND iim.inv_num IS NOT NULL
     AND coi.qty_invoiced > 0
     AND co.order_date >= '2025-12-14'
+    -- Filter: Only boats from 2015 onwards (year 15+)
+    AND TRY_CAST(RIGHT(COALESCE(coi.Uf_BENN_BoatSerialNumber, bo.Uf_BENN_BoatSerialNumber), 2) AS INT) >= 15
 
 UNION ALL
 
@@ -300,6 +302,8 @@ WHERE coi.config_id IS NOT NULL
     AND coi.qty_invoiced > 0
     AND coi.site_ref = 'BENN'
     AND co.order_date >= '2025-12-14'
+    -- Filter: Only boats from 2015 onwards (year 15+)
+    AND TRY_CAST(RIGHT(ser.ser_num, 2) AS INT) >= 15
 
 )
 -- Now assign unique LineSeqNo using ROW_NUMBER per order
