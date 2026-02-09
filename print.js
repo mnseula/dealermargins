@@ -633,7 +633,7 @@ if (window.cpqStandardFeatures) {
     areas.forEach(function(area) {
         if (window.cpqStandardFeatures[area] && window.cpqStandardFeatures[area].length > 0) {
             standardsHtml += '<strong>' + areaLabels[area] + '<\/strong> • ';
-            standardsHtml += window.cpqStandardFeatures[area].join(' • ') + ' •<br>';
+            standardsHtml += window.cpqStandardFeatures[area].join(' • ') + ' •<br><br>';
         }
     });
 
