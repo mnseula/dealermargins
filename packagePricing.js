@@ -322,5 +322,11 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
         window.bpp = loadByListName('Boat_Package_Pricing_20' + two);
     }
 
+    // CPQ FIX: Set BOAT_INFO/BOAT_MODEL to full model name for CPQ boats
+    // For legacy boats, it gets set elsewhere to the shortened version
+    if (window.isCPQBoat && window.realmodel) {
+        console.log('Setting BOAT_INFO/BOAT_MODEL for CPQ boat:', window.realmodel);
+        setValue('BOAT_INFO', 'BOAT_MODEL', window.realmodel);
+    }
 
 };
