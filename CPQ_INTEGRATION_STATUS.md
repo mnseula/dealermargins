@@ -97,6 +97,16 @@
 - ✅ **Backup created**: old_calculate.js (original Calculate function preserved)
 - ✅ **Commit**: ced0b15
 
+### packagePricing.js Column Swap Fix (2026-02-08)
+- ✅ **ROOT CAUSE IDENTIFIED**: loadByListName returns MSRP and ExtSalesAmount in wrong order or doesn't include MSRP
+- ✅ **SOLUTION**: Detect and swap values in JavaScript when MSRP < ExtSalesAmount (backwards)
+  - If MSRP < DealerCost: Values are swapped, swap them back
+  - If MSRP = 0 and DealerCost > 0: Legacy boat, use DealerCost as MSRP fallback
+  - If both > 0 and MSRP > DealerCost: Correct order, no action needed
+- ✅ **Removed complex separate-loading approach** (lines 40-84 replaced with simple 29-line swap logic)
+- ✅ **Dropped BoatOptions26_MSRP view** (no longer needed)
+- ✅ **Commit**: 096fd9c
+
 ## ⚠️ NEEDS PRODUCTION POLISH
 
 ### 1. ✅ Automated Data Sync Script ~~(HIGH PRIORITY)~~ COMPLETED
@@ -140,12 +150,16 @@
 3. ✅ ~~Create production ETL script with TRIM fix~~ COMPLETED
 4. ✅ ~~Clean duplicate invoice data from production database~~ COMPLETED
 5. ✅ ~~Fix Calculate2021.js to use real MSRP instead of calculating~~ COMPLETED
-6. **🧪 TEST WINDOW STICKER** - Verify MSRP displays correctly for ETWTEST26
-   - Should now see real MSRP ($58,171, $747, $5,046, $2,387) instead of calculated values
-   - Console should log "Using real MSRP from CPQ" for the 4 items
-7. Determine default performance package logic (for boat_specs single record)
-8. Test with multiple CPQ boat models (beyond 23ML)
-9. Run sync script on production: `python3 sync_cpq_to_eos.py`
-10. Verify JavaScript queries work with synced data
-11. Test legacy boats still work correctly (ensure margin calculations still work)
-12. Create production deployment plan
+6. ✅ ~~Fix packagePricing.js to detect and swap reversed MSRP/ExtSalesAmount~~ COMPLETED
+7. **🧪 TEST WINDOW STICKER** - Verify MSRP displays correctly for ETWTEST26
+   - Deploy updated packagePricing.js to bennington.eoscpq.com
+   - Open window sticker for ETWTEST26
+   - Should see: MSRP = $58,171 (retail), Sale Price = $41,131 (dealer cost)
+   - Console should log "⚠️ SWAPPED detected" for the 4 CPQ items
+   - After swap, should log "After swap: MSRP=$58171, DealerCost=$41131"
+8. Determine default performance package logic (for boat_specs single record)
+9. Test with multiple CPQ boat models (beyond 23ML)
+10. Run sync script on production: `python3 sync_cpq_to_eos.py`
+11. Verify JavaScript queries work with synced data
+12. Test legacy boats still work correctly (ensure margin calculations still work)
+13. Create production deployment plan
