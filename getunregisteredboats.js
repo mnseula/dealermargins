@@ -259,10 +259,29 @@ function bindSelect() {
                 console.log('CPQ Standard Features returned:', cpqStandardFeatures);
                 console.log('Type:', typeof cpqStandardFeatures);
                 console.log('Is array?', Array.isArray(cpqStandardFeatures));
-                console.log('Count:', cpqStandardFeatures ? cpqStandardFeatures.length : 0);
 
-                if (cpqStandardFeatures && cpqStandardFeatures.length > 0) {
-                    console.log('✅ SUCCESS: Got', cpqStandardFeatures.length, 'standard features for model', realmodel);
+                // DEBUG: Log the structure to see what we're actually getting
+                if (cpqStandardFeatures && typeof cpqStandardFeatures === 'object') {
+                    console.log('Object keys:', Object.keys(cpqStandardFeatures));
+                    console.log('First few entries:', Object.keys(cpqStandardFeatures).slice(0, 3));
+                    if (Object.keys(cpqStandardFeatures).length > 0) {
+                        var firstKey = Object.keys(cpqStandardFeatures)[0];
+                        console.log('First entry [' + firstKey + ']:', cpqStandardFeatures[firstKey]);
+                    }
+                }
+
+                // Convert object to array if needed (sStatement might return object with numeric keys)
+                var featuresArray = cpqStandardFeatures;
+                if (cpqStandardFeatures && !Array.isArray(cpqStandardFeatures) && typeof cpqStandardFeatures === 'object') {
+                    console.log('Converting object to array...');
+                    featuresArray = Object.values(cpqStandardFeatures);
+                    console.log('Converted array length:', featuresArray.length);
+                }
+
+                console.log('Features array length:', featuresArray ? featuresArray.length : 0);
+
+                if (featuresArray && featuresArray.length > 0) {
+                    console.log('✅ SUCCESS: Got', featuresArray.length, 'standard features for model', realmodel);
 
                     // Group features by area
                     window.cpqStandardFeatures = {
@@ -272,7 +291,7 @@ function bindSelect() {
                         'Warranty': []
                     };
 
-                    cpqStandardFeatures.forEach(function(feature) {
+                    featuresArray.forEach(function(feature) {
                         if (window.cpqStandardFeatures[feature.area]) {
                             window.cpqStandardFeatures[feature.area].push(feature.description);
                         }
