@@ -193,7 +193,20 @@ window.Calculate2021 = window.Calculate2021 || function () {
             }
 
             console.log('boat package price (+Pontoon) is now ', boatpackageprice);
-            boatsp = (Number(dealercost) / baseboatmargin) * vol_disc + Number(additionalCharge);
+
+            // CPQ MSRP Fix: Use real MSRP for sale price when available
+            if (hasRealMSRP) {
+                // For CPQ boats: sale price = real MSRP (no margin calculation needed)
+                boatsp = Number(realMSRP) + Number(additionalCharge);
+                saleboatpackageprice += Number(realMSRP) + Number(freight) + Number(prep) + Number(additionalCharge);
+                console.log('Using real MSRP for sale price: $' + realMSRP);
+            } else {
+                // For legacy boats: calculate sale price from dealer cost with margins
+                boatsp = (Number(dealercost) / baseboatmargin) * vol_disc + Number(additionalCharge);
+                saleboatpackageprice += ((dealercost * vol_disc) /baseboatmargin) + Number(freight) + Number(prep) + Number(additionalCharge);
+                console.log('Calculating sale price from dealer cost');
+            }
+
             setValue('DLR2', 'BOAT_DC', dealercost);
             setValue('DLR2', 'BOAT_DESC', macoladesc);
             console.log(freight);
@@ -201,8 +214,6 @@ window.Calculate2021 = window.Calculate2021 || function () {
             console.log(additionalCharge);
             console.log(vol_disc);
             console.log('MSRP Margin: ', msrpMargin);
-
-            saleboatpackageprice += ((dealercost * vol_disc) /baseboatmargin) + Number(freight) + Number(prep) + Number(additionalCharge);
             console.log('boat package SALE price (+Pontoon) is now ', saleboatpackageprice);
         }
         if (mct === 'Lower Unit Eng') {
@@ -415,18 +426,17 @@ window.Calculate2021 = window.Calculate2021 || function () {
             // CPQ MSRP Support: Use real MSRP if available, otherwise calculate
             if (window.pontoonRealMSRP !== null && window.pontoonRealMSRP !== undefined) {
                 msrpprice = Number(window.pontoonRealMSRP);
+                // For CPQ boats: sale price = MSRP (no margin calculation)
+                saleprice = msrpprice + Number(freight) + Number(prep) + Number(additionalCharge);
                 console.log("Using real MSRP from CPQ: $", msrpprice);
             } else {
+                // For legacy boats: calculate from dealer cost
                 msrpprice = Number((dealercost) * vol_disc) / msrpMargin + Number(additionalCharge);
+                saleprice = Number((dealercost * vol_disc) / baseboatmargin) + Number(freight) + Number(prep) + Number(additionalCharge);
                 console.log("Calculated MSRP from dealer cost: $", msrpprice);
-            }
 
-            saleprice = Number((dealercost * vol_disc) / baseboatmargin) + Number(freight) + Number(prep) + Number(additionalCharge);
-
-            if(series === 'SV') {
-                saleprice = Number((dealercost * msrpVolume * msrpLoyalty) / baseboatmargin) + Number(freight) + Number(prep) + Number(additionalCharge);
-                // For SV series, only override MSRP with saleprice if we don't have real CPQ MSRP
-                if (window.pontoonRealMSRP === null || window.pontoonRealMSRP === undefined) {
+                if(series === 'SV') {
+                    saleprice = Number((dealercost * msrpVolume * msrpLoyalty) / baseboatmargin) + Number(freight) + Number(prep) + Number(additionalCharge);
                     msrpprice = saleprice;
                 }
             }
@@ -454,7 +464,11 @@ window.Calculate2021 = window.Calculate2021 || function () {
                 }
                 saleprice = msrpprice;
             } else {
-                if (dealercost > 0) {
+                // CPQ MSRP Fix: Use real MSRP for sale price when available
+                if (itemHasRealMSRP) {
+                    saleprice = Number(boatoptions[i].MSRP);
+                    console.log("Using real MSRP for option sale price: $", saleprice);
+                } else if (dealercost > 0) {
                     saleprice = (Number(dealercost / optionmargin) * vol_disc);
                 } else {
                     saleprice = Number(dealercost);
@@ -520,12 +534,21 @@ window.Calculate2021 = window.Calculate2021 || function () {
                     msrpboatpackageprice = msrpboatpackageprice;
                 }
 
-                if (dealercost == 0) { saleprice = 0; }
-                else { saleprice = Math.round(Number(dealercost / enginemargin) * vol_disc); }
-
                 // CPQ MSRP Support: Use real MSRP if available (for engine increment)
-                // Note: hasRealMSRP and realMSRP are from the outer loop variable
                 var engineHasRealMSRP = (boatoptions[i].MSRP !== undefined && boatoptions[i].MSRP !== null && Number(boatoptions[i].MSRP) > 0);
+
+                // Calculate sale price
+                if (dealercost == 0) {
+                    saleprice = 0;
+                } else if (engineHasRealMSRP) {
+                    // CPQ MSRP Fix: Use real MSRP for sale price when available
+                    saleprice = Math.round(Number(boatoptions[i].MSRP));
+                    console.log("Using real MSRP for engine sale price: $", saleprice);
+                } else {
+                    saleprice = Math.round(Number(dealercost / enginemargin) * vol_disc);
+                }
+
+                // Calculate MSRP for display
                 if (engineHasRealMSRP) {
                     msrp = Number(boatoptions[i].MSRP).toFixed(2);
                     console.log("Using real MSRP from CPQ for engine: $", msrp);
@@ -558,16 +581,27 @@ window.Calculate2021 = window.Calculate2021 || function () {
                 }
                 dealercost = Number(dealercost - Number(defaultprerigprice));
 
-                if (dealercost == 0) { saleprice = 0; }
-                else { saleprice = (Number(dealercost / optionmargin) * vol_disc); }
+                // CPQ MSRP Support: Use real MSRP if available (for prerig increment)
+                var prerigHasRealMSRP = (boatoptions[i].MSRP !== undefined && boatoptions[i].MSRP !== null && Number(boatoptions[i].MSRP) > 0);
+
+                // Calculate sale price
+                if (dealercost == 0) {
+                    saleprice = 0;
+                } else if (prerigHasRealMSRP) {
+                    // CPQ MSRP Fix: Use real MSRP for sale price when available
+                    saleprice = Number(boatoptions[i].MSRP);
+                    console.log("Using real MSRP for prerig sale price: $", saleprice);
+                } else {
+                    saleprice = (Number(dealercost / optionmargin) * vol_disc);
+                }
+
                 if (prodCategory != 'PL1' && prodCategory != 'PL2' && prodCategory != 'PL3' && prodCategory != 'PL4' && prodCategory != 'PL5' && prodCategory != 'PL6') {
                     boatpackageprice = Number(boatpackageprice) - Number(dealercost);
                     msrpboatpackageprice = Number(msrpboatpackageprice) - (Number(dealercost) / msrpMargin);
                     setValue('DLR2', 'PRERIG_INC', dealercost);
                 }
 
-                // CPQ MSRP Support: Use real MSRP if available (for prerig increment)
-                var prerigHasRealMSRP = (boatoptions[i].MSRP !== undefined && boatoptions[i].MSRP !== null && Number(boatoptions[i].MSRP) > 0);
+                // Calculate MSRP for display
                 if (prerigHasRealMSRP) {
                     msrp = Number(boatoptions[i].MSRP).toFixed(2);
                     console.log("Using real MSRP from CPQ for prerig: $", msrp);
