@@ -439,10 +439,12 @@ if (window.cpqLhsData && window.cpqLhsData.model_id) {
     console.log('Using CPQ LHS data for specs section');
     var cpqData = window.cpqLhsData;
 
-    // Convert pontoon gauge to diameter display (0.08 -> 25")
+    // Convert pontoon gauge to diameter display (0.08 -> 25", 0.10 -> 27")
     var pontoonDiameter = '';
-    if (cpqData.pontoon_gauge === '0.08') {
+    if (cpqData.pontoon_gauge === '0.08' || cpqData.pontoon_gauge === 0.08) {
         pontoonDiameter = '25"';
+    } else if (cpqData.pontoon_gauge === '0.10' || cpqData.pontoon_gauge === 0.10) {
+        pontoonDiameter = '27"';
     } else if (cpqData.tube_height) {
         pontoonDiameter = cpqData.tube_height;
     }
@@ -476,10 +478,10 @@ if (window.cpqLhsData && window.cpqLhsData.model_id) {
     wsContents += "          <\/tr>";
     wsContents += "          <tr>";
     wsContents += "            <td align=\"left\">Engine Configuration:<\/td>";
-    wsContents += "            <td>" + (cpqData.engine_configuration || '') + "<\/td>";
+    wsContents += "            <td>" + (cpqData.engine_configuration || 'Single Outboard') + "<\/td>";
     wsContents += "          <\/tr>";
     wsContents += "          <tr>";
-    wsContents += "            <td align=\"left\">Fuel Capacity (standard, see options):<\/td>";
+    wsContents += "            <td align=\"left\">Fuel Capacity (standard, see<br>options):<\/td>";
     wsContents += "            <td>" + (cpqData.fuel_capacity || '') + "<\/td>";
     wsContents += "          <\/tr>";
     wsContents += "        <\/tbody>";
@@ -534,31 +536,60 @@ if (window.cpqLhsData && window.cpqLhsData.model_id) {
     console.log('Using CPQ LHS data for performance specs section');
     var cpqData = window.cpqLhsData;
 
-    // Format hull weight with commas (2988.0 -> 2,988 lbs)
+    // Format hull weight (2988.0 -> 2,988 lbs) - keep as-is if it contains "/"
     var hullWeight = '';
     if (cpqData.hull_weight) {
-        var weight = parseFloat(cpqData.hull_weight);
-        hullWeight = Math.round(weight).toLocaleString() + ' lbs';
+        var weightStr = String(cpqData.hull_weight);
+        if (weightStr.includes('/')) {
+            // Dual values like "2453/2783" - format both numbers
+            var weights = weightStr.split('/');
+            var formatted = weights.map(function(w) {
+                return Math.round(parseFloat(w.trim())).toLocaleString();
+            }).join('/');
+            hullWeight = formatted + ' lbs';
+        } else {
+            // Single value
+            hullWeight = Math.round(parseFloat(cpqData.hull_weight)).toLocaleString() + ' lbs';
+        }
     }
 
-    // Format max HP (150.0 -> 150 HP)
+    // Format max HP (150.0 -> 150 HP) - keep as-is if it contains "/"
     var maxHP = '';
     if (cpqData.max_hp) {
-        maxHP = Math.round(parseFloat(cpqData.max_hp)) + ' HP';
+        var hpStr = String(cpqData.max_hp);
+        if (hpStr.includes('/')) {
+            // Dual values like "90/150" - format both numbers
+            var hps = hpStr.split('/');
+            var formatted = hps.map(function(h) {
+                return Math.round(parseFloat(h.trim()));
+            }).join('/');
+            maxHP = formatted + ' HP';
+        } else {
+            // Single value
+            maxHP = Math.round(parseFloat(cpqData.max_hp)) + ' HP';
+        }
     }
 
-    // Format pontoon gauge (0.08 -> 0.08) - no extra formatting
+    // Format pontoon gauge (0.08 -> 0.08)
     var pontoonGauge = '';
     if (cpqData.pontoon_gauge) {
         pontoonGauge = parseFloat(cpqData.pontoon_gauge).toFixed(2);
     }
 
-    // Format package name - show tube count and description
+    // Format package name - extract transom height from package ID
     var packageName = 'Standard Package';
     if (cpqData.perf_package_id && cpqData.no_of_tubes) {
         var tubes = Math.round(parseFloat(cpqData.no_of_tubes));
-        packageName = tubes + '. With ' + (tubes === 3 ? '27' : '25') + '" Tubes';
-        if (cpqData.package_name) {
+        var tubeSize = (tubes === 3) ? '27' : '25';
+        packageName = tubes + '. With ' + tubeSize + ' Tubes';
+
+        // Extract transom height from package ID (e.g., "25_IN_22" -> "22", "EXPRESS_20" -> "20")
+        var transomMatch = cpqData.perf_package_id.match(/_(\d+)$/);
+        if (transomMatch) {
+            var transomHeight = transomMatch[1];
+            packageName += ' (' + transomHeight + '" transom)';
+        } else if (cpqData.package_name && cpqData.package_name !== cpqData.perf_package_id) {
+            // Use package name if different from ID
             packageName += ' (' + cpqData.package_name + ')';
         }
     }
