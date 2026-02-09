@@ -42,28 +42,53 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
     // This handles cases where loadByListName returns columns in wrong order
     if (serialYear > 14 && window.boatoptions && window.boatoptions.length > 0) {
         console.log('Checking for swapped MSRP/ExtSalesAmount values for ' + window.boatoptions.length + ' items');
+
+        // DEBUG: Check what columns are actually present in first item
+        if (window.boatoptions.length > 0) {
+            console.log('DEBUG: Columns in boatoptions[0]: ' + Object.keys(window.boatoptions[0]).join(', '));
+            console.log('DEBUG: boatoptions[0].MSRP type: ' + typeof window.boatoptions[0].MSRP);
+            console.log('DEBUG: boatoptions[0].MSRP value: ' + window.boatoptions[0].MSRP);
+            console.log('DEBUG: boatoptions[0].ExtSalesAmount value: ' + window.boatoptions[0].ExtSalesAmount);
+        }
+
         for (var i = 0; i < window.boatoptions.length; i++) {
-            var msrp = Number(window.boatoptions[i].MSRP) || 0;
-            var dealerCost = Number(window.boatoptions[i].ExtSalesAmount) || 0;
+            var item = window.boatoptions[i];
+            var msrp = Number(item.MSRP) || 0;
+            var dealerCost = Number(item.ExtSalesAmount) || 0;
 
-            // If both values exist and MSRP is less than dealer cost, they're swapped
+            // Detect if this is a CPQ boat item (has CfgName field)
+            var isCPQItem = item.CfgName && item.CfgName !== null && item.CfgName !== '';
+
+            console.log('  Item ' + i + ': ' + item.ItemDesc1);
+            console.log('    RAW: MSRP=' + item.MSRP + ' (type: ' + typeof item.MSRP + '), ExtSalesAmount=' + item.ExtSalesAmount);
+            console.log('    Parsed: MSRP=$' + msrp + ', DealerCost=$' + dealerCost + ', isCPQ=' + isCPQItem);
+
+            // CASE 1: Both values exist and MSRP < DealerCost = SWAPPED
             if (msrp > 0 && dealerCost > 0 && msrp < dealerCost) {
-                console.log('  ⚠️  SWAPPED detected for ' + window.boatoptions[i].ItemDesc1);
-                console.log('      Before swap: MSRP=$' + msrp + ', DealerCost=$' + dealerCost);
-
-                // Swap them
-                window.boatoptions[i].MSRP = dealerCost;
-                window.boatoptions[i].ExtSalesAmount = msrp;
-
-                console.log('      After swap:  MSRP=$' + window.boatoptions[i].MSRP + ', DealerCost=$' + window.boatoptions[i].ExtSalesAmount);
-            } else if (msrp > 0 && dealerCost > 0) {
-                console.log('  ✅ Correct order for ' + window.boatoptions[i].ItemDesc1 + ': MSRP=$' + msrp + ', DealerCost=$' + dealerCost);
-            } else if (msrp === 0 && dealerCost > 0) {
-                // Legacy boat - no MSRP in database, use dealer cost as fallback
-                window.boatoptions[i].MSRP = dealerCost;
-                console.log('  📦 Legacy item ' + window.boatoptions[i].ItemDesc1 + ': Using DealerCost as MSRP ($' + dealerCost + ')');
-            } else if (msrp === 0 && dealerCost === 0) {
-                console.log('  ⚪ Zero values for ' + window.boatoptions[i].ItemDesc1 + ' (likely standard feature)');
+                console.log('    ⚠️  SWAPPED - swapping values');
+                item.MSRP = dealerCost;
+                item.ExtSalesAmount = msrp;
+                console.log('    After swap: MSRP=$' + item.MSRP + ', DealerCost=$' + item.ExtSalesAmount);
+            }
+            // CASE 2: Both values exist and MSRP > DealerCost = CORRECT
+            else if (msrp > 0 && dealerCost > 0 && msrp > dealerCost) {
+                console.log('    ✅ Correct order');
+            }
+            // CASE 3: MSRP is missing (0 or undefined) but it's a CPQ item with dealer cost
+            // This means loadByListName didn't return MSRP column - DON'T set MSRP yet
+            else if ((msrp === 0 || item.MSRP === undefined) && dealerCost > 0 && isCPQItem) {
+                console.log('    🔍 CPQ item but MSRP column missing from loadByListName');
+                console.log('    ⚠️  PROBLEM: Need to query database for real MSRP!');
+                // Leave MSRP as is for now - Calculate2021.js will need to handle this
+            }
+            // CASE 4: Legacy boat - no MSRP in database
+            else if (msrp === 0 && dealerCost > 0 && !isCPQItem) {
+                item.MSRP = dealerCost;
+                console.log('    📦 Legacy item - using DealerCost as MSRP');
+            }
+            // CASE 5: Standard feature (both zero)
+            else if (msrp === 0 && dealerCost === 0) {
+                console.log('    ⚪ Zero values (standard feature)');
             }
         }
     }
