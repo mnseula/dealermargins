@@ -98,14 +98,16 @@
 - ✅ **Commit**: ced0b15
 
 ### packagePricing.js Column Swap Fix (2026-02-08)
-- ✅ **ROOT CAUSE IDENTIFIED**: loadByListName returns MSRP and ExtSalesAmount in wrong order or doesn't include MSRP
-- ✅ **SOLUTION**: Detect and swap values in JavaScript when MSRP < ExtSalesAmount (backwards)
-  - If MSRP < DealerCost: Values are swapped, swap them back
-  - If MSRP = 0 and DealerCost > 0: Legacy boat, use DealerCost as MSRP fallback
-  - If both > 0 and MSRP > DealerCost: Correct order, no action needed
-- ✅ **Removed complex separate-loading approach** (lines 40-84 replaced with simple 29-line swap logic)
-- ✅ **Dropped BoatOptions26_MSRP view** (no longer needed)
-- ✅ **Commit**: 096fd9c
+- ✅ **ROOT CAUSE IDENTIFIED**: loadByListName('BoatOptions26') returns only first 20 columns
+  - Stops at ExtSalesAmount, doesn't include MSRP or CPQ columns (CfgName, etc.)
+  - MSRP column was added to table in position 21, after ExtSalesAmount
+  - loadByListName uses cached column list from before MSRP was added
+- ✅ **SOLUTION**: Created BoatOptions26_Complete VIEW with ALL 31 columns explicitly listed
+  - VIEW includes: ExtSalesAmount, MSRP, CfgName, CfgPage, CfgScreen, CfgValue, CfgAttrType, etc.
+  - Updated packagePricing.js to query 'BoatOptions26_Complete' instead of 'BoatOptions26'
+  - Swap logic now works because MSRP column is actually present in data
+- ✅ **Added comprehensive debug logging** to diagnose column issues
+- ✅ **Commits**: 096fd9c (swap logic), de0d3ac (debug logging), 3b134a4 (VIEW solution)
 
 ## ⚠️ NEEDS PRODUCTION POLISH
 
