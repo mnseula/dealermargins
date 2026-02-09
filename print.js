@@ -37,6 +37,12 @@ total = Number(total).toFixed(2);
 
 model = getValue('BOAT_INFO', 'BOAT_REAL_MODEL');
 
+// DEBUG: Always log these values
+console.log('===== PRINT.JS MODEL DEBUG =====');
+console.log('window.isCPQBoat:', window.isCPQBoat);
+console.log('window.realmodel:', window.realmodel);
+console.log('BOAT_INFO/BOAT_REAL_MODEL:', model);
+
 // CPQ FALLBACK - Use window.realmodel for CPQ boats
 // window.isCPQBoat is set in packagePricing.js (true when year code detection fails)
 // This is more reliable than checking if model equals 'Base Boat'
@@ -54,7 +60,10 @@ if (window.isCPQBoat) {
     console.log('CPQ boat: Using full model name:', shortmodel);
 } else {
     shortmodel = model.substring(0, model.length - 2); //strip the model year designator
+    console.log('Legacy boat: Stripped to shortmodel:', shortmodel);
 }
+console.log('Final shortmodel for title:', shortmodel);
+console.log('===== END MODEL DEBUG =====');
 var perfpkgid = getValue('BOAT_INFO', 'STD_PERF_PKG');
 
 
