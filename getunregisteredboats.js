@@ -246,6 +246,53 @@ function bindSelect() {
                 console.error('Error details:', JSON.stringify(error));
             }
             console.log('===== END CPQ LHS DATA LOAD =====');
+
+            // CPQ: Load standard features from MySQL database
+            console.log('===== CPQ STANDARD FEATURES LOAD =====');
+
+            console.log('Calling GET_CPQ_STANDARD_FEATURES with params:');
+            console.log('  @PARAM1 (model_id):', realmodel);
+            console.log('  @PARAM2 (year):', cpqYear);
+
+            try {
+                var cpqStandardFeatures = sStatement('GET_CPQ_STANDARD_FEATURES', [realmodel, cpqYear]);
+                console.log('CPQ Standard Features returned:', cpqStandardFeatures);
+                console.log('Type:', typeof cpqStandardFeatures);
+                console.log('Is array?', Array.isArray(cpqStandardFeatures));
+                console.log('Count:', cpqStandardFeatures ? cpqStandardFeatures.length : 0);
+
+                if (cpqStandardFeatures && cpqStandardFeatures.length > 0) {
+                    console.log('✅ SUCCESS: Got', cpqStandardFeatures.length, 'standard features for model', realmodel);
+
+                    // Group features by area
+                    window.cpqStandardFeatures = {
+                        'Interior Features': [],
+                        'Exterior Features': [],
+                        'Console Features': [],
+                        'Warranty': []
+                    };
+
+                    cpqStandardFeatures.forEach(function(feature) {
+                        if (window.cpqStandardFeatures[feature.area]) {
+                            window.cpqStandardFeatures[feature.area].push(feature.description);
+                        }
+                    });
+
+                    console.log('CPQ Standard Features grouped by area:');
+                    console.log('  Interior:', window.cpqStandardFeatures['Interior Features'].length);
+                    console.log('  Exterior:', window.cpqStandardFeatures['Exterior Features'].length);
+                    console.log('  Console:', window.cpqStandardFeatures['Console Features'].length);
+                    console.log('  Warranty:', window.cpqStandardFeatures['Warranty'].length);
+                } else {
+                    console.warn('⚠️ No standard features returned for model', realmodel);
+                    window.cpqStandardFeatures = null;
+                }
+            } catch (error) {
+                console.error('❌ Error loading CPQ standard features:', error);
+                console.error('Error details:', JSON.stringify(error));
+                window.cpqStandardFeatures = null;
+            }
+            console.log('===== END CPQ STANDARD FEATURES LOAD =====');
         } else {
             console.log('Legacy boat detected - stripping last 2 chars from:', realmodel);
             setValue('BOAT_INFO', 'BOAT_MODEL', realmodel.substring(0, realmodel.length - 2));

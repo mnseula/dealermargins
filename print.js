@@ -615,7 +615,34 @@ if (window.cpqLhsData && window.cpqLhsData.model_id) {
 }
 
 wsContents += "    <div class=\"title\" id=\"standardstitle\">STANDARD FEATURES<\/div>";
-wsContents += "    <div id=\"standards\">" + stds + "<\/div> ";
+
+// CPQ boats: Use window.cpqStandardFeatures if available, otherwise use legacy stds
+if (window.cpqStandardFeatures) {
+    console.log('Using CPQ standard features');
+    var standardsHtml = '';
+
+    // Format: Area • feature1 • feature2 • feature3 •
+    var areas = ['Interior Features', 'Exterior Features', 'Console Features', 'Warranty'];
+    var areaLabels = {
+        'Interior Features': 'Interior',
+        'Exterior Features': 'Exterior',
+        'Console Features': 'Console Features',
+        'Warranty': 'Warranty'
+    };
+
+    areas.forEach(function(area) {
+        if (window.cpqStandardFeatures[area] && window.cpqStandardFeatures[area].length > 0) {
+            standardsHtml += '<strong>' + areaLabels[area] + '<\/strong> • ';
+            standardsHtml += window.cpqStandardFeatures[area].join(' • ') + ' •<br>';
+        }
+    });
+
+    wsContents += "    <div id=\"standards\">" + standardsHtml + "<\/div> ";
+} else {
+    console.log('Using legacy standards list');
+    wsContents += "    <div id=\"standards\">" + stds + "<\/div> ";
+}
+
 wsContents += "  <\/div>";
 wsContents += "  <div class=\"column\" id=\"column2\">";
 // DEBUG: Log values right before title construction
