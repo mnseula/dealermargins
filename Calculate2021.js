@@ -438,8 +438,10 @@ window.Calculate2021 = window.Calculate2021 || function () {
             if (mctType === 'ENZ') { dealercost = Number(dealercost) + Number(EngineDiscountAdditions); }
 
             // CPQ MSRP Support: Use real MSRP if available, otherwise calculate
-            if (hasRealMSRP) {
-                var msrpprice = Number(realMSRP);
+            // Check boatoptions[i].MSRP directly in this loop (not from outer loop variable)
+            var itemHasRealMSRP = (boatoptions[i].MSRP !== undefined && boatoptions[i].MSRP !== null && Number(boatoptions[i].MSRP) > 0);
+            if (itemHasRealMSRP) {
+                var msrpprice = Number(boatoptions[i].MSRP);
                 console.log("Using real MSRP from CPQ for option: $", msrpprice);
             } else {
                 var msrpprice = Number((dealercost * msrpVolume) / msrpMargin);
@@ -447,7 +449,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
 
             if (series == 'SV') {
                 // For SV series, only apply loyalty multiplier if we're calculating (not using real MSRP)
-                if (!hasRealMSRP) {
+                if (!itemHasRealMSRP) {
                     msrpprice = Number(msrpprice * msrpLoyalty);
                 }
                 saleprice = msrpprice;
@@ -467,13 +469,14 @@ window.Calculate2021 = window.Calculate2021 || function () {
                 saleprice = Number((EngineDiscountAdditions * vol_disc) / baseboatmargin);
 
                 // CPQ MSRP Support: For discounts, use real MSRP if available
-                if (hasRealMSRP) {
-                    msrpprice = Number(realMSRP);
+                var discountHasRealMSRP = (boatoptions[i].MSRP !== undefined && boatoptions[i].MSRP !== null && Number(boatoptions[i].MSRP) > 0);
+                if (discountHasRealMSRP) {
+                    msrpprice = Number(boatoptions[i].MSRP);
                 } else {
                     msrpprice = Number((EngineDiscountAdditions * msrpVolume) / msrpMargin);
                 }
 
-                if (series == 'SV' && !hasRealMSRP) {
+                if (series == 'SV' && !discountHasRealMSRP) {
                     msrprice = msrpprice * msrpLoyalty;
                 }
 
