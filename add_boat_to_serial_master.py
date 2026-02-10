@@ -29,7 +29,7 @@ from datetime import datetime
 DB_CONFIG = {
     'host': 'ben.c0fnidwvz1hv.us-east-1.rds.amazonaws.com',
     'port': 3306,
-    'database': 'warrantyparts_test',
+    'database': 'warrantyparts',
     'user': 'awsmaster',
     'password': 'VWvHG9vfG23g7gD'
 }
