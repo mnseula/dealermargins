@@ -51,9 +51,23 @@ SELECT
 FROM warrantyparts_test.Models m
 LEFT JOIN (
     -- Get the performance package ID from the boat's configuration
-    -- FIXED: Search all BoatOptions tables, not just BoatOptions26
+    -- FIXED: Search all BoatOptions tables from 15-26 (matches import filter >= 15)
     SELECT CfgValue AS perf_package_id
     FROM (
+        SELECT CfgValue, CfgName, BoatSerialNo FROM warrantyparts.BoatOptions15
+        UNION ALL
+        SELECT CfgValue, CfgName, BoatSerialNo FROM warrantyparts.BoatOptions16
+        UNION ALL
+        SELECT CfgValue, CfgName, BoatSerialNo FROM warrantyparts.BoatOptions17
+        UNION ALL
+        SELECT CfgValue, CfgName, BoatSerialNo FROM warrantyparts.BoatOptions18
+        UNION ALL
+        SELECT CfgValue, CfgName, BoatSerialNo FROM warrantyparts.BoatOptions19
+        UNION ALL
+        SELECT CfgValue, CfgName, BoatSerialNo FROM warrantyparts.BoatOptions20
+        UNION ALL
+        SELECT CfgValue, CfgName, BoatSerialNo FROM warrantyparts.BoatOptions21
+        UNION ALL
         SELECT CfgValue, CfgName, BoatSerialNo FROM warrantyparts.BoatOptions22
         UNION ALL
         SELECT CfgValue, CfgName, BoatSerialNo FROM warrantyparts.BoatOptions23
@@ -78,7 +92,7 @@ WHERE m.model_id = @PARAM1
 LIMIT 1;
 ```
 
-**Key Fix:** Changed from `warrantyparts.BoatOptions26` to UNION of all tables (22-26) so it works for boats in any year table.
+**Key Fix:** Changed from `warrantyparts.BoatOptions26` to UNION of all tables (15-26) so it works for boats in any year table. This matches the import filter (>= 15) and ensures we find the performance package regardless of which table the boat is in.
 
 ---
 
