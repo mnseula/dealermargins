@@ -216,8 +216,10 @@ function bindSelect() {
             // CPQ: Load LHS specification data from MySQL database
             console.log('===== CPQ LHS DATA LOAD =====');
 
-            var cpqYear = 2025; // CPQ boats are 2025 model year
+            // Calculate actual year from serialYear (22 → 2022, 25 → 2025, etc.)
+            var cpqYear = 2000 + parseInt(serialYear);
             var cpqHullNo = serial; // Hull number to get specific performance package
+            console.log('Calculated CPQ year:', cpqYear, 'from serialYear:', serialYear);
 
             console.log('Calling GET_CPQ_LHS_DATA with params:');
             console.log('  @PARAM1 (model_id):', realmodel);
