@@ -2,14 +2,18 @@
 """
 Add Boat to SerialNumberMaster and SerialNumberRegistrationStatus
 
-This script adds a boat from BoatOptions26 to the SerialNumberMaster and
+This script adds a boat from the appropriate BoatOptions table to the SerialNumberMaster and
 SerialNumberRegistrationStatus tables using test dealer 50 (PONTOON BOAT, LLC).
+
+The script automatically determines which BoatOptions table to use based on the last 2 digits
+of the hull serial number (e.g., ETWINVTEST0126 -> BoatOptions26).
 
 Usage:
     python3 add_boat_to_serial_master.py <hull_number> <erp_order>
 
 Example:
     python3 add_boat_to_serial_master.py ETWINVTEST0126 SO00936076
+    python3 add_boat_to_serial_master.py ETWINVTEST0104 SO00936074
 
 Author: Claude Code
 Date: 2026-02-09
@@ -25,7 +29,7 @@ from datetime import datetime
 DB_CONFIG = {
     'host': 'ben.c0fnidwvz1hv.us-east-1.rds.amazonaws.com',
     'port': 3306,
-    'database': 'warrantyparts',
+    'database': 'warrantyparts_test',
     'user': 'awsmaster',
     'password': 'VWvHG9vfG23g7gD'
 }
@@ -47,12 +51,45 @@ def log(message: str, level: str = "INFO"):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{timestamp}] [{level}] {message}")
 
+def get_table_name_from_hull(hull_number: str) -> str:
+    """
+    Determine the BoatOptions table name from the hull number.
+    Uses the last 2 digits of the serial number.
+    Examples:
+        ETWINVTEST0126 -> BoatOptions26
+        ETWINVTEST0104 -> BoatOptions04
+        ETW123456789 -> BoatOptions89
+    """
+    if len(hull_number) < 2:
+        return None
+    
+    # Extract last 2 digits
+    year_digits = hull_number[-2:]
+    return f"BoatOptions{year_digits}"
+
 def get_boat_info(cursor, hull_number: str, erp_order: str) -> dict:
     """
-    Get boat information from BoatOptions26.
+    Get boat information from the appropriate BoatOptions table.
     Returns dict with boat details or None if not found.
     """
-    query = """
+    # Determine which table to query based on hull number
+    table_name = get_table_name_from_hull(hull_number)
+    
+    if not table_name:
+        log(f"❌ Invalid hull number format: {hull_number}", "ERROR")
+        return None
+    
+    # Check if table exists
+    cursor.execute("""
+        SELECT COUNT(*) FROM information_schema.tables 
+        WHERE table_schema = DATABASE() AND table_name = %s
+    """, (table_name,))
+    
+    if cursor.fetchone()[0] == 0:
+        log(f"❌ Table {table_name} does not exist", "ERROR")
+        return None
+    
+    query = f"""
         SELECT
             BoatSerialNo,
             ItemNo,
@@ -61,7 +98,7 @@ def get_boat_info(cursor, hull_number: str, erp_order: str) -> dict:
             InvoiceNo,
             InvoiceDate,
             WebOrderNo
-        FROM BoatOptions26
+        FROM {table_name}
         WHERE BoatSerialNo = %s
           AND ERP_OrderNo = %s
           AND ItemMasterMCT = 'BOA'
@@ -86,7 +123,8 @@ def get_boat_info(cursor, hull_number: str, erp_order: str) -> dict:
         'invoice_date': row[5],
         'web_order_no': row[6],
         'model_year': model_year,
-        'erp_order': erp_order
+        'erp_order': erp_order,
+        'table_name': table_name
     }
 
 def check_if_exists(cursor, hull_number: str) -> tuple:
@@ -226,17 +264,18 @@ def main():
         cursor = conn.cursor()
         log("✅ Connected to database")
 
-        # Get boat information from BoatOptions26
-        log(f"Fetching boat info for {hull_number}...")
+        # Get boat information from appropriate BoatOptions table
+        table_name = get_table_name_from_hull(hull_number)
+        log(f"Fetching boat info for {hull_number} from {table_name}...")
         boat_info = get_boat_info(cursor, hull_number, erp_order)
 
         if not boat_info:
-            log(f"❌ Boat not found in BoatOptions26", "ERROR")
+            log(f"❌ Boat not found in {table_name}", "ERROR")
             log(f"   Hull Number: {hull_number}", "ERROR")
             log(f"   ERP Order: {erp_order}", "ERROR")
             sys.exit(1)
 
-        log("✅ Boat found in BoatOptions26")
+        log(f"✅ Boat found in {boat_info['table_name']}")
         log(f"   Model: {boat_info['model']} ({boat_info['description']})")
         log(f"   Series: {boat_info['series']}")
         log(f"   Model Year: 20{boat_info['model_year']}")
