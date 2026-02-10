@@ -569,6 +569,14 @@ def load_to_mysql_batch(rows: List[Dict], table_name: str):
 
             batch_data = []
             for row in batch:
+                # Fix ItemMasterProdCat: map BS1 to ACC only for STD (standard) items
+                # BS1 for BOA (boat) and PRE (pre-rig) should remain as BS1
+                prod_cat = row.get('ItemMasterProdCat')
+                mct = row.get('ItemMasterMCT')
+                if prod_cat == 'BS1' and mct == 'STD':
+                    # STD items with BS1 are actually accessories and should be ACC
+                    prod_cat = 'ACC'
+                
                 row_tuple = (
                     row.get('ERP_OrderNo'),
                     row.get('BoatSerialNo'),
@@ -584,7 +592,7 @@ def load_to_mysql_batch(rows: List[Dict], table_name: str):
                     row.get('ApplyToNo'),
                     row.get('InvoiceNo'),
                     row.get('InvoiceDate'),
-                    row.get('ItemMasterProdCat'),
+                    prod_cat,
                     row.get('ItemMasterProdCatDesc'),
                     row.get('ItemMasterMCT'),
                     row.get('MCTDesc'),
