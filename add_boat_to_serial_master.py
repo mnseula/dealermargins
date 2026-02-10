@@ -83,6 +83,26 @@ def get_table_name_from_hull(hull_number: str) -> str:
     except ValueError:
         return f"BoatOptions{year_digits}"
 
+def get_model_year_from_invoice(invoice_date) -> str:
+    """
+    Extract model year from invoice date (format: YYYYMMDD).
+    Returns 2-digit year (e.g., '26' for 2026).
+    Falls back to current year if invoice_date is invalid.
+    """
+    if invoice_date:
+        try:
+            # Invoice date format is typically YYYYMMDD
+            date_str = str(invoice_date)
+            if len(date_str) >= 4:
+                year = int(date_str[:4])
+                return str(year)[-2:]  # Return last 2 digits
+        except (ValueError, TypeError):
+            pass
+    
+    # Fallback to current year
+    from datetime import datetime
+    return datetime.now().strftime('%y')
+
 def search_all_tables(cursor, hull_number: str, erp_order: str):
     """
     Search all BoatOptions tables to find the boat.
@@ -178,7 +198,7 @@ def get_boat_info(cursor, hull_number: str, erp_order: str) -> dict:
                     db_order = row[7]
                     if db_order == erp_order or str(db_order) == erp_order or str(db_order) in erp_order:
                         log(f"✅ Found boat in {table_name}")
-                        model_year = hull_number[-2:] if len(hull_number) >= 2 else None
+                        model_year = get_model_year_from_invoice(row[5])  # Use invoice date for model year
                         return {
                             'serial_number': row[0],
                             'model': row[1],
@@ -193,7 +213,7 @@ def get_boat_info(cursor, hull_number: str, erp_order: str) -> dict:
                         }
                     elif db_order == 0 or db_order == "0":
                         log(f"✅ Found boat in {table_name} (ERP_OrderNo is 0, accepting match)")
-                        model_year = hull_number[-2:] if len(hull_number) >= 2 else None
+                        model_year = get_model_year_from_invoice(row[5])  # Use invoice date for model year
                         return {
                             'serial_number': row[0],
                             'model': row[1],
@@ -215,7 +235,7 @@ def get_boat_info(cursor, hull_number: str, erp_order: str) -> dict:
     
     if row:
         log(f"✅ Found boat in {found_table}")
-        model_year = hull_number[-2:] if len(hull_number) >= 2 else None
+        model_year = get_model_year_from_invoice(row[5])  # Use invoice date for model year
         return {
             'serial_number': row[0],
             'model': row[1],
