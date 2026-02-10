@@ -21,7 +21,7 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
     // Pre-2005 boats (1999-2004): BoatOptions99_04 table
     if (serialYear < 5)
     {
-        window.boatoptions = loadByListName('boat_options_99_04', "Where BoatSerialNo = '" + serial + "'");
+        window.boatoptions = loadByListName('BoatOptions99_04', "Where BoatSerialNo = '" + serial + "'");
     }
     else if (serialYear > 4 && serialYear < 8)
     {
