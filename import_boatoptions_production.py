@@ -498,12 +498,56 @@ def group_by_table(rows: List[Dict]) -> Dict[str, List[Dict]]:
 
     return groups
 
+def deduplicate_rows(rows: List[Dict]) -> List[Dict]:
+    """
+    Deduplicate rows based on composite key: BoatSerialNo + ItemNo + LineNo + LineSeqNo.
+    For old tables without primary keys, this prevents duplicate inserts.
+    When duplicates exist, prioritize ACC over BS1 for ItemMasterProdCat.
+    Returns deduplicated list.
+    """
+    seen = {}
+    duplicates_found = 0
+    
+    for row in rows:
+        # Create unique key from composite fields
+        key = (
+            row.get('BoatSerialNo', ''),
+            row.get('ItemNo', ''),
+            row.get('LineNo', 0),
+            row.get('LineSeqNo', 0)
+        )
+        
+        if key in seen:
+            duplicates_found += 1
+            existing = seen[key]
+            
+            # Prioritize ACC over BS1
+            existing_cat = existing.get('ItemMasterProdCat', '')
+            new_cat = row.get('ItemMasterProdCat', '')
+            
+            if new_cat == 'ACC' and existing_cat != 'ACC':
+                # New row has ACC, use it instead
+                seen[key] = row
+        else:
+            seen[key] = row
+    
+    if duplicates_found > 0:
+        log(f"Removed {duplicates_found:,} duplicate rows", "INFO")
+    
+    return list(seen.values())
+
 def load_to_mysql_batch(rows: List[Dict], table_name: str):
     """Load data to MySQL using batch inserts and verify"""
 
     if not rows:
         log(f"No rows to import for {table_name}", "WARNING")
         return 0
+
+    # Deduplicate rows before processing (critical for old tables without primary keys)
+    original_count = len(rows)
+    rows = deduplicate_rows(rows)
+    if len(rows) < original_count:
+        log(f"Deduplicated from {original_count:,} to {len(rows):,} rows", "INFO")
 
     log(f"Processing {len(rows):,} rows for {table_name}...")
 
