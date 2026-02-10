@@ -54,10 +54,11 @@ def log(message: str, level: str = "INFO"):
 def get_table_name_from_hull(hull_number: str) -> str:
     """
     Determine the BoatOptions table name from the hull number.
-    Uses the last 2 digits of the serial number.
+    Uses the last 2 digits of the serial number for new format (2015+),
+    or searches appropriate legacy tables for older boats.
     Examples:
         ETWINVTEST0126 -> BoatOptions26
-        ETWINVTEST0104 -> BoatOptions04
+        ETWINVTEST0104 -> BoatOptions99_04 (for older test boats)
         ETW123456789 -> BoatOptions89
     """
     if len(hull_number) < 2:
@@ -65,67 +66,170 @@ def get_table_name_from_hull(hull_number: str) -> str:
     
     # Extract last 2 digits
     year_digits = hull_number[-2:]
-    return f"BoatOptions{year_digits}"
+    
+    # For year 99-04 range, use the combined table
+    try:
+        year_int = int(year_digits)
+        if 0 <= year_int <= 4 or year_int == 99:
+            return "BoatOptions99_04"
+        elif 5 <= year_int <= 7:
+            return "BoatOptions05_07"
+        elif 8 <= year_int <= 10:
+            return "BoatOptions08_10"
+        elif 11 <= year_int <= 14:
+            return "BoatOptions11_14"
+        else:
+            return f"BoatOptions{year_digits}"
+    except ValueError:
+        return f"BoatOptions{year_digits}"
+
+def search_all_tables(cursor, hull_number: str, erp_order: str):
+    """
+    Search all BoatOptions tables to find the boat.
+    Handles both old format (integer ERP_OrderNo) and new format (string ERP_OrderNo).
+    Returns (row, table_name) or (None, None) if not found.
+    """
+    # Get all BoatOptions tables
+    cursor.execute("""
+        SELECT table_name FROM information_schema.tables 
+        WHERE table_schema = DATABASE() 
+        AND table_name LIKE 'BoatOptions%'
+        ORDER BY table_name
+    """)
+    
+    tables = [row[0] for row in cursor.fetchall()]
+    
+    for table_name in tables:
+        try:
+            # Try with string format first (new tables)
+            query = f"""
+                SELECT
+                    BoatSerialNo,
+                    ItemNo,
+                    ItemDesc1,
+                    Series,
+                    InvoiceNo,
+                    InvoiceDate,
+                    WebOrderNo,
+                    ERP_OrderNo
+                FROM {table_name}
+                WHERE BoatSerialNo = %s
+                  AND ItemMasterMCT = 'BOA'
+            """
+            
+            cursor.execute(query, (hull_number,))
+            row = cursor.fetchone()
+            
+            if row:
+                # Check if ERP_OrderNo matches (handle both int and string)
+                db_order = row[7]
+                if db_order == erp_order or str(db_order) == erp_order or str(db_order) in erp_order:
+                    return row, table_name
+                # If erp_order is "0" in DB, accept any order number (for test boats)
+                if db_order == 0 or db_order == "0":
+                    return row, table_name
+                    
+        except Exception as e:
+            # Table might have different schema, skip
+            continue
+    
+    return None, None
 
 def get_boat_info(cursor, hull_number: str, erp_order: str) -> dict:
     """
     Get boat information from the appropriate BoatOptions table.
     Returns dict with boat details or None if not found.
     """
-    # Determine which table to query based on hull number
+    # First try the expected table based on hull number
     table_name = get_table_name_from_hull(hull_number)
     
-    if not table_name:
-        log(f"❌ Invalid hull number format: {hull_number}", "ERROR")
-        return None
+    if table_name:
+        log(f"Looking in {table_name} based on hull number pattern...")
+        
+        # Check if table exists
+        cursor.execute("""
+            SELECT COUNT(*) FROM information_schema.tables 
+            WHERE table_schema = DATABASE() AND table_name = %s
+        """, (table_name,))
+        
+        if cursor.fetchone()[0] > 0:
+            try:
+                query = f"""
+                    SELECT
+                        BoatSerialNo,
+                        ItemNo,
+                        ItemDesc1,
+                        Series,
+                        InvoiceNo,
+                        InvoiceDate,
+                        WebOrderNo,
+                        ERP_OrderNo
+                    FROM {table_name}
+                    WHERE BoatSerialNo = %s
+                      AND ItemMasterMCT = 'BOA'
+                    LIMIT 1
+                """
+                
+                cursor.execute(query, (hull_number,))
+                row = cursor.fetchone()
+                
+                if row:
+                    # Check if ERP_OrderNo matches
+                    db_order = row[7]
+                    if db_order == erp_order or str(db_order) == erp_order or str(db_order) in erp_order:
+                        log(f"✅ Found boat in {table_name}")
+                        model_year = hull_number[-2:] if len(hull_number) >= 2 else None
+                        return {
+                            'serial_number': row[0],
+                            'model': row[1],
+                            'description': row[2],
+                            'series': row[3],
+                            'invoice_no': row[4],
+                            'invoice_date': row[5],
+                            'web_order_no': row[6],
+                            'model_year': model_year,
+                            'erp_order': erp_order,
+                            'table_name': table_name
+                        }
+                    elif db_order == 0 or db_order == "0":
+                        log(f"✅ Found boat in {table_name} (ERP_OrderNo is 0, accepting match)")
+                        model_year = hull_number[-2:] if len(hull_number) >= 2 else None
+                        return {
+                            'serial_number': row[0],
+                            'model': row[1],
+                            'description': row[2],
+                            'series': row[3],
+                            'invoice_no': row[4],
+                            'invoice_date': row[5],
+                            'web_order_no': row[6],
+                            'model_year': model_year,
+                            'erp_order': erp_order,
+                            'table_name': table_name
+                        }
+            except Exception as e:
+                log(f"⚠️  Error querying {table_name}: {e}", "WARNING")
     
-    # Check if table exists
-    cursor.execute("""
-        SELECT COUNT(*) FROM information_schema.tables 
-        WHERE table_schema = DATABASE() AND table_name = %s
-    """, (table_name,))
+    # If not found, search all tables
+    log("Boat not found in expected table, searching all BoatOptions tables...")
+    row, found_table = search_all_tables(cursor, hull_number, erp_order)
     
-    if cursor.fetchone()[0] == 0:
-        log(f"❌ Table {table_name} does not exist", "ERROR")
-        return None
+    if row:
+        log(f"✅ Found boat in {found_table}")
+        model_year = hull_number[-2:] if len(hull_number) >= 2 else None
+        return {
+            'serial_number': row[0],
+            'model': row[1],
+            'description': row[2],
+            'series': row[3],
+            'invoice_no': row[4],
+            'invoice_date': row[5],
+            'web_order_no': row[6],
+            'model_year': model_year,
+            'erp_order': erp_order,
+            'table_name': found_table
+        }
     
-    query = f"""
-        SELECT
-            BoatSerialNo,
-            ItemNo,
-            ItemDesc1,
-            Series,
-            InvoiceNo,
-            InvoiceDate,
-            WebOrderNo
-        FROM {table_name}
-        WHERE BoatSerialNo = %s
-          AND ERP_OrderNo = %s
-          AND ItemMasterMCT = 'BOA'
-        LIMIT 1
-    """
-
-    cursor.execute(query, (hull_number, erp_order))
-    row = cursor.fetchone()
-
-    if not row:
-        return None
-
-    # Extract model year from hull number (last 2 digits)
-    model_year = hull_number[-2:] if len(hull_number) >= 2 else None
-
-    return {
-        'serial_number': row[0],
-        'model': row[1],
-        'description': row[2],
-        'series': row[3],
-        'invoice_no': row[4],
-        'invoice_date': row[5],
-        'web_order_no': row[6],
-        'model_year': model_year,
-        'erp_order': erp_order,
-        'table_name': table_name
-    }
+    return None
 
 def check_if_exists(cursor, hull_number: str) -> tuple:
     """
