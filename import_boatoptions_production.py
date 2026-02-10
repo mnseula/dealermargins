@@ -302,8 +302,9 @@ WHERE coi.config_id IS NOT NULL
     AND coi.qty_invoiced > 0
     AND coi.site_ref = 'BENN'
     AND co.order_date >= '2025-12-14'
-    -- Year filter removed to allow test boats like ETWINVTEST01
-    -- AND TRY_CAST(RIGHT(ser.ser_num, 2) AS INT) >= 15
+    -- Filter boats with serial suffix >= 15 to avoid broken table routing
+    -- Serials ending in 00-14 or 99 get misrouted to old tables (BoatOptions99_04)
+    AND TRY_CAST(RIGHT(ser.ser_num, 2) AS INT) >= 15
 
 )
 -- Now assign unique LineSeqNo using ROW_NUMBER per order

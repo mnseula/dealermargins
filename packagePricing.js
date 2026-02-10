@@ -18,12 +18,10 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
     window.serialYear = serialYear;
 
     //boat options
-    // Pre-2005 boats (1999-2004): BoatOptions99_04 table
-    if (serialYear < 5)
-    {
-        window.boatoptions = loadByListName('BoatOptions99_04', "Where BoatSerialNo = '" + serial + "'");
-    }
-    else if (serialYear > 4 && serialYear < 8)
+    // NOTE: Import filter only allows serial suffix >= 15 to avoid broken table routing
+    // Boats with serials ending in 00-14 or 99 get misrouted to old tables
+    // So we don't handle serialYear < 15 here
+    if (serialYear > 4 && serialYear < 8)
     {
         window.boatoptions = loadByListName('boat_options_05_0', "Where BoatSerialNo = '" + serial + "'");
     }
