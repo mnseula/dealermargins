@@ -18,15 +18,20 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
     window.serialYear = serialYear;
 
     //boat options
-    if (serialYear > 4 && serialYear < 8)
+    // Pre-2005 boats (1999-2004): BoatOptions99_04 table
+    if (serialYear < 5)
     {
-        window.boatoptions = loadByListName('boat_options_05_0', "Where BoatSerialNo = " + serial);
+        window.boatoptions = loadByListName('boat_options_99_04', "Where BoatSerialNo = '" + serial + "'");
     }
-    if (serialYear > 7 && serialYear < 11) {
-        window.boatoptions = loadByListName('boat_options_08_10', "Where BoatSerialNo = " + serial);
+    else if (serialYear > 4 && serialYear < 8)
+    {
+        window.boatoptions = loadByListName('boat_options_05_0', "Where BoatSerialNo = '" + serial + "'");
     }
-    if (serialYear > 10 && serialYear < 15) {
-        window.boatoptions = loadByListName('boat_options11_14', "Where BoatSerialNo = " + serial);
+    else if (serialYear > 7 && serialYear < 11) {
+        window.boatoptions = loadByListName('boat_options_08_10', "Where BoatSerialNo = '" + serial + "'");
+    }
+    else if (serialYear > 10 && serialYear < 15) {
+        window.boatoptions = loadByListName('boat_options11_14', "Where BoatSerialNo = '" + serial + "'");
     } else if (serialYear > 14) {
         //ZS 5.15.2024
         //Product Code is being imported as the MCT... need to adjust the filter to take both old and new "MCTs"
