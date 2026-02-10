@@ -621,10 +621,15 @@ def load_to_mysql_batch(rows: List[Dict], table_name: str):
                     # STD items with BS1 are actually accessories and should be ACC
                     prod_cat = 'ACC'
                 
+                # Fix BoatModelNo: If NULL/empty for boat items (BOA/BOI), use ItemNo
+                boat_model_no = row.get('BoatModelNo')
+                if (not boat_model_no or boat_model_no == '') and mct in ('BOA', 'BOI'):
+                    boat_model_no = row.get('ItemNo')
+                
                 row_tuple = (
                     row.get('ERP_OrderNo'),
                     row.get('BoatSerialNo'),
-                    row.get('BoatModelNo'),
+                    boat_model_no,
                     row.get('LineNo'),
                     row.get('ItemNo'),
                     row.get('ItemDesc1'),
