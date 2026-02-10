@@ -439,6 +439,19 @@ if (window.cpqLhsData && window.cpqLhsData.model_id) {
     console.log('Using CPQ LHS data for specs section');
     var cpqData = window.cpqLhsData;
 
+    // Helper function to escape HTML special characters (especially quotes in measurements like 22'-11.5")
+    function escapeHtml(text) {
+        if (!text) return '';
+        var map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.toString().replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+
     // Convert pontoon gauge to diameter display (0.08 -> 25", 0.10 -> 27")
     var pontoonDiameter = '';
     if (cpqData.pontoon_gauge === '0.08' || cpqData.pontoon_gauge === 0.08) {
@@ -446,7 +459,7 @@ if (window.cpqLhsData && window.cpqLhsData.model_id) {
     } else if (cpqData.pontoon_gauge === '0.10' || cpqData.pontoon_gauge === 0.10) {
         pontoonDiameter = '27"';
     } else if (cpqData.tube_height) {
-        pontoonDiameter = cpqData.tube_height;
+        pontoonDiameter = escapeHtml(cpqData.tube_height);
     }
 
     wsContents += "    <div id=\"spectable\">";
@@ -458,19 +471,19 @@ if (window.cpqLhsData && window.cpqLhsData.model_id) {
     wsContents += "          <\/tr>";
     wsContents += "          <tr>";
     wsContents += "            <td align=\"left\">LOA:<\/td>";
-    wsContents += "            <td>" + (cpqData.loa || '') + "<\/td>";
+    wsContents += "            <td>" + escapeHtml(cpqData.loa || '') + "<\/td>";
     wsContents += "          <\/tr>";
     wsContents += "          <tr>";
     wsContents += "            <td align=\"left\">Pontoon Length:<\/td>";
-    wsContents += "            <td>" + (cpqData.pontoon_length || cpqData.loa || '') + "<\/td>";
+    wsContents += "            <td>" + escapeHtml(cpqData.pontoon_length || cpqData.loa || '') + "<\/td>";
     wsContents += "          <\/tr>";
     wsContents += "          <tr>";
     wsContents += "            <td align=\"left\">Deck Length:<\/td>";
-    wsContents += "            <td>" + (cpqData.deck_length || '') + "<\/td>";
+    wsContents += "            <td>" + escapeHtml(cpqData.deck_length || '') + "<\/td>";
     wsContents += "          <\/tr>";
     wsContents += "          <tr>";
     wsContents += "            <td align=\"left\">Beam:<\/td>";
-    wsContents += "            <td>" + (cpqData.beam || '') + "<\/td>";
+    wsContents += "            <td>" + escapeHtml(cpqData.beam || '') + "<\/td>";
     wsContents += "          <\/tr>";
     wsContents += "          <tr>";
     wsContents += "            <td align=\"left\">Pontoon Diameter:<\/td>";
@@ -478,11 +491,11 @@ if (window.cpqLhsData && window.cpqLhsData.model_id) {
     wsContents += "          <\/tr>";
     wsContents += "          <tr>";
     wsContents += "            <td align=\"left\">Engine Configuration:<\/td>";
-    wsContents += "            <td>" + (cpqData.engine_configuration || 'Single Outboard') + "<\/td>";
+    wsContents += "            <td>" + escapeHtml(cpqData.engine_configuration || 'Single Outboard') + "<\/td>";
     wsContents += "          <\/tr>";
     wsContents += "          <tr>";
     wsContents += "            <td align=\"left\">Fuel Capacity (standard, see<br>options):<\/td>";
-    wsContents += "            <td>" + (cpqData.fuel_capacity || '') + "<\/td>";
+    wsContents += "            <td>" + escapeHtml(cpqData.fuel_capacity || '') + "<\/td>";
     wsContents += "          <\/tr>";
     wsContents += "        <\/tbody>";
     wsContents += "      <\/table>";
