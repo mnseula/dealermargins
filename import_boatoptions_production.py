@@ -204,8 +204,10 @@ WHERE coi.site_ref = 'BENN'
     AND iim.inv_num IS NOT NULL
     AND coi.qty_invoiced > 0
     AND co.order_date >= '2025-12-14'
+    -- TODO: Uncomment the line below when ready to support pre-2015 boats
+    -- The CPQ columns have been added to legacy tables (BoatOptions99_04, BoatOptions05_07, BoatOptions08_10, BoatOptions11_14)
     -- Filter: Only boats from 2015 onwards (year 15+)
-    AND TRY_CAST(RIGHT(COALESCE(coi.Uf_BENN_BoatSerialNumber, bo.Uf_BENN_BoatSerialNumber), 2) AS INT) >= 15
+    -- AND TRY_CAST(RIGHT(COALESCE(coi.Uf_BENN_BoatSerialNumber, bo.Uf_BENN_BoatSerialNumber), 2) AS INT) >= 15
 
 UNION ALL
 
@@ -302,8 +304,10 @@ WHERE coi.config_id IS NOT NULL
     AND coi.qty_invoiced > 0
     AND coi.site_ref = 'BENN'
     AND co.order_date >= '2025-12-14'
+    -- TODO: Uncomment the line below when ready to support pre-2015 boats
+    -- The CPQ columns have been added to legacy tables (BoatOptions99_04, BoatOptions05_07, BoatOptions08_10, BoatOptions11_14)
     -- Filter: Only boats from 2015 onwards (year 15+)
-    AND TRY_CAST(RIGHT(ser.ser_num, 2) AS INT) >= 15
+    -- AND TRY_CAST(RIGHT(ser.ser_num, 2) AS INT) >= 15
 
 )
 -- Now assign unique LineSeqNo using ROW_NUMBER per order
