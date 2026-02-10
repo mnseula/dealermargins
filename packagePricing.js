@@ -136,27 +136,33 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
     window.model = boatmodel[0].ItemNo;
     window.realmodel = boatmodel[0].BoatModelNo;
 
-    // Map SFC to SS for both model and realmodel variables early
-    // The existing SF->SE logic below will then transform *SSF to *SSE
-    if (model.indexOf('SFC') >= 0) {
+    // Check if this is a CPQ boat (has config attributes with CfgName)
+    var hasCPQConfig = boatoptions && boatoptions.some(function(item) {
+        return item.CfgName && item.CfgName !== null && item.CfgName !== '';
+    });
+
+    // Map SFC to SS for LEGACY boats only (NOT CPQ boats)
+    // CPQ boats use exact model IDs from API (22SFC, 23ML, etc.) - don't transform
+    if (!hasCPQConfig && model.indexOf('SFC') >= 0) {
         console.log('SFC detected in model, original:', model);
         model = model.replace('SFC', 'SS');
         console.log('Model changed to:', model);
     }
 
-    if (realmodel.indexOf('SFC') >= 0) {
+    if (!hasCPQConfig && realmodel.indexOf('SFC') >= 0) {
         console.log('SFC detected in realmodel, original:', realmodel);
         realmodel = realmodel.replace('SFC', 'SS');
         console.log('Realmodel changed to:', realmodel);
     }
-    // Map MFC to MS for both model and realmodel variables early
-    if (model.indexOf('MFC') >= 0) {
+    // Map MFC to MS for LEGACY boats only (NOT CPQ boats)
+    // CPQ boats use exact model IDs from API - don't transform
+    if (!hasCPQConfig && model.indexOf('MFC') >= 0) {
         console.log('MFC detected in model, original:', model);
         model = model.replace('MFC', 'MS');
         console.log('Model changed to:', model);
     }
 
-    if (realmodel.indexOf('MFC') >= 0) {
+    if (!hasCPQConfig && realmodel.indexOf('MFC') >= 0) {
         console.log('MFC detected in realmodel, original:', realmodel);
         realmodel = realmodel.replace('MFC', 'MS');
         console.log('Realmodel changed to:', realmodel);
