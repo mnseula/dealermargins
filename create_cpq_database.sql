@@ -167,6 +167,25 @@ CREATE TABLE IF NOT EXISTS `Models` (
   CONSTRAINT `chk_seats_positive` CHECK ((`seats` >= 0))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Central catalog of all boat models';
 
+-- ModelPricing - MSRP pricing with effective date tracking (depends on Models)
+CREATE TABLE IF NOT EXISTS `ModelPricing` (
+  `pricing_id` int NOT NULL AUTO_INCREMENT,
+  `model_id` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `msrp` decimal(10,2) NOT NULL,
+  `effective_date` date NOT NULL COMMENT 'When this pricing becomes effective',
+  `end_date` date DEFAULT NULL COMMENT 'NULL means currently active',
+  `year` int NOT NULL COMMENT 'Model year (e.g., 2026)',
+  `discount` decimal(10,2) DEFAULT '0.00',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`pricing_id`),
+  UNIQUE KEY `unique_model_date` (`model_id`,`effective_date`),
+  KEY `idx_model_effective` (`model_id`,`effective_date`),
+  KEY `idx_current` (`model_id`,`end_date`),
+  KEY `idx_year` (`year`),
+  CONSTRAINT `ModelPricing_ibfk_1` FOREIGN KEY (`model_id`) REFERENCES `Models` (`model_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='MSRP pricing with effective date tracking';
+
 -- ModelPerformance - Technical specifications (depends on Models and PerformancePackages)
 CREATE TABLE IF NOT EXISTS `ModelPerformance` (
   `performance_id` int NOT NULL AUTO_INCREMENT,
