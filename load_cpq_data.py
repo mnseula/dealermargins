@@ -653,6 +653,15 @@ def load_dealer_margins_to_db(cursor, margins: List[Dict]):
         dealers_loaded = len(dealers)
         print(f"  ✅ Loaded {dealers_loaded} dealers")
 
+        # Ensure all series exist before inserting margins (foreign key requirement)
+        print("  🔄 Ensuring all series exist...")
+        cursor.execute("""
+            INSERT INTO Series (series_id, series_name, active)
+            SELECT DISTINCT series_id, series_id, TRUE FROM temp_margins
+            ON DUPLICATE KEY UPDATE updated_at = NOW()
+        """)
+        print(f"  ✅ Ensured {len(series_set)} series exist")
+
         print("  🔄 Inserting dealer margins with upsert...")
         cursor.execute("""
             INSERT INTO DealerMargins (
