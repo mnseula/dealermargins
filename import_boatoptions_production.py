@@ -461,12 +461,15 @@ def extract_from_mssql() -> List[Dict]:
 
 def group_by_table(rows: List[Dict]) -> Dict[str, List[Dict]]:
     """
-    Group rows by target table using fallback logic:
-    1. FIRST: Try to detect model year from serial number
-       - If 2015-2025 or earlier → Legacy boat → warrantyparts.BoatOptionsXX
-    2. THEN: If year is 2026+ → Check CPQ criteria → cpq.BoatOptions
+    Group rows by target table using fallback logic (Option B):
+    1. If year <= 2025 → Definitely legacy → warrantyparts.BoatOptionsXX
+    2. Else if year >= 2026 OR has 'SO' prefix → CPQ → cpq.BoatOptions
+    3. Else → Fallback → warrantyparts by year
 
-    This ensures old inventory boats (2024 models invoiced in 2026) route to legacy tables.
+    This ensures:
+    - Old inventory boats (2024 models invoiced in 2026) route to legacy tables
+    - Any boat with 'SO' prefix (CPQ system marker) routes to cpq.BoatOptions
+    - Year is primary indicator, 'SO' prefix is secondary confirmation
     """
     log("Grouping rows by target table...")
 
@@ -479,23 +482,27 @@ def group_by_table(rows: List[Dict]) -> Dict[str, List[Dict]]:
         # STEP 1: Detect model year from serial number (primary routing method)
         year = get_target_year(row)
 
-        # STEP 2: Apply routing logic based on model year
+        # Check if this order has CPQ markers (SO prefix)
+        has_cpq_markers = is_cpq_order(
+            row.get('order_date'),
+            row.get('external_confirmation_ref'),
+            row.get('ERP_OrderNo')
+        )
+
+        # STEP 2: Apply routing logic (Option B)
         if year <= 2025:
             # Legacy boats (2025 and earlier) ALWAYS go to warrantyparts tables by year
             # This includes old inventory boats invoiced after CPQ go-live
             table_name = f'warrantyparts.{get_table_for_year(year)}'
             non_cpq_count += 1
+        elif year >= 2026 or has_cpq_markers:
+            # CPQ boats: Either 2026+ models OR has 'SO' prefix (CPQ system)
+            table_name = 'cpq.BoatOptions'
+            cpq_count += 1
         else:
-            # Year 2026+: Check if it's a CPQ boat
-            if is_cpq_order(row.get('order_date'), row.get('external_confirmation_ref'), row.get('ERP_OrderNo')):
-                # True CPQ boat (2026+ model from CPQ system)
-                table_name = 'cpq.BoatOptions'
-                cpq_count += 1
-            else:
-                # 2026+ boat but NOT from CPQ system (edge case)
-                # Route to warrantyparts by year as fallback
-                table_name = f'warrantyparts.{get_table_for_year(year)}'
-                non_cpq_count += 1
+            # Fallback: shouldn't happen but route to warrantyparts by year
+            table_name = f'warrantyparts.{get_table_for_year(year)}'
+            non_cpq_count += 1
 
         # Add to groups
         if table_name not in groups:
