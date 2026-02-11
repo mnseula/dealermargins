@@ -355,25 +355,30 @@ def log(message: str, level: str = "INFO"):
 def is_cpq_order(order_date, external_confirmation_ref, co_num):
     """
     Detect if order is a CPQ/EQ order.
-    CPQ orders always go to BoatOptions26_test.
+    CPQ orders go to cpq.BoatOptions.
 
     Criteria:
     - order_date >= 2025-12-14 (CPQ Go Live)
     - co_num starts with 'SO'
-    - external_confirmation_ref starts with 'SO'
+    - external_confirmation_ref starts with 'SO' (optional - can be NULL)
     """
-    if not order_date or not external_confirmation_ref or not co_num:
+    if not order_date or not co_num:
         return False
 
     # Handle both datetime and date objects
     if isinstance(order_date, datetime):
         order_date = order_date.date()
 
-    return (
-        order_date >= CPQ_GO_LIVE_DATE and
-        str(co_num).startswith('SO') and
-        str(external_confirmation_ref).startswith('SO')
-    )
+    # Check date and order number (required)
+    if not (order_date >= CPQ_GO_LIVE_DATE and str(co_num).startswith('SO')):
+        return False
+
+    # external_confirmation_ref is optional (can be NULL for some CPQ orders)
+    # If present, it should start with 'SO', but NULL is acceptable
+    if external_confirmation_ref and not str(external_confirmation_ref).startswith('SO'):
+        return False
+
+    return True
 
 def detect_model_year_from_serial(serial_number: str) -> int:
     """
