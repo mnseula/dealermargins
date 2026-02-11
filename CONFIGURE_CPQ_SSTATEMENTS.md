@@ -48,27 +48,27 @@ SELECT
             ELSE 'Single Outboard'
         END
     ) AS engine_configuration
-FROM warrantyparts_test.Models m
+FROM cpq.Models m
 LEFT JOIN (
     -- Get the performance package ID from the boat's configuration
-    -- BoatOptions26 is the catchall table for ALL CPQ boats (regardless of model year)
+    -- cpq.BoatOptions is the table for ALL CPQ boats (regardless of model year)
     SELECT CfgValue AS perf_package_id
-    FROM warrantyparts.BoatOptions26
+    FROM cpq.BoatOptions
     WHERE BoatSerialNo = @PARAM3
       AND CfgName = 'perfPack'
     LIMIT 1
 ) boat_perf ON 1=1
-LEFT JOIN warrantyparts_test.ModelPerformance mp
+LEFT JOIN cpq.ModelPerformance mp
     ON m.model_id = mp.model_id
     AND mp.year = @PARAM2
     AND mp.perf_package_id = boat_perf.perf_package_id
-LEFT JOIN warrantyparts_test.PerformancePackages pp
+LEFT JOIN cpq.PerformancePackages pp
     ON mp.perf_package_id = pp.perf_package_id
 WHERE m.model_id = @PARAM1
 LIMIT 1;
 ```
 
-**Note:** BoatOptions26 is the catchall table for ALL CPQ boats. All CPQ boats are imported to BoatOptions26 regardless of model year, so we only need to search that one table for the performance package configuration.
+**Note:** cpq.BoatOptions is the table for ALL CPQ boats. All CPQ boats are imported to cpq.BoatOptions regardless of model year, so we only need to search that one table for the performance package configuration.
 
 ---
 
@@ -88,8 +88,8 @@ SELECT
     sf.area,
     sf.description,
     sf.sort_order
-FROM warrantyparts_test.StandardFeatures sf
-JOIN warrantyparts_test.ModelStandardFeatures msf
+FROM cpq.StandardFeatures sf
+JOIN cpq.ModelStandardFeatures msf
     ON sf.feature_id = msf.feature_id
 WHERE msf.model_id = @PARAM1
   AND msf.year = @PARAM2
@@ -105,7 +105,7 @@ ORDER BY
     sf.sort_order;
 ```
 
-**No changes needed** - this query is already correct.
+**Note:** Updated to query cpq database tables instead of warrantyparts_test.
 
 ---
 
@@ -145,9 +145,14 @@ After configuring both sStatements:
 
 ## Prerequisites
 
-The warrantyparts_test database must have data for:
+The cpq database must have data for:
 - `Models` table (22SFC entry)
 - `ModelPerformance` table (22SFC for 2022)
 - `StandardFeatures` + `ModelStandardFeatures` (22SFC for 2022)
+- `BoatOptions` table (transaction data from import_boatoptions_production.py)
+
+**Data population:**
+1. Run `load_cpq_data.py` to populate master data tables (Models, Performance, Features, etc.)
+2. Run `import_boatoptions_production.py` to populate BoatOptions with transaction data from ERP
 
 If that data doesn't exist, the queries will return empty results (not an error, just no data).

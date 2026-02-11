@@ -52,7 +52,7 @@ DB_CONFIG = {
     'host': 'ben.c0fnidwvz1hv.us-east-1.rds.amazonaws.com',
     'user': 'awsmaster',
     'password': 'VWvHG9vfG23g7gD',
-    'database': 'warrantyparts_test'
+    'database': 'cpq'
 }
 
 # Settings

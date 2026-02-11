@@ -46,10 +46,10 @@ MSSQL_CONFIG = {
 }
 
 # MySQL (Destination - PRODUCTION DATABASE)
+# Note: Database is specified in table names (cpq.BoatOptions or warrantyparts.BoatOptions15)
 MYSQL_CONFIG = {
     'host': 'ben.c0fnidwvz1hv.us-east-1.rds.amazonaws.com',
     'port': 3306,
-    'database': 'warrantyparts',  # ⚠️  PRODUCTION DATABASE
     'user': 'awsmaster',
     'password': 'VWvHG9vfG23g7gD'
 }
@@ -452,7 +452,7 @@ def extract_from_mssql() -> List[Dict]:
         raise
 
 def group_by_table(rows: List[Dict]) -> Dict[str, List[Dict]]:
-    """Group rows by target table (based on model year)"""
+    """Group rows by target table (CPQ boats → cpq.BoatOptions, legacy boats → year tables)"""
     log("Grouping rows by target table...")
 
     groups = {}
@@ -461,25 +461,25 @@ def group_by_table(rows: List[Dict]) -> Dict[str, List[Dict]]:
     non_cpq_count = 0
 
     for row in rows:
-        # Get model year
-        year = get_target_year(row)
-
-        # Get target table for this year
-        table_name = get_table_for_year(year)
+        # Check if this is a CPQ order
+        if is_cpq_order(row.get('order_date'), row.get('external_confirmation_ref'), row.get('ERP_OrderNo')):
+            # CPQ boats go to cpq.BoatOptions (all years in one table)
+            table_name = 'cpq.BoatOptions'
+            cpq_count += 1
+        else:
+            # Legacy boats route by model year to warrantyparts.BoatOptionsXX tables
+            year = get_target_year(row)
+            table_name = f'warrantyparts.{get_table_for_year(year)}'
+            non_cpq_count += 1
 
         # Add to groups
         if table_name not in groups:
             groups[table_name] = []
         groups[table_name].append(row)
 
-        # Track year counts
+        # Track year counts for reporting
+        year = get_target_year(row)
         year_counts[year] = year_counts.get(year, 0) + 1
-
-        # Track CPQ vs non-CPQ
-        if is_cpq_order(row.get('order_date'), row.get('external_confirmation_ref'), row.get('ERP_OrderNo')):
-            cpq_count += 1
-        else:
-            non_cpq_count += 1
 
     # Log summary
     log(f"\nRows grouped by table:")
