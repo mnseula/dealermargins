@@ -310,10 +310,12 @@ def load_performance_to_db(cursor, series: str, perf_data: List[Dict]):
             tube_length_str VARCHAR(20), tube_length_num DECIMAL(6,2), deck_length_str VARCHAR(20), deck_length_num DECIMAL(6,2)
         )""")
 
-        # Bulk load
+        # Bulk load (convert Windows paths to forward slashes for MySQL)
         print(f"  ⚡ Bulk loading performance packages...")
-        cursor.execute(f"LOAD DATA LOCAL INFILE '{packages_csv.name}' INTO TABLE temp_packages FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n'")
-        cursor.execute(f"LOAD DATA LOCAL INFILE '{perf_csv.name}' INTO TABLE temp_perf FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n'")
+        packages_path = packages_csv.name.replace('\\', '/')
+        perf_path = perf_csv.name.replace('\\', '/')
+        cursor.execute(f"LOAD DATA LOCAL INFILE '{packages_path}' INTO TABLE temp_packages FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n'")
+        cursor.execute(f"LOAD DATA LOCAL INFILE '{perf_path}' INTO TABLE temp_perf FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n'")
 
         # Insert with upsert
         cursor.execute("""
@@ -443,10 +445,12 @@ def load_standards_to_db(cursor, series: str, standards_data: List[Dict], all_mo
             )
         """)
 
-        # Bulk load
+        # Bulk load (convert Windows paths to forward slashes for MySQL)
         print(f"  ⚡ Bulk loading standard features...")
-        cursor.execute(f"LOAD DATA LOCAL INFILE '{features_csv.name}' INTO TABLE temp_features FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\\n'")
-        cursor.execute(f"LOAD DATA LOCAL INFILE '{model_features_csv.name}' INTO TABLE temp_model_features FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n'")
+        features_path = features_csv.name.replace('\\', '/')
+        model_features_path = model_features_csv.name.replace('\\', '/')
+        cursor.execute(f"LOAD DATA LOCAL INFILE '{features_path}' INTO TABLE temp_features FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\\n'")
+        cursor.execute(f"LOAD DATA LOCAL INFILE '{model_features_path}' INTO TABLE temp_model_features FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n'")
 
         # Insert features with upsert
         cursor.execute("""
@@ -614,10 +618,13 @@ def load_dealer_margins_to_db(cursor, margins: List[Dict]):
             )
         """)
 
-        # Bulk load into temp tables
+        # Bulk load into temp tables (convert Windows paths to forward slashes for MySQL)
         print("  ⚡ Bulk loading dealers into temp table...")
+        dealers_path = dealers_csv.name.replace('\\', '/')
+        margins_path = margins_csv.name.replace('\\', '/')
+
         cursor.execute(f"""
-            LOAD DATA LOCAL INFILE '{dealers_csv.name}'
+            LOAD DATA LOCAL INFILE '{dealers_path}'
             INTO TABLE temp_dealers
             FIELDS TERMINATED BY ','
             LINES TERMINATED BY '\n'
@@ -626,7 +633,7 @@ def load_dealer_margins_to_db(cursor, margins: List[Dict]):
 
         print("  ⚡ Bulk loading margins into temp table...")
         cursor.execute(f"""
-            LOAD DATA LOCAL INFILE '{margins_csv.name}'
+            LOAD DATA LOCAL INFILE '{margins_path}'
             INTO TABLE temp_margins
             FIELDS TERMINATED BY ','
             LINES TERMINATED BY '\n'
