@@ -492,7 +492,16 @@ def load_dealer_margins_to_db(cursor, margins: List[Dict]):
                        base_boat_margin, engine_margin, options_margin,
                        freight_margin, prep_margin, volume_discount,
                        enabled, effective_date, year
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE
+                       base_boat_margin = VALUES(base_boat_margin),
+                       engine_margin = VALUES(engine_margin),
+                       options_margin = VALUES(options_margin),
+                       freight_margin = VALUES(freight_margin),
+                       prep_margin = VALUES(prep_margin),
+                       volume_discount = VALUES(volume_discount),
+                       enabled = VALUES(enabled),
+                       updated_at = NOW()""",
                     (
                         dealer_id, series_id,
                         base_boat, engine, options,
