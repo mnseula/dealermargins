@@ -21,6 +21,9 @@ from typing import List, Dict, Optional, Set
 from datetime import datetime, date
 from pathlib import Path
 import hashlib
+import csv
+import tempfile
+import os
 
 # Suppress insecure request warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -244,71 +247,120 @@ def fetch_performance_data(token: str, series: str) -> List[Dict]:
         return []
 
 def load_performance_to_db(cursor, series: str, perf_data: List[Dict]):
-    """Load performance data to database"""
-    success = 0
-    errors = 0
+    """Load performance data to database using CSV bulk loading"""
+    print(f"  📝 Preparing performance data for {series}...")
+
+    # Collect unique packages and performance records
+    packages = set()
+    perf_records = []
 
     for record in perf_data:
-        try:
-            model_id = record.get('model')
-            perf_package = record.get('perfPack')
+        model_id = record.get('model')
+        perf_package = record.get('perfPack')
 
-            if not model_id or not perf_package:
-                continue
+        if not model_id or not perf_package:
+            continue
 
-            # Insert/update performance package
-            cursor.execute(
-                """INSERT INTO PerformancePackages (perf_package_id, package_name, active)
-                   VALUES (%s, %s, TRUE)
-                   ON DUPLICATE KEY UPDATE package_name = VALUES(package_name), updated_at = NOW()""",
-                (perf_package, perf_package)
+        packages.add(perf_package)
+        perf_records.append((
+            model_id, perf_package, MODEL_YEAR,
+            record.get('MaxHP'), record.get('NoOfTubes'), record.get('PersonCapacity'), record.get('HullWeight'),
+            record.get('PontoonGauge'), record.get('Transom'), record.get('TubeHeight'), record.get('TubeCentertoCenter'),
+            record.get('MaxWidth'), record.get('FuelCapacity'),
+            record.get('MechStrCableNoEAD'), record.get('MechStrCableEAD'), record.get('HydStrHose'),
+            record.get('CtrlCableNoEAD'), record.get('CtrlCableEAD'),
+            record.get('BRPHarnessLen'), record.get('HondaHarnessLen'), record.get('MercHarnessLen'),
+            record.get('YamahaHarnessLen'), record.get('SuzukiHarnessLen'), record.get('PowAssistHose'),
+            record.get('TubeLengthStr'), record.get('TubeLengthNum'), record.get('DeckLengthStr'), record.get('DeckLengthNum')
+        ))
+
+    if not perf_records:
+        return 0, 0
+
+    print(f"  📊 {len(packages)} packages, {len(perf_records)} performance records")
+
+    # Write CSVs
+    packages_csv = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv', newline='')
+    perf_csv = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv', newline='')
+
+    try:
+        # Write packages
+        pkg_writer = csv.writer(packages_csv)
+        for pkg in packages:
+            pkg_writer.writerow([pkg, pkg, 1])
+        packages_csv.close()
+
+        # Write performance records
+        perf_writer = csv.writer(perf_csv)
+        for record in perf_records:
+            perf_writer.writerow(record)
+        perf_csv.close()
+
+        # Create temp tables
+        cursor.execute("CREATE TEMPORARY TABLE temp_packages (perf_package_id VARCHAR(50), package_name VARCHAR(100), active TINYINT(1))")
+        cursor.execute("""CREATE TEMPORARY TABLE temp_perf (
+            model_id VARCHAR(20), perf_package_id VARCHAR(50), year INT,
+            max_hp DECIMAL(6,1), no_of_tubes DECIMAL(3,1), person_capacity VARCHAR(50), hull_weight DECIMAL(8,1),
+            pontoon_gauge DECIMAL(4,2), transom VARCHAR(20), tube_height VARCHAR(20), tube_center_to_center VARCHAR(20),
+            max_width VARCHAR(20), fuel_capacity VARCHAR(50),
+            mech_str_cable_no_ead INT, mech_str_cable_ead INT, hyd_str_hose INT,
+            ctrl_cable_no_ead INT, ctrl_cable_ead INT,
+            brp_harness_len INT, honda_harness_len INT, merc_harness_len INT,
+            yamaha_harness_len INT, suzuki_harness_len INT, pow_assist_hose INT,
+            tube_length_str VARCHAR(20), tube_length_num DECIMAL(6,2), deck_length_str VARCHAR(20), deck_length_num DECIMAL(6,2)
+        )""")
+
+        # Bulk load
+        print(f"  ⚡ Bulk loading performance packages...")
+        cursor.execute(f"LOAD DATA LOCAL INFILE '{packages_csv.name}' INTO TABLE temp_packages FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n'")
+        cursor.execute(f"LOAD DATA LOCAL INFILE '{perf_csv.name}' INTO TABLE temp_perf FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n'")
+
+        # Insert with upsert
+        cursor.execute("""
+            INSERT INTO PerformancePackages (perf_package_id, package_name, active)
+            SELECT perf_package_id, package_name, active FROM temp_packages
+            ON DUPLICATE KEY UPDATE package_name = VALUES(package_name), updated_at = NOW()
+        """)
+
+        print(f"  ⚡ Bulk loading model performance...")
+        cursor.execute("""
+            INSERT INTO ModelPerformance (
+                model_id, perf_package_id, year,
+                max_hp, no_of_tubes, person_capacity, hull_weight,
+                pontoon_gauge, transom, tube_height, tube_center_to_center,
+                max_width, fuel_capacity,
+                mech_str_cable_no_ead, mech_str_cable_ead, hyd_str_hose,
+                ctrl_cable_no_ead, ctrl_cable_ead,
+                brp_harness_len, honda_harness_len, merc_harness_len,
+                yamaha_harness_len, suzuki_harness_len, pow_assist_hose,
+                tube_length_str, tube_length_num, deck_length_str, deck_length_num
             )
+            SELECT * FROM temp_perf
+            ON DUPLICATE KEY UPDATE
+                max_hp = VALUES(max_hp),
+                no_of_tubes = VALUES(no_of_tubes),
+                person_capacity = VALUES(person_capacity),
+                hull_weight = VALUES(hull_weight),
+                pontoon_gauge = VALUES(pontoon_gauge),
+                transom = VALUES(transom),
+                tube_height = VALUES(tube_height),
+                tube_center_to_center = VALUES(tube_center_to_center),
+                max_width = VALUES(max_width),
+                fuel_capacity = VALUES(fuel_capacity),
+                updated_at = NOW()
+        """)
+        success = len(perf_records)
 
-            # Insert/update model performance
-            cursor.execute(
-                """INSERT INTO ModelPerformance (
-                   model_id, perf_package_id, year,
-                   max_hp, no_of_tubes, person_capacity, hull_weight,
-                   pontoon_gauge, transom, tube_height, tube_center_to_center,
-                   max_width, fuel_capacity,
-                   mech_str_cable_no_ead, mech_str_cable_ead, hyd_str_hose,
-                   ctrl_cable_no_ead, ctrl_cable_ead,
-                   brp_harness_len, honda_harness_len, merc_harness_len,
-                   yamaha_harness_len, suzuki_harness_len, pow_assist_hose,
-                   tube_length_str, tube_length_num, deck_length_str, deck_length_num
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON DUPLICATE KEY UPDATE
-                   max_hp = VALUES(max_hp),
-                   no_of_tubes = VALUES(no_of_tubes),
-                   person_capacity = VALUES(person_capacity),
-                   hull_weight = VALUES(hull_weight),
-                   pontoon_gauge = VALUES(pontoon_gauge),
-                   transom = VALUES(transom),
-                   tube_height = VALUES(tube_height),
-                   tube_center_to_center = VALUES(tube_center_to_center),
-                   max_width = VALUES(max_width),
-                   fuel_capacity = VALUES(fuel_capacity),
-                   updated_at = NOW()""",
-                (
-                    model_id, perf_package, MODEL_YEAR,
-                    record.get('MaxHP'), record.get('NoOfTubes'), record.get('PersonCapacity'), record.get('HullWeight'),
-                    record.get('PontoonGauge'), record.get('Transom'), record.get('TubeHeight'), record.get('TubeCentertoCenter'),
-                    record.get('MaxWidth'), record.get('FuelCapacity'),
-                    record.get('MechStrCableNoEAD'), record.get('MechStrCableEAD'), record.get('HydStrHose'),
-                    record.get('CtrlCableNoEAD'), record.get('CtrlCableEAD'),
-                    record.get('BRPHarnessLen'), record.get('HondaHarnessLen'), record.get('MercHarnessLen'),
-                    record.get('YamahaHarnessLen'), record.get('SuzukiHarnessLen'), record.get('PowAssistHose'),
-                    record.get('TubeLengthStr'), record.get('TubeLengthNum'), record.get('DeckLengthStr'), record.get('DeckLengthNum')
-                )
-            )
+        # Cleanup
+        cursor.execute("DROP TEMPORARY TABLE temp_packages")
+        cursor.execute("DROP TEMPORARY TABLE temp_perf")
 
-            success += 1
+        print(f"  ✅ Loaded {success} performance records")
+        return success, 0
 
-        except Exception as e:
-            errors += 1
-            print(f"⚠️  Error loading performance record: {e}")
-
-    return success, errors
+    finally:
+        os.unlink(packages_csv.name)
+        os.unlink(perf_csv.name)
 
 # ==================== STEP 3: STANDARD FEATURES ====================
 
@@ -329,65 +381,104 @@ def fetch_standard_features(token: str, series: str) -> List[Dict]:
         return []
 
 def load_standards_to_db(cursor, series: str, standards_data: List[Dict], all_model_ids: Set[str]):
-    """Load standard features to database"""
-    success = 0
-    errors = 0
+    """Load standard features to database using CSV bulk loading"""
+    print(f"  📝 Preparing standard features for {series}...")
+
+    # Collect features and model-feature links
+    features = []
+    model_features = []
 
     for record in standards_data:
-        try:
-            area = record.get('Area', 'Other')
-            description = record.get('Description', '')
-            sort_order = record.get('Sort', 999)
+        area = record.get('Area', 'Other')
+        description = record.get('Description', '')
+        sort_order = record.get('Sort', 999)
 
-            if not description:
-                continue
+        if not description:
+            continue
 
-            # Create a hash-based feature code (guaranteed unique and within 50 char limit)
-            # Format: series_hash (e.g., "LT_a3f2b1c9e4d5")
-            hash_input = f"{series}_{area}_{description}".encode('utf-8')
-            hash_hex = hashlib.md5(hash_input).hexdigest()[:12]
-            feature_code = f"{series}_{hash_hex}"
+        # Create hash-based feature code
+        hash_input = f"{series}_{area}_{description}".encode('utf-8')
+        hash_hex = hashlib.md5(hash_input).hexdigest()[:12]
+        feature_code = f"{series}_{hash_hex}"
 
-            # Insert/update standard feature
-            cursor.execute(
-                """INSERT INTO StandardFeatures (feature_code, area, description, sort_order, active)
-                   VALUES (%s, %s, %s, %s, TRUE)
-                   ON DUPLICATE KEY UPDATE
-                   area = VALUES(area),
-                   description = VALUES(description),
-                   sort_order = VALUES(sort_order),
-                   updated_at = NOW()""",
-                (feature_code, area, description, sort_order)
+        features.append((feature_code, area, description, sort_order, 1))  # active=1
+
+        # Find models where this feature is standard (value = 'S')
+        for model_id in all_model_ids:
+            if model_id in record and record.get(model_id) == 'S':
+                model_features.append((feature_code, model_id, MODEL_YEAR, 1))  # is_standard=1
+
+    if not features:
+        return 0, 0
+
+    print(f"  📊 {len(features)} features, {len(model_features)} model-feature links")
+
+    # Write CSVs
+    features_csv = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv', newline='')
+    model_features_csv = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv', newline='')
+
+    try:
+        # Write features
+        feat_writer = csv.writer(features_csv)
+        for feature in features:
+            feat_writer.writerow(feature)
+        features_csv.close()
+
+        # Write model-feature links
+        mf_writer = csv.writer(model_features_csv)
+        for mf in model_features:
+            mf_writer.writerow(mf)
+        model_features_csv.close()
+
+        # Create temp tables
+        cursor.execute("""
+            CREATE TEMPORARY TABLE temp_features (
+                feature_code VARCHAR(50), area VARCHAR(100), description TEXT,
+                sort_order INT, active TINYINT(1)
             )
+        """)
+        cursor.execute("""
+            CREATE TEMPORARY TABLE temp_model_features (
+                feature_code VARCHAR(50), model_id VARCHAR(20), year INT, is_standard TINYINT(1)
+            )
+        """)
 
-            # Get the feature_id
-            cursor.execute("SELECT feature_id FROM StandardFeatures WHERE feature_code = %s", (feature_code,))
-            result = cursor.fetchone()
+        # Bulk load
+        print(f"  ⚡ Bulk loading standard features...")
+        cursor.execute(f"LOAD DATA LOCAL INFILE '{features_csv.name}' INTO TABLE temp_features FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\\n'")
+        cursor.execute(f"LOAD DATA LOCAL INFILE '{model_features_csv.name}' INTO TABLE temp_model_features FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n'")
 
-            if not result:
-                print(f"⚠️  Feature not found after insert: {feature_code} ({description[:40]})")
-                errors += 1
-                continue
+        # Insert features with upsert
+        cursor.execute("""
+            INSERT INTO StandardFeatures (feature_code, area, description, sort_order, active)
+            SELECT feature_code, area, description, sort_order, active FROM temp_features
+            ON DUPLICATE KEY UPDATE
+                area = VALUES(area),
+                description = VALUES(description),
+                sort_order = VALUES(sort_order),
+                updated_at = NOW()
+        """)
 
-            feature_id = result[0]
+        print(f"  ⚡ Bulk loading model-feature links...")
+        # Insert model-feature links (join with StandardFeatures to get feature_id)
+        cursor.execute("""
+            INSERT INTO ModelStandardFeatures (model_id, feature_id, year, is_standard)
+            SELECT tmf.model_id, sf.feature_id, tmf.year, tmf.is_standard
+            FROM temp_model_features tmf
+            JOIN StandardFeatures sf ON tmf.feature_code = sf.feature_code
+            ON DUPLICATE KEY UPDATE is_standard = TRUE, updated_at = NOW()
+        """)
 
-            # Link to models where feature is standard (value = 'S')
-            for model_id in all_model_ids:
-                if model_id in record and record.get(model_id) == 'S':
-                    cursor.execute(
-                        """INSERT INTO ModelStandardFeatures (model_id, feature_id, year, is_standard)
-                           VALUES (%s, %s, %s, TRUE)
-                           ON DUPLICATE KEY UPDATE is_standard = TRUE, updated_at = NOW()""",
-                        (model_id, feature_id, MODEL_YEAR)
-                    )
+        # Cleanup
+        cursor.execute("DROP TEMPORARY TABLE temp_features")
+        cursor.execute("DROP TEMPORARY TABLE temp_model_features")
 
-            success += 1
+        print(f"  ✅ Loaded {len(features)} features, {len(model_features)} links")
+        return len(features), 0
 
-        except Exception as e:
-            errors += 1
-            print(f"⚠️  Error loading standard feature '{description[:30]}': {e}")
-
-    return success, errors
+    finally:
+        os.unlink(features_csv.name)
+        os.unlink(model_features_csv.name)
 
 # ==================== STEP 4: DEALER MARGINS ====================
 
