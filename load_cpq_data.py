@@ -498,14 +498,56 @@ def load_dealer_margins_to_db(cursor, margins: List[Dict]):
             ])
         margins_csv.close()
 
-        # Bulk load dealers
-        print("  ⚡ Bulk loading dealers...")
+        # Create temporary tables
+        print("  🔧 Creating temporary tables...")
+        cursor.execute("""
+            CREATE TEMPORARY TABLE temp_dealers (
+                dealer_id VARCHAR(20),
+                dealer_name VARCHAR(200),
+                active TINYINT(1)
+            )
+        """)
+        cursor.execute("""
+            CREATE TEMPORARY TABLE temp_margins (
+                dealer_id VARCHAR(20),
+                series_id VARCHAR(10),
+                base_boat_margin DECIMAL(5,2),
+                engine_margin DECIMAL(5,2),
+                options_margin DECIMAL(5,2),
+                freight_margin DECIMAL(5,2),
+                prep_margin DECIMAL(5,2),
+                volume_discount DECIMAL(5,2),
+                enabled TINYINT(1),
+                effective_date DATE,
+                year INT
+            )
+        """)
+
+        # Bulk load into temp tables
+        print("  ⚡ Bulk loading dealers into temp table...")
         cursor.execute(f"""
             LOAD DATA LOCAL INFILE '{dealers_csv.name}'
-            INTO TABLE Dealers
+            INTO TABLE temp_dealers
             FIELDS TERMINATED BY ','
             LINES TERMINATED BY '\n'
             (dealer_id, dealer_name, active)
+        """)
+
+        print("  ⚡ Bulk loading margins into temp table...")
+        cursor.execute(f"""
+            LOAD DATA LOCAL INFILE '{margins_csv.name}'
+            INTO TABLE temp_margins
+            FIELDS TERMINATED BY ','
+            LINES TERMINATED BY '\n'
+            (dealer_id, series_id, base_boat_margin, engine_margin, options_margin,
+             freight_margin, prep_margin, volume_discount, enabled, effective_date, year)
+        """)
+
+        # Insert from temp tables with ON DUPLICATE KEY UPDATE
+        print("  🔄 Inserting dealers with upsert...")
+        cursor.execute("""
+            INSERT INTO Dealers (dealer_id, dealer_name, active)
+            SELECT dealer_id, dealer_name, active FROM temp_dealers
             ON DUPLICATE KEY UPDATE
                 dealer_name = VALUES(dealer_name),
                 updated_at = NOW()
@@ -513,15 +555,16 @@ def load_dealer_margins_to_db(cursor, margins: List[Dict]):
         dealers_loaded = len(dealers)
         print(f"  ✅ Loaded {dealers_loaded} dealers")
 
-        # Bulk load margins
-        print("  ⚡ Bulk loading dealer margins...")
-        cursor.execute(f"""
-            LOAD DATA LOCAL INFILE '{margins_csv.name}'
-            INTO TABLE DealerMargins
-            FIELDS TERMINATED BY ','
-            LINES TERMINATED BY '\n'
-            (dealer_id, series_id, base_boat_margin, engine_margin, options_margin,
-             freight_margin, prep_margin, volume_discount, enabled, effective_date, year)
+        print("  🔄 Inserting dealer margins with upsert...")
+        cursor.execute("""
+            INSERT INTO DealerMargins (
+                dealer_id, series_id, base_boat_margin, engine_margin, options_margin,
+                freight_margin, prep_margin, volume_discount, enabled, effective_date, year
+            )
+            SELECT
+                dealer_id, series_id, base_boat_margin, engine_margin, options_margin,
+                freight_margin, prep_margin, volume_discount, enabled, effective_date, year
+            FROM temp_margins
             ON DUPLICATE KEY UPDATE
                 base_boat_margin = VALUES(base_boat_margin),
                 engine_margin = VALUES(engine_margin),
@@ -534,6 +577,10 @@ def load_dealer_margins_to_db(cursor, margins: List[Dict]):
         """)
         margins_loaded = len(unique_margins)
         print(f"  ✅ Loaded {margins_loaded} dealer margins")
+
+        # Drop temp tables
+        cursor.execute("DROP TEMPORARY TABLE temp_dealers")
+        cursor.execute("DROP TEMPORARY TABLE temp_margins")
 
     finally:
         # Clean up temp files
