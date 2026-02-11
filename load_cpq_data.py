@@ -53,7 +53,8 @@ DB_CONFIG = {
     'host': 'ben.c0fnidwvz1hv.us-east-1.rds.amazonaws.com',
     'user': 'awsmaster',
     'password': 'VWvHG9vfG23g7gD',
-    'database': 'cpq'
+    'database': 'cpq',
+    'allow_local_infile': True  # Required for LOAD DATA LOCAL INFILE (bulk loading)
 }
 
 # Settings
@@ -415,106 +416,129 @@ def fetch_dealer_margins(token: str) -> List[Dict]:
         return []
 
 def load_dealer_margins_to_db(cursor, margins: List[Dict]):
-    """Load dealer margins into database"""
+    """Load dealer margins into database using CSV bulk loading"""
+    import csv
+    import tempfile
+    import os
+
     dealers_loaded = 0
     margins_loaded = 0
     errors = 0
 
+    print("  📝 Preparing data for bulk loading...")
+
+    # Deduplicate margins by dealer_id + series_id + effective_date
+    unique_margins = {}
+    dealers = {}
+    series_set = set()
+    effective_date = date.today()
+
     for margin_record in margins:
-        try:
-            dealer_id = margin_record.get('C_DealerId')
-            dealer_name = margin_record.get('C_DealerName')
-            series_id = margin_record.get('C_Series')
+        dealer_id = margin_record.get('C_DealerId')
+        dealer_name = margin_record.get('C_DealerName')
+        series_id = margin_record.get('C_Series')
 
-            if not dealer_id or not dealer_name or not series_id:
-                errors += 1
-                continue
-
-            # Insert/update dealer
-            cursor.execute(
-                """INSERT INTO Dealers (dealer_id, dealer_name, active)
-                   VALUES (%s, %s, TRUE)
-                   ON DUPLICATE KEY UPDATE
-                   dealer_name = VALUES(dealer_name),
-                   updated_at = NOW()""",
-                (dealer_id, dealer_name)
-            )
-            dealers_loaded += 1
-
-            # Ensure series exists
-            cursor.execute(
-                """INSERT INTO Series (series_id, series_name, active)
-                   VALUES (%s, %s, TRUE)
-                   ON DUPLICATE KEY UPDATE updated_at = NOW()""",
-                (series_id, series_id)
-            )
-
-            # Get margin values
-            base_boat = margin_record.get('C_BaseBoat', 0)
-            engine = margin_record.get('C_Engine', 0)
-            options = margin_record.get('C_Options', 0)
-            freight = margin_record.get('C_Freight', 0)
-            prep = margin_record.get('C_Prep', 0)
-            volume = margin_record.get('C_Volume', 0)
-            enabled = margin_record.get('C_Enabled', False)
-
-            # Check if margins already exist with same values
-            cursor.execute(
-                """SELECT margin_id FROM DealerMargins
-                   WHERE dealer_id = %s AND series_id = %s AND end_date IS NULL
-                   AND base_boat_margin = %s AND engine_margin = %s
-                   AND options_margin = %s AND freight_margin = %s
-                   AND prep_margin = %s AND volume_discount = %s""",
-                (dealer_id, series_id, base_boat, engine, options, freight, prep, volume)
-            )
-
-            if cursor.fetchone():
-                # Margins unchanged, just update enabled status
-                cursor.execute(
-                    """UPDATE DealerMargins SET enabled = %s, updated_at = NOW()
-                       WHERE dealer_id = %s AND series_id = %s AND end_date IS NULL""",
-                    (enabled, dealer_id, series_id)
-                )
-            else:
-                # Margins changed - end old and insert new
-                effective_date = date.today()
-
-                cursor.execute(
-                    """UPDATE DealerMargins
-                       SET end_date = DATE_SUB(%s, INTERVAL 1 DAY)
-                       WHERE dealer_id = %s AND series_id = %s AND end_date IS NULL""",
-                    (effective_date, dealer_id, series_id)
-                )
-
-                cursor.execute(
-                    """INSERT INTO DealerMargins (
-                       dealer_id, series_id,
-                       base_boat_margin, engine_margin, options_margin,
-                       freight_margin, prep_margin, volume_discount,
-                       enabled, effective_date, year
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ON DUPLICATE KEY UPDATE
-                       base_boat_margin = VALUES(base_boat_margin),
-                       engine_margin = VALUES(engine_margin),
-                       options_margin = VALUES(options_margin),
-                       freight_margin = VALUES(freight_margin),
-                       prep_margin = VALUES(prep_margin),
-                       volume_discount = VALUES(volume_discount),
-                       enabled = VALUES(enabled),
-                       updated_at = NOW()""",
-                    (
-                        dealer_id, series_id,
-                        base_boat, engine, options,
-                        freight, prep, volume,
-                        enabled, effective_date, MODEL_YEAR
-                    )
-                )
-
-            margins_loaded += 1
-
-        except Exception as e:
+        if not dealer_id or not dealer_name or not series_id:
             errors += 1
-            print(f"⚠️  Error loading dealer margin: {e}")
+            continue
+
+        # Track unique dealers and series
+        dealers[dealer_id] = dealer_name
+        series_set.add(series_id)
+
+        # Create unique key for deduplication
+        key = (dealer_id, series_id, effective_date)
+
+        # Keep last occurrence (in case of duplicates from API)
+        unique_margins[key] = {
+            'dealer_id': dealer_id,
+            'series_id': series_id,
+            'base_boat': margin_record.get('C_BaseBoat', 0),
+            'engine': margin_record.get('C_Engine', 0),
+            'options': margin_record.get('C_Options', 0),
+            'freight': margin_record.get('C_Freight', 0),
+            'prep': margin_record.get('C_Prep', 0),
+            'volume': margin_record.get('C_Volume', 0),
+            'enabled': 1 if margin_record.get('C_Enabled', False) else 0,
+            'effective_date': effective_date,
+            'year': MODEL_YEAR
+        }
+
+    print(f"  📊 Deduplicated: {len(margins)} → {len(unique_margins)} unique margins")
+    print(f"  📊 Found {len(dealers)} unique dealers, {len(series_set)} unique series")
+
+    # Create temp CSV files
+    dealers_csv = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='_dealers.csv', newline='')
+    margins_csv = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='_margins.csv', newline='')
+
+    try:
+        # Write dealers CSV
+        print("  💾 Writing dealers to CSV...")
+        dealer_writer = csv.writer(dealers_csv)
+        for dealer_id, dealer_name in dealers.items():
+            dealer_writer.writerow([dealer_id, dealer_name, 1])  # active=1
+        dealers_csv.close()
+
+        # Write margins CSV
+        print("  💾 Writing margins to CSV...")
+        margin_writer = csv.writer(margins_csv)
+        for margin in unique_margins.values():
+            margin_writer.writerow([
+                margin['dealer_id'],
+                margin['series_id'],
+                margin['base_boat'],
+                margin['engine'],
+                margin['options'],
+                margin['freight'],
+                margin['prep'],
+                margin['volume'],
+                margin['enabled'],
+                margin['effective_date'],
+                margin['year']
+            ])
+        margins_csv.close()
+
+        # Bulk load dealers
+        print("  ⚡ Bulk loading dealers...")
+        cursor.execute(f"""
+            LOAD DATA LOCAL INFILE '{dealers_csv.name}'
+            INTO TABLE Dealers
+            FIELDS TERMINATED BY ','
+            LINES TERMINATED BY '\n'
+            (dealer_id, dealer_name, active)
+            ON DUPLICATE KEY UPDATE
+                dealer_name = VALUES(dealer_name),
+                updated_at = NOW()
+        """)
+        dealers_loaded = len(dealers)
+        print(f"  ✅ Loaded {dealers_loaded} dealers")
+
+        # Bulk load margins
+        print("  ⚡ Bulk loading dealer margins...")
+        cursor.execute(f"""
+            LOAD DATA LOCAL INFILE '{margins_csv.name}'
+            INTO TABLE DealerMargins
+            FIELDS TERMINATED BY ','
+            LINES TERMINATED BY '\n'
+            (dealer_id, series_id, base_boat_margin, engine_margin, options_margin,
+             freight_margin, prep_margin, volume_discount, enabled, effective_date, year)
+            ON DUPLICATE KEY UPDATE
+                base_boat_margin = VALUES(base_boat_margin),
+                engine_margin = VALUES(engine_margin),
+                options_margin = VALUES(options_margin),
+                freight_margin = VALUES(freight_margin),
+                prep_margin = VALUES(prep_margin),
+                volume_discount = VALUES(volume_discount),
+                enabled = VALUES(enabled),
+                updated_at = NOW()
+        """)
+        margins_loaded = len(unique_margins)
+        print(f"  ✅ Loaded {margins_loaded} dealer margins")
+
+    finally:
+        # Clean up temp files
+        os.unlink(dealers_csv.name)
+        os.unlink(margins_csv.name)
 
     return dealers_loaded, margins_loaded, errors
 
