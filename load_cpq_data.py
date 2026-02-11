@@ -27,7 +27,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ==================== CONFIGURATION ====================
 
-# API Credentials - PRD for pricing, TRN for performance/standards
+# API Credentials - All endpoints now use PRD environment
 CLIENT_ID_PRD = "QA2FNBZCKUAUH7QB_PRD~nZuRG_bQdloMcPeh1fks-TL4nRgxhLWeO-eoIjhISJo"
 CLIENT_SECRET_PRD = "4O7OIZ64sukP1N6YeGZ6IpzsFTG4T6RFkcTZgq6ZwAetb4VoNOOJ1qMkGQAlvnOqqcgaZDlXKux6YEQNvoZQgg"
 TOKEN_ENDPOINT_PRD = "https://mingle-sso.inforcloudsuite.com/QA2FNBZCKUAUH7QB_PRD/as/token.oauth2"
@@ -42,10 +42,11 @@ SERVICE_SECRET_TRN = "pAze3yNlj8r6dbcTv-Fn8AiGvhIcs2x-yEgJaMiuoraAJdkFB6iLQFKaFQ
 
 # API Endpoints
 # Note: API endpoints use _2026 naming but contain 2025 model year data (model IDs with "25" prefix)
+# All endpoints now use PRD environment
 OPTION_LIST_ENDPOINT = "https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_PRD/CPQ/DataImport/QA2FNBZCKUAUH7QB_PRD/v1/OptionLists/bb38d84e-6493-40c7-b282-9cb9c0df26ae/values"
-PERFORMANCE_MATRIX_ENDPOINT = "https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_TRN/CPQ/DataImport/v2/Matrices/{series}_PerformanceData_2026/values"
-STANDARDS_MATRIX_ENDPOINT = "https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_TRN/CPQ/DataImport/v2/Matrices/{series}_ModelStandards_2026/values"
-DEALER_MARGIN_ENDPOINT = "https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_TRN/CPQEQ/RuntimeApi/EnterpriseQuoting/Entities/C_GD_DealerMargin"
+PERFORMANCE_MATRIX_ENDPOINT = "https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_PRD/CPQ/DataImport/v2/Matrices/{series}_PerformanceData_2026/values"
+STANDARDS_MATRIX_ENDPOINT = "https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_PRD/CPQ/DataImport/v2/Matrices/{series}_ModelStandards_2026/values"
+DEALER_MARGIN_ENDPOINT = "https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_PRD/CPQEQ/RuntimeApi/EnterpriseQuoting/Entities/C_GD_DealerMargin"
 
 # Database Configuration
 DB_CONFIG = {
@@ -522,16 +523,15 @@ def main():
 
     start_time = time.time()
 
-    # Get tokens
+    # Get tokens (PRD only - all endpoints now use PRD environment)
     print("\n🔐 Obtaining API tokens...")
     token_prd = get_token("PRD")
-    token_trn = get_token("TRN")
 
-    if not token_prd or not token_trn:
-        print("❌ Failed to obtain API tokens. Exiting.")
+    if not token_prd:
+        print("❌ Failed to obtain API token. Exiting.")
         return
 
-    print("✅ Tokens obtained successfully")
+    print("✅ Token obtained successfully")
 
     # STEP 1: Fetch and load model prices
     print("\n" + "=" * 80)
@@ -571,7 +571,7 @@ def main():
 
         for series in unique_series:
             print(f"\n📊 Processing series: {series}")
-            perf_data = fetch_performance_data(token_trn, series)
+            perf_data = fetch_performance_data(token_prd, series)
             if perf_data:
                 print(f"   Fetched {len(perf_data)} performance records")
                 success, errors = load_performance_to_db(cursor, series, perf_data)
@@ -591,7 +591,7 @@ def main():
 
         for series in unique_series:
             print(f"\n📊 Processing series: {series}")
-            standards_data = fetch_standard_features(token_trn, series)
+            standards_data = fetch_standard_features(token_prd, series)
             if standards_data:
                 print(f"   Fetched {len(standards_data)} standard feature records")
                 success, errors = load_standards_to_db(cursor, series, standards_data, all_model_ids)
@@ -607,7 +607,7 @@ def main():
         print("=" * 80)
 
         print("\n📋 Fetching dealer margins from API...")
-        margins = fetch_dealer_margins(token_trn)
+        margins = fetch_dealer_margins(token_prd)
 
         if margins:
             print(f"   Fetched {len(margins)} dealer margin records")

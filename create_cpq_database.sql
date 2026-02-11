@@ -279,11 +279,5 @@ CREATE TABLE IF NOT EXISTS `DealerMargins` (
   KEY `idx_year` (`year`),
   KEY `idx_dealer_series` (`dealer_id`,`series_id`),
   CONSTRAINT `DealerMargins_ibfk_1` FOREIGN KEY (`dealer_id`) REFERENCES `Dealers` (`dealer_id`) ON DELETE CASCADE,
-  CONSTRAINT `DealerMargins_ibfk_2` FOREIGN KEY (`series_id`) REFERENCES `Series` (`series_id`) ON DELETE CASCADE,
-  CONSTRAINT `chk_base_margin_range` CHECK ((`base_boat_margin` between 0 and 100)),
-  CONSTRAINT `chk_engine_margin_range` CHECK ((`engine_margin` between 0 and 100)),
-  CONSTRAINT `chk_freight_margin_range` CHECK ((`freight_margin` between 0 and 100)),
-  CONSTRAINT `chk_options_margin_range` CHECK ((`options_margin` between 0 and 100)),
-  CONSTRAINT `chk_prep_margin_range` CHECK ((`prep_margin` between 0 and 100)),
-  CONSTRAINT `chk_volume_discount_range` CHECK ((`volume_discount` between 0 and 100))
+  CONSTRAINT `DealerMargins_ibfk_2` FOREIGN KEY (`series_id`) REFERENCES `Series` (`series_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=101 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Margin configurations per dealer-series combination';
