@@ -56,7 +56,7 @@ DB_CONFIG = {
     'host': 'ben.c0fnidwvz1hv.us-east-1.rds.amazonaws.com',
     'user': 'awsmaster',
     'password': 'VWvHG9vfG23g7gD',
-    'database': 'cpq',
+    'database': 'warrantyparts_test',  # FIXED: Changed from 'cpq' to match stored procedure queries
     'allow_local_infile': True  # Required for LOAD DATA LOCAL INFILE (bulk loading)
 }
 

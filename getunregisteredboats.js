@@ -232,13 +232,17 @@ function bindSelect() {
             var cpqHullNo = serial; // Hull number to get specific performance package
             console.log('Calculated CPQ year:', cpqYear, 'from serialYear:', serialYear);
 
+            // Use original untransformed model name for CPQ LHS lookup (must match database model_id exactly)
+            var cpqModelId = window.cpqOriginalRealModel || realmodel;
+            console.log('Using CPQ model ID:', cpqModelId, '(original, not transformed)');
+
             console.log('Calling GET_CPQ_LHS_DATA with params:');
-            console.log('  @PARAM1 (model_id):', realmodel);
+            console.log('  @PARAM1 (model_id):', cpqModelId);
             console.log('  @PARAM2 (year):', cpqYear);
             console.log('  @PARAM3 (hull_no):', cpqHullNo);
 
             try {
-                var cpqLhsData = sStatement('GET_CPQ_LHS_DATA', [realmodel, cpqYear, cpqHullNo]);
+                var cpqLhsData = sStatement('GET_CPQ_LHS_DATA', [cpqModelId, cpqYear, cpqHullNo]);
                 console.log('CPQ LHS Data returned:', cpqLhsData);
                 console.log('Type:', typeof cpqLhsData);
                 console.log('Is array?', Array.isArray(cpqLhsData));
@@ -264,11 +268,11 @@ function bindSelect() {
             console.log('===== CPQ STANDARD FEATURES LOAD =====');
 
             console.log('Calling GET_CPQ_STANDARD_FEATURES with params:');
-            console.log('  @PARAM1 (model_id):', realmodel);
+            console.log('  @PARAM1 (model_id):', cpqModelId);
             console.log('  @PARAM2 (year):', cpqYear);
 
             try {
-                var cpqStandardFeatures = sStatement('GET_CPQ_STANDARD_FEATURES', [realmodel, cpqYear]);
+                var cpqStandardFeatures = sStatement('GET_CPQ_STANDARD_FEATURES', [cpqModelId, cpqYear]);
                 console.log('CPQ Standard Features returned:', cpqStandardFeatures);
                 console.log('Type:', typeof cpqStandardFeatures);
                 console.log('Is array?', Array.isArray(cpqStandardFeatures));

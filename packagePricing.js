@@ -198,31 +198,39 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
     window.model = boatmodel[0].ItemNo;
     window.realmodel = boatmodel[0].BoatModelNo;
 
-    // COMMENTED OUT CPQ LOGIC - 2026-02-11
-    // Map SFC to SS for both model and realmodel variables early
-    // The existing SF->SE logic below will then transform *SSF to *SSE
+    // PRESERVE ORIGINAL MODEL NAMES FOR CPQ LHS QUERIES
+    // Store untransformed versions for CPQ LHS data lookups (must match database model_id exactly)
+    window.cpqOriginalModel = model;
+    window.cpqOriginalRealModel = realmodel;
+
+    // LEGACY TRANSFORMATIONS (for non-CPQ display logic only)
+    // NOTE: These transformations are needed for legacy boat display but break CPQ LHS queries
+    // CPQ boats will use cpqOriginalRealModel for LHS lookups
+
+    // Map SFC to SS for legacy boats
     if (model.indexOf('SFC') >= 0) {
         console.log('SFC detected in model, original:', model);
         model = model.replace('SFC', 'SS');
-        console.log('Model changed to:', model);
+        console.log('Model changed to:', model, '(legacy transformation)');
     }
 
     if (realmodel.indexOf('SFC') >= 0) {
         console.log('SFC detected in realmodel, original:', realmodel);
         realmodel = realmodel.replace('SFC', 'SS');
-        console.log('Realmodel changed to:', realmodel);
+        console.log('Realmodel changed to:', realmodel, '(legacy transformation)');
     }
-    // Map MFC to MS - removed CPQ check
+
+    // Map MFC to MS for legacy boats
     if (model.indexOf('MFC') >= 0) {
         console.log('MFC detected in model, original:', model);
         model = model.replace('MFC', 'MS');
-        console.log('Model changed to:', model);
+        console.log('Model changed to:', model, '(legacy transformation)');
     }
 
     if (realmodel.indexOf('MFC') >= 0) {
         console.log('MFC detected in realmodel, original:', realmodel);
         realmodel = realmodel.replace('MFC', 'MS');
-        console.log('Realmodel changed to:', realmodel);
+        console.log('Realmodel changed to:', realmodel, '(legacy transformation)');
     }
 
     console.log(model);
