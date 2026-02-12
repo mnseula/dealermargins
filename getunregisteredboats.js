@@ -441,6 +441,8 @@ function applyDealerMarginsCPQ() {
     window.enginemargin = (100 - eng) / 100;
     window.optionmargin = (100 - opt) / 100;
     window.msrpMargin = (100 - bb) / 100;  // For MSRP calculations (typically uses base boat margin)
+    window.msrpVolume = 1.0;  // MSRP volume factor (typically 1.0 = no volume discount on MSRP)
+    window.msrpLoyalty = 1.0;  // MSRP loyalty factor (typically 1.0, used for SV series special pricing)
     window.vol_disc = (100 - vd) / 100;
     window.freight = fre;
     window.prep = prp;
@@ -450,6 +452,8 @@ function applyDealerMarginsCPQ() {
     console.log('  enginemargin:', window.enginemargin);
     console.log('  optionmargin:', window.optionmargin);
     console.log('  msrpMargin:', window.msrpMargin);
+    console.log('  msrpVolume:', window.msrpVolume);
+    console.log('  msrpLoyalty:', window.msrpLoyalty);
     console.log('  vol_disc:', window.vol_disc);
     console.log('  freight:', window.freight);
     console.log('  prep:', window.prep);
