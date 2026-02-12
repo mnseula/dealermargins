@@ -125,6 +125,21 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
         return rec.ItemMasterMCT === 'BOA' || rec.ItemMasterMCT === 'BOI';
     });
 
+    console.log('DEBUG: boatoptions array length:', boatoptions ? boatoptions.length : 'undefined');
+    console.log('DEBUG: boatmodel array length after grep:', boatmodel ? boatmodel.length : 'undefined');
+
+    // Safety check: If boatmodel is empty, alert and stop
+    if (!boatmodel || boatmodel.length === 0) {
+        console.error('❌ ERROR: No boat records found with ItemMasterMCT = BOA or BOI');
+        console.error('   Total boatoptions records:', boatoptions ? boatoptions.length : 0);
+        if (boatoptions && boatoptions.length > 0) {
+            console.error('   First record MCT:', boatoptions[0].ItemMasterMCT);
+            console.error('   First record:', boatoptions[0]);
+        }
+        alert('ERROR: Cannot load boat details. No boat records found.\n\nSerial: ' + serial + '\nPlease check console for details.');
+        return; // Stop execution
+    }
+
     // CPQ FALLBACK: For CPQ boats, filter out "Base Boat" records if multiple boat records exist
     // CPQ boats may have both a "Base Boat" line and the actual configured boat line
     if (boatmodel.length > 1) {
