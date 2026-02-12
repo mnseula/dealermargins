@@ -39,7 +39,7 @@ model = getValue('BOAT_INFO', 'BOAT_REAL_MODEL');
 
 // USER AUTHORIZATION: Check if user is authorized to see CPQ boats
 var user = getValue('EOS','USER');
-var isCpqAuthorized = (user === 'WEB@BENNINGTON.COM' || user === 'web@bennington.com');
+var isCpqAuthorized = (user === 'WEB@BENNINGTONMARINE.COM' || user === 'web@benningtonmarine.com');
 
 // DEBUG: Always log these values
 console.log('===== PRINT.JS MODEL DEBUG =====');
@@ -441,7 +441,7 @@ wsContents += "    <div id=\"stockhull\">Stock #:<u>" + stockno + "<\/u>&nbsp;&n
 
 // USER AUTHORIZATION: Check if user is authorized to see CPQ boats
 var user = getValue('EOS','USER');
-var isCpqAuthorized = (user === 'WEB@BENNINGTON.COM' || user === 'web@bennington.com');
+var isCpqAuthorized = (user === 'WEB@BENNINGTONMARINE.COM' || user === 'web@benningtonmarine.com');
 
 // CPQ boats: Use window.cpqLhsData if available AND user is authorized, otherwise use legacy boatSpecs
 if (isCpqAuthorized && window.cpqLhsData && window.cpqLhsData.model_id) {

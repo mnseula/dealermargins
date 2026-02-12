@@ -8,12 +8,12 @@
 ## Authorization Logic
 
 Only this user can see CPQ boats:
-- **web@bennington.com** (or WEB@BENNINGTON.COM)
+- **web@benningtonmarine.com** (or WEB@BENNINGTON.COM)
 
 **Authorization Check:**
 ```javascript
 var user = getValue('EOS','USER');
-var isCpqAuthorized = (user === 'WEB@BENNINGTON.COM' || user === 'web@bennington.com');
+var isCpqAuthorized = (user === 'WEB@BENNINGTON.COM' || user === 'web@benningtonmarine.com');
 ```
 
 ---
@@ -138,7 +138,7 @@ if (isCpqAuthorized && window.cpqLhsData && window.cpqLhsData.model_id) {
 
 ## Behavior Changes
 
-### For Authorized Users (web@bennington.com):
+### For Authorized Users (web@benningtonmarine.com):
 - ✅ CPQ boats load normally with full functionality
 - ✅ See CPQ pricing, margins, LHS data, and standard features
 - ✅ Console logs show "Using CPQ..." messages
@@ -155,8 +155,8 @@ if (isCpqAuthorized && window.cpqLhsData && window.cpqLhsData.model_id) {
 
 ## Testing Instructions
 
-### Test as Authorized User (web@bennington.com):
-1. Login as web@bennington.com
+### Test as Authorized User (web@benningtonmarine.com):
+1. Login as web@benningtonmarine.com
 2. Load CPQ boat ETWINVTEST0226
 3. Verify console shows: "✅ CPQ Base Boat pricing extracted"
 4. Verify MSRP = $58,171, Dealer Cost = $41,131
@@ -165,7 +165,7 @@ if (isCpqAuthorized && window.cpqLhsData && window.cpqLhsData.model_id) {
 7. Verify legacy boat works normally
 
 ### Test as Unauthorized User (any other user):
-1. Login as dealer user (not web@bennington.com)
+1. Login as dealer user (not web@benningtonmarine.com)
 2. Attempt to load CPQ boat ETWINVTEST0226
 3. Verify error dialog appears: "ACCESS DENIED - This is a CPQ boat and is not available for your user account"
 4. Verify boat does NOT load
@@ -202,13 +202,13 @@ When ready to enable for additional users:
 **To add additional authorized users:**
 ```javascript
 var isCpqAuthorized = (user === 'WEB@BENNINGTON.COM' ||
-                       user === 'web@bennington.com' ||
+                       user === 'web@benningtonmarine.com' ||
                        user === 'NEWUSER@EXAMPLE.COM');  // Add here
 ```
 
 **To enable for entire domain:**
 ```javascript
 var isCpqAuthorized = (user === 'WEB@BENNINGTON.COM' ||
-                       user === 'web@bennington.com' ||
+                       user === 'web@benningtonmarine.com' ||
                        user.includes('@BENNINGTONMARINE.COM'));
 ```
