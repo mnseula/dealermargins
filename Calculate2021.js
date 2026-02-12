@@ -33,7 +33,18 @@ window.Calculate2021 = window.Calculate2021 || function () {
     $.each(boatoptions, function (j) {
         var mct = boatoptions[j].MCTDesc;
         var mctType = boatoptions[j].ItemMasterMCT;
-        var dealercost = boatoptions[j].ExtSalesAmount;
+
+        // SAFETY: For CPQ base boat, use extracted dealer cost from "Base Boat" line (if available)
+        // Falls back to ExtSalesAmount for legacy boats or if CPQ extraction failed
+        var dealercost = (mct === 'PONTOONS' && window.cpqBaseBoatDealerCost && Number(window.cpqBaseBoatDealerCost) > 0)
+            ? window.cpqBaseBoatDealerCost
+            : boatoptions[j].ExtSalesAmount;
+
+        // SAFETY: Log if using CPQ dealer cost vs standard
+        if (mct === 'PONTOONS' && window.cpqBaseBoatDealerCost && Number(window.cpqBaseBoatDealerCost) > 0) {
+            console.log('Using CPQ dealer cost: $' + dealercost);
+        }
+
         var macoladesc = boatoptions[j].ItemDesc1;
         var prodCategory = boatoptions[j].ItemMasterProdCat;
         var itemNo = boatoptions[j].ItemNo; // Original numeric ItemNo
@@ -44,10 +55,20 @@ window.Calculate2021 = window.Calculate2021 || function () {
 
         // CPQ MSRP Support - Added 2026-02-08
         // Check if this item has real MSRP from CPQ system (instead of calculated from dealer cost)
-        var realMSRP = boatoptions[j].MSRP;
+        // SAFETY: First check if CPQ base boat pricing was extracted in packagePricing.js
+        // Falls back to boatoptions[j].MSRP for legacy boats (which is typically 0 or null)
+        var realMSRP = (window.cpqBaseBoatMSRP && Number(window.cpqBaseBoatMSRP) > 0)
+            ? window.cpqBaseBoatMSRP
+            : boatoptions[j].MSRP;
+
         var hasRealMSRP = (realMSRP !== undefined && realMSRP !== null && Number(realMSRP) > 0);
+
         if (hasRealMSRP) {
-            console.log('CPQ item detected with real MSRP: ' + displayItemNo + ' = $' + realMSRP);
+            if (window.cpqBaseBoatMSRP && Number(window.cpqBaseBoatMSRP) > 0) {
+                console.log('CPQ item with real MSRP from Base Boat: ' + displayItemNo + ' = $' + realMSRP);
+            } else {
+                console.log('Item with MSRP from record: ' + displayItemNo + ' = $' + realMSRP);
+            }
         }
 
         if (mctType === 'DIS' || mctType === 'DIV') { EngineDiscountAdditions = Number(dealercost) + Number(EngineDiscountAdditions); }

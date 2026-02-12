@@ -135,51 +135,33 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
     // CPQ LOGIC: Extract CPQ pricing from "Base Boat" record before filtering
     // CPQ boats have a "Base Boat" line with real MSRP/dealer cost from API
     // We need to save this data before removing the duplicate boat record
-    // SAFETY: Initialize to null - if not found, legacy boats use their original pricing
     window.cpqBaseBoatMSRP = null;
     window.cpqBaseBoatDealerCost = null;
 
-    // SAFETY: Only process if multiple boat records exist (typical for CPQ boats)
-    // Legacy boats with single BOA record skip this entire block
     if (boatmodel.length > 1) {
-        console.log('Multiple boat records found (' + boatmodel.length + '), checking for CPQ Base Boat line...');
-
         // Look for "Base Boat" record - it has the CPQ pricing
         var baseBoatRec = $.grep(boatmodel, function (rec) {
-            // SAFETY: Only match if "Base Boat" exists AND has valid MSRP > 0
-            // Legacy boats won't match these criteria
-            var isBaseBoot = (rec.ItemNo === 'Base Boat' || rec.BoatModelNo === 'Base Boat' || rec.ItemDesc1 === 'Base Boat');
-            var hasValidMSRP = (rec.MSRP && Number(rec.MSRP) > 0);
-            return isBaseBoot && hasValidMSRP;
+            // "Base Boat" line has MSRP > 0 and is the CPQ pricing source
+            return (rec.ItemNo === 'Base Boat' || rec.BoatModelNo === 'Base Boat' || rec.ItemDesc1 === 'Base Boat')
+                && rec.MSRP && Number(rec.MSRP) > 0;
         });
 
         if (baseBoatRec.length > 0) {
             // Found CPQ "Base Boat" line - extract pricing
-            window.cpqBaseBoatMSRP = Number(baseBoatRec[0].MSRP) || null;
-            window.cpqBaseBoatDealerCost = Number(baseBoatRec[0].ExtSalesAmount) || null;
+            window.cpqBaseBoatMSRP = Number(baseBoatRec[0].MSRP);
+            window.cpqBaseBoatDealerCost = Number(baseBoatRec[0].ExtSalesAmount);
             console.log('✅ CPQ Base Boat pricing extracted:');
             console.log('   MSRP: $' + window.cpqBaseBoatMSRP);
             console.log('   Dealer Cost: $' + window.cpqBaseBoatDealerCost);
-        } else {
-            // SAFETY: No "Base Boat" found - this is a legacy boat or CPQ boat without Base Boat line
-            console.log('No CPQ Base Boat line found - using standard pricing from boat record');
         }
 
         // Now filter out "Base Boat" records to use the configured boat line for model info
         var nonBaseBoats = $.grep(boatmodel, function (rec) {
             return rec.ItemNo !== 'Base Boat' && rec.BoatModelNo !== 'Base Boat' && rec.ItemDesc1 !== 'Base Boat';
         });
-
-        // SAFETY: Only replace boatmodel if we found non-Base Boat records
         if (nonBaseBoats.length > 0) {
             window.boatmodel = nonBaseBoats;
-        } else {
-            // SAFETY: If filtering would leave us with no boats, keep original array
-            console.warn('⚠️ Filtering would remove all boat records - keeping original');
         }
-    } else {
-        // SAFETY: Single boat record - legacy boat, no extraction needed
-        console.log('Single boat record found - using standard pricing (legacy boat)');
     }
 
     window.fullmodel = boatmodel[0].ItemDesc1;
