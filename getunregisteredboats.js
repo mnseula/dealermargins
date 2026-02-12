@@ -190,8 +190,15 @@ function bindSelect() {
         console.log('series', series);
         setValue('DLR', 'SERIES', series);
 
+        // Apply dealer margins - CPQ boats use separate logic
         if(previoussticker.length === 0){
-        applyDealerMargins();
+            if (window.isCPQBoat) {
+                console.log('CPQ boat detected - using CPQ margin logic');
+                applyDealerMarginsCPQ();
+            } else {
+                console.log('Legacy boat - using standard margin logic');
+                applyDealerMargins();
+            }
         }
 
         var engineinvoiceno = "";
@@ -380,6 +387,72 @@ function bindSelect() {
 
 
 /*FUNCTIONS*/
+
+// CPQ-specific margin loading function
+// For CPQ boats, loads margins from EOS List based on dealer + series
+function applyDealerMarginsCPQ() {
+    console.log('===== APPLY CPQ DEALER MARGINS =====');
+
+    // Get dealer ID and series
+    var dlrID = getValue('DLR', 'DLR_NO');
+    var series = getValue('DLR', 'SERIES');
+
+    console.log('CPQ Dealer ID:', dlrID);
+    console.log('CPQ Series:', series);
+
+    // Load dealer margins from EOS List (same as legacy boats)
+    var filter = 'LIST/DealerID["' + dlrID + '"]';
+    var results = loadList('53ebba158ff57891258fef1e', filter);
+
+    if (!results || results.length === 0) {
+        console.error('No dealer margins found for dealer:', dlrID);
+        alert('ERROR: No dealer margins configured for this dealer. Contact administrator.');
+        return;
+    }
+
+    console.log('Loaded dealer margin record:', results[0]);
+
+    // Extract series-specific margins dynamically (e.g., M_BASE_BOAT, Q_ENGINE, etc.)
+    var bb = results[0][series + '_BASE_BOAT'] || 0;
+    var eng = results[0][series + '_ENGINE'] || 0;
+    var opt = results[0][series + '_OPTIONS'] || 0;
+    var fre = results[0][series + '_FREIGHT'] || 0;
+    var prp = results[0][series + '_PREP'] || 0;
+    var vd = results[0][series + '_VOL_DISC'] || 0;
+
+    console.log('CPQ Margins for series', series + ':');
+    console.log('  Base Boat:', bb + '%');
+    console.log('  Engine:', eng + '%');
+    console.log('  Options:', opt + '%');
+    console.log('  Volume Disc:', vd + '%');
+    console.log('  Freight: $' + fre);
+    console.log('  Prep: $' + prp);
+
+    // Set form values (same as legacy)
+    setValue('MARGINS', 'BASE_BOAT', bb);
+    setValue('MARGINS', 'ENGINE', eng);
+    setValue('MARGINS', 'OPTIONS', opt);
+    setValue('FREIGHTPREP', 'FREIGHT', fre);
+    setValue('FREIGHTPREP', 'PREP', prp);
+    setValue('MARGINS', 'VOL_DISC', vd);
+
+    // Set global window variables for calculate.js to use
+    window.baseboatmargin = (100 - bb) / 100;
+    window.enginemargin = (100 - eng) / 100;
+    window.optionmargin = (100 - opt) / 100;
+    window.vol_disc = (100 - vd) / 100;
+    window.freight = fre;
+    window.prep = prp;
+
+    console.log('Global margin variables set:');
+    console.log('  baseboatmargin:', window.baseboatmargin);
+    console.log('  enginemargin:', window.enginemargin);
+    console.log('  optionmargin:', window.optionmargin);
+    console.log('  vol_disc:', window.vol_disc);
+    console.log('  freight:', window.freight);
+    console.log('  prep:', window.prep);
+    console.log('===== CPQ MARGINS APPLIED =====');
+}
 
 //get info about the engine to lookup the default 25 or 50hp part for the boat pkg.
 function buildTable(dlrno, dlrnoClean) {
