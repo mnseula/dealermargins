@@ -39,6 +39,9 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
 
     }
 
+    // COMMENTED OUT CPQ LOGIC - 2026-02-11 - Breaking legacy boat loading
+    // TODO: Re-enable after fixing loadByListName issue
+    /*
     // FIX SWAPPED MSRP/ExtSalesAmount - Added 2026-02-08
     // For CPQ boats, if MSRP and ExtSalesAmount appear swapped (MSRP is lower), swap them back
     // This handles cases where loadByListName returns columns in wrong order
@@ -96,6 +99,7 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
             }
         }
     }
+    */
 
     console.log("BEFORE fAILURE");
     window.productids = loadByListName('Product List');
@@ -139,6 +143,8 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
         return; // Stop execution
     }
 
+    // COMMENTED OUT CPQ LOGIC - 2026-02-11
+    /*
     // CPQ FALLBACK: For CPQ boats, filter out "Base Boat" records if multiple boat records exist
     // CPQ boats may have both a "Base Boat" line and the actual configured boat line
     if (boatmodel.length > 1) {
@@ -150,19 +156,16 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
             window.boatmodel = nonBaseBoats;
         }
     }
+    */
 
     window.fullmodel = boatmodel[0].ItemDesc1;
     window.model = boatmodel[0].ItemNo;
     window.realmodel = boatmodel[0].BoatModelNo;
 
-    // Check if this is a CPQ boat (has config attributes with CfgName)
-    var hasCPQConfig = boatoptions && boatoptions.some(function(item) {
-        return item.CfgName && item.CfgName !== null && item.CfgName !== '';
-    });
-
-    // Map SFC to SS for LEGACY boats only (NOT CPQ boats)
-    // CPQ boats use exact model IDs from API (22SFC, 23ML, etc.) - don't transform
-    if (!hasCPQConfig && model.indexOf('SFC') >= 0) {
+    // COMMENTED OUT CPQ LOGIC - 2026-02-11
+    // Map SFC to SS for both model and realmodel variables early
+    // The existing SF->SE logic below will then transform *SSF to *SSE
+    if (model.indexOf('SFC') >= 0) {
         console.log('SFC detected in model, original:', model);
         model = model.replace('SFC', 'SS');
         console.log('Model changed to:', model);
