@@ -34,9 +34,8 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
         //ZS 5.15.2024
         //Product Code is being imported as the MCT... need to adjust the filter to take both old and new "MCTs"
 
-        // FAKIES: Force 2026 boats to load from BoatOptions25 (BoatOptions26 not accessible via loadByListName)
-        // Use == instead of === to handle both number and string
-        var boatOptionsTable = (serialYear == 26) ? 'BoatOptions25' : 'BoatOptions' + serialYear;
+        // Try the correct BoatOptions table for this year
+        var boatOptionsTable = 'BoatOptions' + serialYear;
         console.log('Loading from table:', boatOptionsTable, '(serialYear:', serialYear, 'type:', typeof serialYear + ')');
 
         // Build WHERE clause - if invoice is empty, just use serial number
@@ -53,7 +52,17 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
 
         whereClause += "AND BoatSerialNo= '" + serial + "' ORDER BY  CASE `MCTDesc` WHEN 'PONTOONS' THEN 1 WHEN 'Pontoon Boats OB' THEN 1 WHEN 'Pontoon Boats IO' THEN 1 WHEN 'Lower Unit Eng' THEN 2 WHEN 'ENGINES' THEN 3 WHEN 'Engine' THEN 3 WHEN 'Engine IO' THEN 3 WHEN 'PRE-RIG' THEN 4 WHEN 'Prerig' THEN 4 ELSE 5 END,  LineNo ASC";
 
+        // Try loading from the correct year's table
         window.boatoptions = loadByListName(boatOptionsTable, whereClause);
+
+        // Fallback for 2026 boats: if BoatOptions26 returns 0 records, try BoatOptions25
+        if (serialYear == 26 && window.boatoptions.length === 0) {
+            console.log('BoatOptions26 returned 0 records, trying BoatOptions25 fallback');
+            window.boatoptions = loadByListName('BoatOptions25', whereClause);
+            if (window.boatoptions.length > 0) {
+                console.log('✅ Fallback successful: loaded', window.boatoptions.length, 'records from BoatOptions25');
+            }
+        }
         //This new one below has invoice number filter taken out.
         // window.boatoptions2 = loadByListName('BoatOptions' + serialYear, "WHERE ItemMasterMCT <> 'DIC' AND ItemMasterMCT <> 'DIF' AND ItemMasterMCT <> 'DIP' AND ItemMasterMCT <> 'DIR' AND ItemMasterMCT <> 'DIA' AND ItemMasterMCT <> 'DIW' AND ItemMasterMCT <> 'LOY' AND ItemMasterMCT <> 'PRD' AND ItemMasterMCT <> 'VOD' AND (ItemMasterMCT <> 'DIS' OR (ItemMasterMCT = 'DIS' AND ItemNo = 'NPPNPRICE16S')) AND ItemMasterMCT <> 'DIV' AND ItemMasterMCT <> 'DIW' AND (ItemMasterMCT <> 'ENZ' OR (ItemMasterMCT = 'ENZ' AND ItemDesc1 LIKE '%VALUE%')) AND ItemMasterMCT <> 'SHO' AND ItemMasterMCT <> 'GRO' AND ItemMasterMCT <> 'ZZZ' AND ItemMasterMCT <> 'FRE' AND ItemMasterMCT <> 'WAR' AND ItemMasterMCT <> 'DLR' AND ItemMasterMCT <> 'FRT' AND ItemMasterProdCat <> '111' AND QuantitySold > 0 AND BoatSerialNo= '" + serial + "' ORDER BY  CASE `MCTDesc` WHEN 'PONTOONS' THEN 1 WHEN 'Pontoon Boats OB' THEN 1 WHEN 'Pontoon Boats IO' THEN 1 WHEN 'Lower Unit Eng' THEN 2 WHEN 'ENGINES' THEN 3 WHEN 'Engine' THEN 3 WHEN 'Engine IO' THEN 3 WHEN 'PRE-RIG' THEN 4 WHEN 'Prerig' THEN 4 ELSE 5 END,  LineNo ASC");
 
