@@ -138,36 +138,39 @@ if (isCpqAuthorized && window.cpqLhsData && window.cpqLhsData.model_id) {
 
 ## Behavior Changes
 
-### For Authorized Users (@BENNINGTONMARINE.COM + approved users):
-- **No change** - CPQ boats work exactly as before
-- See CPQ pricing, margins, LHS data, and standard features
-- Console logs show "Using CPQ..." messages
+### For Authorized Users (web@bennington.com):
+- ✅ CPQ boats load normally with full functionality
+- ✅ See CPQ pricing, margins, LHS data, and standard features
+- ✅ Console logs show "Using CPQ..." messages
+- ✅ Legacy boats also work normally
 
 ### For Unauthorized Users (everyone else):
-- **CPQ boats appear as legacy boats**
-- Use ExtSalesAmount from boat record for dealer cost
-- MSRP calculated from dealer cost (legacy formula)
-- No CPQ LHS data displayed (fall back to legacy boat_specs if available)
-- No CPQ standard features (fall back to legacy standards)
-- Console shows: "⚠️ User not authorized for CPQ boats - using legacy pricing"
+- ❌ **CPQ boats are completely blocked**
+- ❌ Error message displayed: "ACCESS DENIED - This is a CPQ boat and is not available for your user account"
+- ❌ Boat does not load at all
+- ✅ Legacy boats work normally (no change from before CPQ implementation)
+- ✅ System works exactly as it did before CPQ features were added
 
 ---
 
 ## Testing Instructions
 
-### Test as Authorized User:
-1. Login as user with @BENNINGTONMARINE.COM domain
-2. Load boat ETWINVTEST0226
+### Test as Authorized User (web@bennington.com):
+1. Login as web@bennington.com
+2. Load CPQ boat ETWINVTEST0226
 3. Verify console shows: "✅ CPQ Base Boat pricing extracted"
 4. Verify MSRP = $58,171, Dealer Cost = $41,131
 5. Verify LHS specs display correctly
+6. Load a legacy boat (e.g., 22GBRSE from 2024)
+7. Verify legacy boat works normally
 
-### Test as Unauthorized User:
-1. Login as dealer user (not @BENNINGTONMARINE.COM)
-2. Load boat ETWINVTEST0226
-3. Verify console shows: "⚠️ User not authorized for CPQ boats - using legacy pricing"
-4. Verify boat loads but uses ExtSalesAmount (legacy pricing)
-5. Verify no CPQ-specific data displays
+### Test as Unauthorized User (any other user):
+1. Login as dealer user (not web@bennington.com)
+2. Attempt to load CPQ boat ETWINVTEST0226
+3. Verify error dialog appears: "ACCESS DENIED - This is a CPQ boat and is not available for your user account"
+4. Verify boat does NOT load
+5. Load a legacy boat (e.g., 22GBRSE from 2024)
+6. Verify legacy boat works normally (no changes from before CPQ implementation)
 
 ---
 
