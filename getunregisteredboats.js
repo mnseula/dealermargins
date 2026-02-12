@@ -440,6 +440,7 @@ function applyDealerMarginsCPQ() {
     window.baseboatmargin = (100 - bb) / 100;
     window.enginemargin = (100 - eng) / 100;
     window.optionmargin = (100 - opt) / 100;
+    window.msrpMargin = (100 - bb) / 100;  // For MSRP calculations (typically uses base boat margin)
     window.vol_disc = (100 - vd) / 100;
     window.freight = fre;
     window.prep = prp;
@@ -448,6 +449,7 @@ function applyDealerMarginsCPQ() {
     console.log('  baseboatmargin:', window.baseboatmargin);
     console.log('  enginemargin:', window.enginemargin);
     console.log('  optionmargin:', window.optionmargin);
+    console.log('  msrpMargin:', window.msrpMargin);
     console.log('  vol_disc:', window.vol_disc);
     console.log('  freight:', window.freight);
     console.log('  prep:', window.prep);
