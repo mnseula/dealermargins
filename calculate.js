@@ -30,18 +30,22 @@ window.Calculate2021 = window.Calculate2021 || function () {
     window.hasEngineLowerUnit = false;
     window.EngineLowerUnitAdditions = 0;
 
+    // USER AUTHORIZATION: Check if user is authorized to see CPQ boats
+    var user = getValue('EOS','USER');
+    var isCpqAuthorized = (user.includes('@BENNINGTONMARINE.COM') || user === 'BGIRTEN' || user === 'STHOROLD' || user === 'SFISH' || user === 'KBURCH' || user === 'BALLEN' || user === 'JROMERO' || user === 'BEN');
+
     $.each(boatoptions, function (j) {
         var mct = boatoptions[j].MCTDesc;
         var mctType = boatoptions[j].ItemMasterMCT;
 
-        // SAFETY: For CPQ base boat, use extracted dealer cost from "Base Boat" line (if available)
-        // Falls back to ExtSalesAmount for legacy boats or if CPQ extraction failed
-        var dealercost = (mct === 'PONTOONS' && window.cpqBaseBoatDealerCost && Number(window.cpqBaseBoatDealerCost) > 0)
+        // SAFETY: For CPQ base boat, use extracted dealer cost from "Base Boat" line (if available and user authorized)
+        // Falls back to ExtSalesAmount for legacy boats or if CPQ extraction failed or user not authorized
+        var dealercost = (mct === 'PONTOONS' && isCpqAuthorized && window.cpqBaseBoatDealerCost && Number(window.cpqBaseBoatDealerCost) > 0)
             ? window.cpqBaseBoatDealerCost
             : boatoptions[j].ExtSalesAmount;
 
         // SAFETY: Log if using CPQ dealer cost vs standard
-        if (mct === 'PONTOONS' && window.cpqBaseBoatDealerCost && Number(window.cpqBaseBoatDealerCost) > 0) {
+        if (mct === 'PONTOONS' && isCpqAuthorized && window.cpqBaseBoatDealerCost && Number(window.cpqBaseBoatDealerCost) > 0) {
             console.log('Using CPQ dealer cost: $' + dealercost);
         }
 
@@ -55,16 +59,16 @@ window.Calculate2021 = window.Calculate2021 || function () {
 
         // CPQ MSRP Support - Added 2026-02-08
         // Check if this item has real MSRP from CPQ system (instead of calculated from dealer cost)
-        // SAFETY: First check if CPQ base boat pricing was extracted in packagePricing.js
+        // SAFETY: First check if CPQ base boat pricing was extracted in packagePricing.js AND user is authorized
         // Falls back to boatoptions[j].MSRP for legacy boats (which is typically 0 or null)
-        var realMSRP = (window.cpqBaseBoatMSRP && Number(window.cpqBaseBoatMSRP) > 0)
+        var realMSRP = (isCpqAuthorized && window.cpqBaseBoatMSRP && Number(window.cpqBaseBoatMSRP) > 0)
             ? window.cpqBaseBoatMSRP
             : boatoptions[j].MSRP;
 
         var hasRealMSRP = (realMSRP !== undefined && realMSRP !== null && Number(realMSRP) > 0);
 
         if (hasRealMSRP) {
-            if (window.cpqBaseBoatMSRP && Number(window.cpqBaseBoatMSRP) > 0) {
+            if (isCpqAuthorized && window.cpqBaseBoatMSRP && Number(window.cpqBaseBoatMSRP) > 0) {
                 console.log('CPQ item with real MSRP from Base Boat: ' + displayItemNo + ' = $' + realMSRP);
             } else {
                 console.log('Item with MSRP from record: ' + displayItemNo + ' = $' + realMSRP);

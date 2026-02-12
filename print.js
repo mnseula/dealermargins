@@ -37,16 +37,21 @@ total = Number(total).toFixed(2);
 
 model = getValue('BOAT_INFO', 'BOAT_REAL_MODEL');
 
+// USER AUTHORIZATION: Check if user is authorized to see CPQ boats
+var user = getValue('EOS','USER');
+var isCpqAuthorized = (user.includes('@BENNINGTONMARINE.COM') || user === 'BGIRTEN' || user === 'STHOROLD' || user === 'SFISH' || user === 'KBURCH' || user === 'BALLEN' || user === 'JROMERO' || user === 'BEN');
+
 // DEBUG: Always log these values
 console.log('===== PRINT.JS MODEL DEBUG =====');
 console.log('window.isCPQBoat:', window.isCPQBoat);
 console.log('window.realmodel:', window.realmodel);
 console.log('BOAT_INFO/BOAT_REAL_MODEL:', model);
+console.log('User authorized for CPQ:', isCpqAuthorized);
 
-// CPQ FALLBACK - Use window.realmodel for CPQ boats
+// CPQ FALLBACK - Use window.realmodel for CPQ boats (if user is authorized)
 // window.isCPQBoat is set in packagePricing.js (true when year code detection fails)
 // This is more reliable than checking if model equals 'Base Boat'
-if (window.isCPQBoat) {
+if (isCpqAuthorized && window.isCPQBoat) {
     console.log('CPQ boat detected (isCPQBoat = true) - using window.realmodel instead of BOAT_INFO');
     console.log('BOAT_INFO/BOAT_REAL_MODEL was:', model);
     model = window.realmodel;
@@ -55,7 +60,7 @@ if (window.isCPQBoat) {
 
 // CPQ boats: preserve full model name (e.g., 23ML stays 23ML)
 // Legacy boats: strip year code (e.g., 2550GBRDE becomes 2550GBR)
-if (window.isCPQBoat) {
+if (isCpqAuthorized && window.isCPQBoat) {
     shortmodel = model; // Keep full model name for CPQ boats
     console.log('CPQ boat: Using full model name:', shortmodel);
 } else {
@@ -434,8 +439,12 @@ wsContents += "    <\/div>";
 wsContents += "     <div class=\"title\" id=\"boatinfo\">BOAT INFORMATION<\/div>";
 wsContents += "    <div id=\"stockhull\">Stock #:<u>" + stockno + "<\/u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hull #: <u>"+ serial +" <\/u><\/div>";
 
-// CPQ boats: Use window.cpqLhsData if available, otherwise use legacy boatSpecs
-if (window.cpqLhsData && window.cpqLhsData.model_id) {
+// USER AUTHORIZATION: Check if user is authorized to see CPQ boats
+var user = getValue('EOS','USER');
+var isCpqAuthorized = (user.includes('@BENNINGTONMARINE.COM') || user === 'BGIRTEN' || user === 'STHOROLD' || user === 'SFISH' || user === 'KBURCH' || user === 'BALLEN' || user === 'JROMERO' || user === 'BEN');
+
+// CPQ boats: Use window.cpqLhsData if available AND user is authorized, otherwise use legacy boatSpecs
+if (isCpqAuthorized && window.cpqLhsData && window.cpqLhsData.model_id) {
     console.log('Using CPQ LHS data for specs section');
     var cpqData = window.cpqLhsData;
 
@@ -544,8 +553,8 @@ if (window.cpqLhsData && window.cpqLhsData.model_id) {
     console.log('Skipping boat specs section - no data available for this model');
 }
 
-// CPQ boats: Use window.cpqLhsData for performance specs, otherwise use legacy prfPkgs
-if (window.cpqLhsData && window.cpqLhsData.model_id) {
+// CPQ boats: Use window.cpqLhsData for performance specs if user is authorized, otherwise use legacy prfPkgs
+if (isCpqAuthorized && window.cpqLhsData && window.cpqLhsData.model_id) {
     console.log('Using CPQ LHS data for performance specs section');
     var cpqData = window.cpqLhsData;
 
@@ -629,8 +638,8 @@ if (window.cpqLhsData && window.cpqLhsData.model_id) {
 
 wsContents += "    <div class=\"title\" id=\"standardstitle\">STANDARD FEATURES<\/div>";
 
-// CPQ boats: Use window.cpqStandardFeatures if available, otherwise use legacy stds
-if (window.cpqStandardFeatures) {
+// CPQ boats: Use window.cpqStandardFeatures if user is authorized and data is available, otherwise use legacy stds
+if (isCpqAuthorized && window.cpqStandardFeatures) {
     console.log('Using CPQ standard features');
     var standardsHtml = '<br>'; // Add space before first section
 

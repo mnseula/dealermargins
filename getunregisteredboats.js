@@ -190,9 +190,13 @@ function bindSelect() {
         console.log('series', series);
         setValue('DLR', 'SERIES', series);
 
-        // Apply dealer margins - CPQ boats use separate logic
+        // USER AUTHORIZATION: Check if user is authorized to see CPQ boats
+        var user = getValue('EOS','USER');
+        var isCpqAuthorized = (user.includes('@BENNINGTONMARINE.COM') || user === 'BGIRTEN' || user === 'STHOROLD' || user === 'SFISH' || user === 'KBURCH' || user === 'BALLEN' || user === 'JROMERO' || user === 'BEN');
+
+        // Apply dealer margins - CPQ boats use separate logic (if user is authorized)
         if(previoussticker.length === 0){
-            if (window.isCPQBoat) {
+            if (isCpqAuthorized && window.isCPQBoat) {
                 console.log('CPQ boat detected - using CPQ margin logic');
                 applyDealerMarginsCPQ();
             } else {
@@ -215,8 +219,8 @@ function bindSelect() {
            Calculate2021();
        }
 
-        // CPQ FIX: For CPQ boats, use full model name. For legacy boats, strip last 2 chars (year code)
-        if (window.isCPQBoat) {
+        // CPQ FIX: For CPQ boats, use full model name (if user is authorized). For legacy boats, strip last 2 chars (year code)
+        if (isCpqAuthorized && window.isCPQBoat) {
             console.log('CPQ boat detected - using full model name:', realmodel);
             setValue('BOAT_INFO', 'BOAT_MODEL', realmodel);
 
