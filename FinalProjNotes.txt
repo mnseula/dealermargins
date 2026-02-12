@@ -1,0 +1,17 @@
+SELECT * FROM warrantyparts.SerialNumberMaster where Boat_serialNo = 'CPQTEST26'
+
+/*ProdNo can come from CO_MST.[uf_BENN_ProductionOrderNumber] where [co_num] = 'SO009xxxxxxx'
+  BenningtonOwned can come from CO_MST.[Uf_BENN_BenningtonOwned] where [co_num] = 'SO009xxxxxxx'
+  PanelColor, AccentPanel can come from coitem_mst.[Uf_BENN_PannelColor] and coitem_mst.[Uf_BENN_BaseVnyl] where co_num = 'SO009xxxxx'
+*/
+
+Action item 2: investigate the math on the selling price. When setting it to 0 margins across the board it should just be essentially adding the extsalesamount column together. Also complicating things is that the boat line is being considered twice, remove the boat item (while still keeping any engines etc)
+
+               and add the boat item serial number to the OptionSerialNo column of the "baseboat" cfg attr
+ 
+Action item 3: standard features need to pull all the features, Interior; Exterior; Console; and Warranty
+ 
+Action item 4:  boat information and performance package specs look like they might need some tweaking, use the report
+
+			    I provided as an example of what our target is for this one
+ action item 5: bring in the panel color, production number, etc (the sql code I pasted to you earlier today)
