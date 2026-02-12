@@ -38,7 +38,21 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
         var boatOptionsTable = (serialYear === 26) ? 'BoatOptions25' : 'BoatOptions' + serialYear;
         console.log('Loading from table:', boatOptionsTable, '(serialYear:', serialYear + ')');
 
-        window.boatoptions = loadByListName(boatOptionsTable, "WHERE ItemMasterMCT <> 'DIC' AND ItemMasterMCT <> 'DIF' AND ItemMasterMCT <> 'DIP' AND ItemMasterMCT <> 'DIR' AND ItemMasterMCT <> 'DIA' AND ItemMasterMCT <> 'DIW' AND ItemMasterMCT <> 'LOY' AND ItemMasterMCT <> 'PRD' AND ItemMasterMCT <> 'VOD' AND (ItemMasterMCT <> 'DIS' OR (ItemMasterMCT = 'DIS' AND ItemNo = 'NPPNPRICE16S')) AND ItemMasterMCT <> 'DIV' AND ItemMasterMCT <> 'CAS' AND ItemMasterMCT <> 'DIW' AND (ItemMasterMCT <> 'ENZ' OR (ItemMasterMCT = 'ENZ' AND ItemDesc1 LIKE '%VALUE%')) AND ItemMasterMCT <> 'SHO' AND ItemMasterMCT <> 'GRO' AND ItemMasterMCT <> 'ZZZ' AND ItemMasterMCT <> 'FRE' AND ItemMasterMCT <> 'WAR' AND ItemMasterMCT <> 'DLR' AND ItemMasterMCT <> 'FRT' AND ItemMasterProdCat <> '111' AND (InvoiceNo = '" + snmInvoiceNo + "' OR (ERP_OrderNo = '" + engineERPNo + "' AND (MCTDesc = 'ENGINES' OR MCTDesc = 'Engine' OR MCTDesc = 'ENGINES IO' OR ItemMasterMCT= 'ELU' OR ItemMasterProdCatDesc = 'EngineLowerUnit'))) AND BoatSerialNo= '" + serial + "' ORDER BY  CASE `MCTDesc` WHEN 'PONTOONS' THEN 1 WHEN 'Pontoon Boats OB' THEN 1 WHEN 'Pontoon Boats IO' THEN 1 WHEN 'Lower Unit Eng' THEN 2 WHEN 'ENGINES' THEN 3 WHEN 'Engine' THEN 3 WHEN 'Engine IO' THEN 3 WHEN 'PRE-RIG' THEN 4 WHEN 'Prerig' THEN 4 ELSE 5 END,  LineNo ASC");
+        // Build WHERE clause - if invoice is empty, just use serial number
+        var whereClause = "WHERE ItemMasterMCT <> 'DIC' AND ItemMasterMCT <> 'DIF' AND ItemMasterMCT <> 'DIP' AND ItemMasterMCT <> 'DIR' AND ItemMasterMCT <> 'DIA' AND ItemMasterMCT <> 'DIW' AND ItemMasterMCT <> 'LOY' AND ItemMasterMCT <> 'PRD' AND ItemMasterMCT <> 'VOD' AND (ItemMasterMCT <> 'DIS' OR (ItemMasterMCT = 'DIS' AND ItemNo = 'NPPNPRICE16S')) AND ItemMasterMCT <> 'DIV' AND ItemMasterMCT <> 'CAS' AND ItemMasterMCT <> 'DIW' AND (ItemMasterMCT <> 'ENZ' OR (ItemMasterMCT = 'ENZ' AND ItemDesc1 LIKE '%VALUE%')) AND ItemMasterMCT <> 'SHO' AND ItemMasterMCT <> 'GRO' AND ItemMasterMCT <> 'ZZZ' AND ItemMasterMCT <> 'FRE' AND ItemMasterMCT <> 'WAR' AND ItemMasterMCT <> 'DLR' AND ItemMasterMCT <> 'FRT' AND ItemMasterProdCat <> '111' ";
+
+        if (snmInvoiceNo && snmInvoiceNo !== '') {
+            // Has invoice - use invoice filter
+            whereClause += "AND (InvoiceNo = '" + snmInvoiceNo + "' OR (ERP_OrderNo = '" + engineERPNo + "' AND (MCTDesc = 'ENGINES' OR MCTDesc = 'Engine' OR MCTDesc = 'ENGINES IO' OR ItemMasterMCT= 'ELU' OR ItemMasterProdCatDesc = 'EngineLowerUnit'))) ";
+            console.log('Using invoice filter:', snmInvoiceNo);
+        } else {
+            // No invoice - just use serial number
+            console.log('No invoice - using serial number only');
+        }
+
+        whereClause += "AND BoatSerialNo= '" + serial + "' ORDER BY  CASE `MCTDesc` WHEN 'PONTOONS' THEN 1 WHEN 'Pontoon Boats OB' THEN 1 WHEN 'Pontoon Boats IO' THEN 1 WHEN 'Lower Unit Eng' THEN 2 WHEN 'ENGINES' THEN 3 WHEN 'Engine' THEN 3 WHEN 'Engine IO' THEN 3 WHEN 'PRE-RIG' THEN 4 WHEN 'Prerig' THEN 4 ELSE 5 END,  LineNo ASC";
+
+        window.boatoptions = loadByListName(boatOptionsTable, whereClause);
         //This new one below has invoice number filter taken out.
         // window.boatoptions2 = loadByListName('BoatOptions' + serialYear, "WHERE ItemMasterMCT <> 'DIC' AND ItemMasterMCT <> 'DIF' AND ItemMasterMCT <> 'DIP' AND ItemMasterMCT <> 'DIR' AND ItemMasterMCT <> 'DIA' AND ItemMasterMCT <> 'DIW' AND ItemMasterMCT <> 'LOY' AND ItemMasterMCT <> 'PRD' AND ItemMasterMCT <> 'VOD' AND (ItemMasterMCT <> 'DIS' OR (ItemMasterMCT = 'DIS' AND ItemNo = 'NPPNPRICE16S')) AND ItemMasterMCT <> 'DIV' AND ItemMasterMCT <> 'DIW' AND (ItemMasterMCT <> 'ENZ' OR (ItemMasterMCT = 'ENZ' AND ItemDesc1 LIKE '%VALUE%')) AND ItemMasterMCT <> 'SHO' AND ItemMasterMCT <> 'GRO' AND ItemMasterMCT <> 'ZZZ' AND ItemMasterMCT <> 'FRE' AND ItemMasterMCT <> 'WAR' AND ItemMasterMCT <> 'DLR' AND ItemMasterMCT <> 'FRT' AND ItemMasterProdCat <> '111' AND QuantitySold > 0 AND BoatSerialNo= '" + serial + "' ORDER BY  CASE `MCTDesc` WHEN 'PONTOONS' THEN 1 WHEN 'Pontoon Boats OB' THEN 1 WHEN 'Pontoon Boats IO' THEN 1 WHEN 'Lower Unit Eng' THEN 2 WHEN 'ENGINES' THEN 3 WHEN 'Engine' THEN 3 WHEN 'Engine IO' THEN 3 WHEN 'PRE-RIG' THEN 4 WHEN 'Prerig' THEN 4 ELSE 5 END,  LineNo ASC");
 
