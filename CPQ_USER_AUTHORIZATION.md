@@ -7,18 +7,13 @@
 
 ## Authorization Logic
 
-Only these users can see CPQ boats:
-- Users with `@BENNINGTONMARINE.COM` email domain
-- Specific authorized users: `BGIRTEN`, `STHOROLD`, `SFISH`, `KBURCH`, `BALLEN`, `JROMERO`, `BEN`
+Only this user can see CPQ boats:
+- **web@bennington.com** (or WEB@BENNINGTON.COM)
 
 **Authorization Check:**
 ```javascript
 var user = getValue('EOS','USER');
-var isCpqAuthorized = (user.includes('@BENNINGTONMARINE.COM') ||
-                       user === 'BGIRTEN' || user === 'STHOROLD' ||
-                       user === 'SFISH' || user === 'KBURCH' ||
-                       user === 'BALLEN' || user === 'JROMERO' ||
-                       user === 'BEN');
+var isCpqAuthorized = (user === 'WEB@BENNINGTON.COM' || user === 'web@bennington.com');
 ```
 
 ---
@@ -196,14 +191,21 @@ If issues occur, restore from these backups:
 
 ## Future Improvements
 
-When ready to enable for all users:
-1. Remove or comment out the authorization checks
-2. Change `if (isCpqAuthorized && ...)` to just `if (...)`
-3. OR expand the authorized user list to include dealers
+When ready to enable for additional users:
+1. Add more users to the authorization check
+2. OR expand to include entire domains (e.g., @BENNINGTONMARINE.COM)
+3. OR remove checks entirely to enable for all users
 
-**To add a new authorized user:**
+**To add additional authorized users:**
 ```javascript
-var isCpqAuthorized = (user.includes('@BENNINGTONMARINE.COM') ||
-                       user === 'NEWUSER' ||  // Add here
-                       user === 'BGIRTEN' || ...);
+var isCpqAuthorized = (user === 'WEB@BENNINGTON.COM' ||
+                       user === 'web@bennington.com' ||
+                       user === 'NEWUSER@EXAMPLE.COM');  // Add here
+```
+
+**To enable for entire domain:**
+```javascript
+var isCpqAuthorized = (user === 'WEB@BENNINGTON.COM' ||
+                       user === 'web@bennington.com' ||
+                       user.includes('@BENNINGTONMARINE.COM'));
 ```

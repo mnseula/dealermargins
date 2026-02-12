@@ -32,7 +32,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
 
     // USER AUTHORIZATION: Check if user is authorized to see CPQ boats
     var user = getValue('EOS','USER');
-    var isCpqAuthorized = (user.includes('@BENNINGTONMARINE.COM') || user === 'BGIRTEN' || user === 'STHOROLD' || user === 'SFISH' || user === 'KBURCH' || user === 'BALLEN' || user === 'JROMERO' || user === 'BEN');
+    var isCpqAuthorized = (user === 'WEB@BENNINGTON.COM' || user === 'web@bennington.com');
 
     $.each(boatoptions, function (j) {
         var mct = boatoptions[j].MCTDesc;
