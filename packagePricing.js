@@ -85,9 +85,11 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
                 // Leave MSRP as is for now - Calculate2021.js will need to handle this
             }
             // CASE 4: Legacy boat - no MSRP in database
+            // Don't set MSRP here - let the pricing calculation compute it from dealer cost + margins
             else if (msrp === 0 && dealerCost > 0 && !isCPQItem) {
-                item.MSRP = dealerCost;
-                console.log('    📦 Legacy item - using DealerCost as MSRP');
+                console.log('    📦 Legacy item - MSRP will be calculated from dealer cost in pricing logic');
+                // DO NOT set item.MSRP = dealerCost (was causing drastically understated prices)
+                // Leave MSRP as 0/undefined so pricing calculation handles it properly
             }
             // CASE 5: Standard feature (both zero)
             else if (msrp === 0 && dealerCost === 0) {
