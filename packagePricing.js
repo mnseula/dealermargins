@@ -171,20 +171,19 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
         console.log('Model changed to:', model);
     }
 
-    if (!hasCPQConfig && realmodel.indexOf('SFC') >= 0) {
+    if (realmodel.indexOf('SFC') >= 0) {
         console.log('SFC detected in realmodel, original:', realmodel);
         realmodel = realmodel.replace('SFC', 'SS');
         console.log('Realmodel changed to:', realmodel);
     }
-    // Map MFC to MS for LEGACY boats only (NOT CPQ boats)
-    // CPQ boats use exact model IDs from API - don't transform
-    if (!hasCPQConfig && model.indexOf('MFC') >= 0) {
+    // Map MFC to MS - removed CPQ check
+    if (model.indexOf('MFC') >= 0) {
         console.log('MFC detected in model, original:', model);
         model = model.replace('MFC', 'MS');
         console.log('Model changed to:', model);
     }
 
-    if (!hasCPQConfig && realmodel.indexOf('MFC') >= 0) {
+    if (realmodel.indexOf('MFC') >= 0) {
         console.log('MFC detected in realmodel, original:', realmodel);
         realmodel = realmodel.replace('MFC', 'MS');
         console.log('Realmodel changed to:', realmodel);
