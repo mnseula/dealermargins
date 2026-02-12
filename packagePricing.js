@@ -33,18 +33,10 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
     } else if (serialYear > 14) {
         //ZS 5.15.2024
         //Product Code is being imported as the MCT... need to adjust the filter to take both old and new "MCTs"
-        //SWITCHED TO SIMPLER QUERY - invoice number filter causing loadByListName to return 0 records
-        //TEMP FIX 2026-02-11: Using QuantitySold filter instead of invoice filter
-
-        // FIX FOR 2026 "FAKIES" - 2026-02-11
-        // 2026 boats (serialYear 26) should load from BoatOptions25 until cutover
-        var boatOptionsTable = 'BoatOptions' + serialYear;
-        if (serialYear === 26) {
-            boatOptionsTable = 'BoatOptions25';  // Use 2025 table for 2026 boats until cutover
-            console.log('2026 boat detected - loading from BoatOptions25 (fakies)');
-        }
-
-        window.boatoptions = loadByListName(boatOptionsTable, "WHERE ItemMasterMCT <> 'DIC' AND ItemMasterMCT <> 'DIF' AND ItemMasterMCT <> 'DIP' AND ItemMasterMCT <> 'DIR' AND ItemMasterMCT <> 'DIA' AND ItemMasterMCT <> 'DIW' AND ItemMasterMCT <> 'LOY' AND ItemMasterMCT <> 'PRD' AND ItemMasterMCT <> 'VOD' AND (ItemMasterMCT <> 'DIS' OR (ItemMasterMCT = 'DIS' AND ItemNo = 'NPPNPRICE16S')) AND ItemMasterMCT <> 'DIV' AND ItemMasterMCT <> 'DIW' AND (ItemMasterMCT <> 'ENZ' OR (ItemMasterMCT = 'ENZ' AND ItemDesc1 LIKE '%VALUE%')) AND ItemMasterMCT <> 'SHO' AND ItemMasterMCT <> 'GRO' AND ItemMasterMCT <> 'ZZZ' AND ItemMasterMCT <> 'FRE' AND ItemMasterMCT <> 'WAR' AND ItemMasterMCT <> 'DLR' AND ItemMasterMCT <> 'FRT' AND ItemMasterProdCat <> '111' AND QuantitySold > 0 AND BoatSerialNo= '" + serial + "' ORDER BY  CASE `MCTDesc` WHEN 'PONTOONS' THEN 1 WHEN 'Pontoon Boats OB' THEN 1 WHEN 'Pontoon Boats IO' THEN 1 WHEN 'Lower Unit Eng' THEN 2 WHEN 'ENGINES' THEN 3 WHEN 'Engine' THEN 3 WHEN 'Engine IO' THEN 3 WHEN 'PRE-RIG' THEN 4 WHEN 'Prerig' THEN 4 ELSE 5 END,  LineNo ASC");
+        //RESTORED ORIGINAL LOGIC - 2026-02-11: Back to invoice filter, use BoatOptions26 directly
+        window.boatoptions = loadByListName('BoatOptions' + serialYear, "WHERE ItemMasterMCT <> 'DIC' AND ItemMasterMCT <> 'DIF' AND ItemMasterMCT <> 'DIP' AND ItemMasterMCT <> 'DIR' AND ItemMasterMCT <> 'DIA' AND ItemMasterMCT <> 'DIW' AND ItemMasterMCT <> 'LOY' AND ItemMasterMCT <> 'PRD' AND ItemMasterMCT <> 'VOD' AND (ItemMasterMCT <> 'DIS' OR (ItemMasterMCT = 'DIS' AND ItemNo = 'NPPNPRICE16S')) AND ItemMasterMCT <> 'DIV' AND ItemMasterMCT <> 'CAS' AND ItemMasterMCT <> 'DIW' AND (ItemMasterMCT <> 'ENZ' OR (ItemMasterMCT = 'ENZ' AND ItemDesc1 LIKE '%VALUE%')) AND ItemMasterMCT <> 'SHO' AND ItemMasterMCT <> 'GRO' AND ItemMasterMCT <> 'ZZZ' AND ItemMasterMCT <> 'FRE' AND ItemMasterMCT <> 'WAR' AND ItemMasterMCT <> 'DLR' AND ItemMasterMCT <> 'FRT' AND ItemMasterProdCat <> '111' AND (InvoiceNo = '" + snmInvoiceNo + "' OR (ERP_OrderNo = '" + engineERPNo + "' AND (MCTDesc = 'ENGINES' OR MCTDesc = 'Engine' OR MCTDesc = 'ENGINES IO' OR ItemMasterMCT= 'ELU' OR ItemMasterProdCatDesc = 'EngineLowerUnit'))) AND BoatSerialNo= '" + serial + "' ORDER BY  CASE `MCTDesc` WHEN 'PONTOONS' THEN 1 WHEN 'Pontoon Boats OB' THEN 1 WHEN 'Pontoon Boats IO' THEN 1 WHEN 'Lower Unit Eng' THEN 2 WHEN 'ENGINES' THEN 3 WHEN 'Engine' THEN 3 WHEN 'Engine IO' THEN 3 WHEN 'PRE-RIG' THEN 4 WHEN 'Prerig' THEN 4 ELSE 5 END,  LineNo ASC");
+        //This new one below has invoice number filter taken out.
+        // window.boatoptions2 = loadByListName('BoatOptions' + serialYear, "WHERE ItemMasterMCT <> 'DIC' AND ItemMasterMCT <> 'DIF' AND ItemMasterMCT <> 'DIP' AND ItemMasterMCT <> 'DIR' AND ItemMasterMCT <> 'DIA' AND ItemMasterMCT <> 'DIW' AND ItemMasterMCT <> 'LOY' AND ItemMasterMCT <> 'PRD' AND ItemMasterMCT <> 'VOD' AND (ItemMasterMCT <> 'DIS' OR (ItemMasterMCT = 'DIS' AND ItemNo = 'NPPNPRICE16S')) AND ItemMasterMCT <> 'DIV' AND ItemMasterMCT <> 'DIW' AND (ItemMasterMCT <> 'ENZ' OR (ItemMasterMCT = 'ENZ' AND ItemDesc1 LIKE '%VALUE%')) AND ItemMasterMCT <> 'SHO' AND ItemMasterMCT <> 'GRO' AND ItemMasterMCT <> 'ZZZ' AND ItemMasterMCT <> 'FRE' AND ItemMasterMCT <> 'WAR' AND ItemMasterMCT <> 'DLR' AND ItemMasterMCT <> 'FRT' AND ItemMasterProdCat <> '111' AND QuantitySold > 0 AND BoatSerialNo= '" + serial + "' ORDER BY  CASE `MCTDesc` WHEN 'PONTOONS' THEN 1 WHEN 'Pontoon Boats OB' THEN 1 WHEN 'Pontoon Boats IO' THEN 1 WHEN 'Lower Unit Eng' THEN 2 WHEN 'ENGINES' THEN 3 WHEN 'Engine' THEN 3 WHEN 'Engine IO' THEN 3 WHEN 'PRE-RIG' THEN 4 WHEN 'Prerig' THEN 4 ELSE 5 END,  LineNo ASC");
 
     }
 
