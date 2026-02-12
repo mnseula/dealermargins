@@ -253,9 +253,14 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
     //Completed: SFC substitution - 188SFCSF is changed to 188SSSF, then SF->SE logic makes it 188SSSE
     window.currentmodelyear = '20' + two;
 
-
-    window.blo = loadByListName('Boats_ListOrder_20' + two, 'LIST/REALMODELNAME[= "' + realmodel + '"]');
-    console.log(blo);
+    // Try to load Boats_ListOrder, but catch errors (CPQ boats may not have this table)
+    try {
+        window.blo = loadByListName('Boats_ListOrder_20' + two, 'LIST/REALMODELNAME[= "' + realmodel + '"]');
+        console.log(blo);
+    } catch (error) {
+        console.log('Boats_ListOrder lookup failed:', error.message);
+        window.blo = [];  // Set to empty array so CPQ fallback logic can run
+    }
 
     // CPQ FALLBACK - ONLY for CPQ boats (window.isCPQBoat = true)
     // If Boats_ListOrder is empty for a CPQ boat, get SERIES from boatoptions
