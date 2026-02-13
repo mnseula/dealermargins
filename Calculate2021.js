@@ -476,9 +476,6 @@ window.Calculate2021 = window.Calculate2021 || function () {
             // CPQ boat - calculate pricing using CPQ dealer cost
             console.log("CPQ BOAT - Processing with CPQ dealer cost: $" + window.cpqBaseBoatDealerCost);
 
-            // Calculate sale price from CPQ dealer cost
-            saleprice = Number((window.cpqBaseBoatDealerCost * vol_disc) / baseboatmargin) + Number(freight) + Number(prep) + Number(additionalCharge);
-
             // Calculate MSRP from CPQ MSRP if available, otherwise calculate from dealer cost
             if (window.cpqBaseBoatMSRP && Number(window.cpqBaseBoatMSRP) > 0) {
                 msrpprice = Number(window.cpqBaseBoatMSRP);
@@ -486,6 +483,18 @@ window.Calculate2021 = window.Calculate2021 || function () {
             } else {
                 msrpprice = Number((window.cpqBaseBoatDealerCost * vol_disc) / msrpMargin) + Number(additionalCharge);
                 console.log("CPQ BOAT - Calculated MSRP from dealer cost: $" + msrpprice);
+            }
+
+            // Calculate sale price from CPQ dealer cost
+            // Special case: If margin is 0%, sale price should equal MSRP (selling at full retail)
+            if (baseboatmargin >= 0.99 && baseboatmargin <= 1.01) {
+                // 0% margin: Sale Price = MSRP + freight + prep
+                saleprice = msrpprice + Number(freight) + Number(prep) + Number(additionalCharge);
+                console.log("CPQ BOAT - 0% margin detected, Sale Price = MSRP: $" + saleprice);
+            } else {
+                // Normal margin: Calculate from dealer cost
+                saleprice = Number((window.cpqBaseBoatDealerCost * vol_disc) / baseboatmargin) + Number(freight) + Number(prep) + Number(additionalCharge);
+                console.log("CPQ BOAT - Calculated Sale Price from dealer cost: $" + saleprice);
             }
 
             setValue('DLR2', 'BOAT_SP', Math.round(saleprice));
