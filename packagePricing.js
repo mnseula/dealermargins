@@ -292,16 +292,18 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
     } else if (lasttwoletters === 'SE') {
         two = '25';
     } else if (lasttwoletters === 'SF') {
-        // Check if this is an SFC-derived boat (contains 'SS' from SFC->SS transformation)
-    //    if (realmodel.indexOf('SS') >= 0) {
-            // SFC boat: convert SF to SE and use 2025 lists (e.g., 188SSSF -> 188SSSE)
+        // Check if this is a CPQ boat (has CPQ pricing from Base Boat record)
+        // CPQ boats like "20SF" should NOT be transformed to "20SE"
+        if (window.cpqBaseBoatMSRP && window.cpqBaseBoatMSRP > 0) {
+            // CPQ boat: Don't transform, let CPQ catchall handle it
+            console.log('SF model detected but CPQ pricing found - skipping SF->SE transformation for:', realmodel);
+            // Leave two = '0' so CPQ catchall at line 311 will detect it
+        } else {
+            // Legacy SFC boat: convert SF to SE and use 2025 lists (e.g., 188SSSF -> 188SSSE)
             two = '25';
             realmodel = realmodel.substring(0, realmodel.length - 2) + 'SE';
-          //  console.log('SFC-derived SF boat converted to SE:', realmodel);
-        //} else {
-            // Regular 2026 SF boat: keep SF and use 2026 lists
-            //two = '26';
-        //}
+            console.log('Legacy SF boat converted to SE:', realmodel);
+        }
     }
 
     // CPQ CATCHALL - Added 2026-02-06
