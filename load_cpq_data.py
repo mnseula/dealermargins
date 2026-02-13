@@ -177,8 +177,9 @@ def load_model_prices_to_db(cursor, models: List[Dict]):
                    length_feet, length_str, beam_length, beam_str,
                    loa, loa_str, tube_length_str, tube_length_num,
                    deck_length_str, deck_length_num, seats, visible, image_link,
-                   has_arch, has_windshield, twin_engine, engine_configuration
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                   has_arch, has_windshield, twin_engine, engine_configuration,
+                   pontoon_gauge, fuel_capacity
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON DUPLICATE KEY UPDATE
                    series_id = VALUES(series_id),
                    floorplan_code = VALUES(floorplan_code),
@@ -200,6 +201,8 @@ def load_model_prices_to_db(cursor, models: List[Dict]):
                    has_windshield = VALUES(has_windshield),
                    twin_engine = VALUES(twin_engine),
                    engine_configuration = VALUES(engine_configuration),
+                   pontoon_gauge = VALUES(pontoon_gauge),
+                   fuel_capacity = VALUES(fuel_capacity),
                    updated_at = NOW()""",
                 (
                     model['model_id'], model['series'], model['floorplan'], model['floorplan_desc'],
@@ -209,7 +212,8 @@ def load_model_prices_to_db(cursor, models: List[Dict]):
                     model['tube_length_str'], model['tube_length_num'] if model['tube_length_num'] else None,
                     model['deck_length_str'], model['deck_length_num'] if model['deck_length_num'] else None,
                     model['seats'] if model['seats'] else None, model['visible'], model['image_link'],
-                    model['has_arch'], model['has_windshield'], model['twin_engine'], model['engine_configuration']
+                    model['has_arch'], model['has_windshield'], model['twin_engine'], model['engine_configuration'],
+                    model.get('pontoon_gauge'), model.get('fuel_capacity')
                 )
             )
 
@@ -376,6 +380,60 @@ def load_performance_to_db(cursor, series: str, perf_data: List[Dict]):
     finally:
         os.unlink(packages_csv.name)
         os.unlink(perf_csv.name)
+
+def update_models_with_performance_data(cursor, perf_data: List[Dict]):
+    """Update Models table with pontoon_gauge and fuel_capacity from base performance package"""
+    print(f"  🔄 Updating Models with base performance data...")
+    
+    # Group performance records by model_id
+    model_perf = {}
+    for record in perf_data:
+        model_id = record.get('model')
+        if not model_id:
+            continue
+        
+        if model_id not in model_perf:
+            model_perf[model_id] = []
+        model_perf[model_id].append(record)
+    
+    updated = 0
+    errors = 0
+    
+    for model_id, records in model_perf.items():
+        try:
+            # Find base package - typically the one with lowest MaxHP or "Base" in name
+            # If no "Base" package found, use the first one
+            base_record = None
+            for record in records:
+                if 'base' in record.get('perfPack', '').lower():
+                    base_record = record
+                    break
+            
+            # If no base package found, use the one with minimum MaxHP
+            if not base_record:
+                base_record = min(records, key=lambda x: x.get('MaxHP', 9999) or 9999)
+            
+            # Extract pontoon_gauge and fuel_capacity
+            pontoon_gauge = base_record.get('PontoonGauge')
+            fuel_capacity = base_record.get('FuelCapacity')
+            
+            if pontoon_gauge or fuel_capacity:
+                cursor.execute(
+                    """UPDATE Models 
+                       SET pontoon_gauge = COALESCE(%s, pontoon_gauge),
+                           fuel_capacity = COALESCE(%s, fuel_capacity),
+                           updated_at = NOW()
+                       WHERE model_id = %s""",
+                    (pontoon_gauge, fuel_capacity, model_id)
+                )
+                updated += cursor.rowcount
+        
+        except Exception as e:
+            errors += 1
+            print(f"  ⚠️  Error updating model {model_id}: {e}")
+    
+    print(f"  ✅ Updated {updated} models with performance data ({errors} errors)")
+    return updated, errors
 
 # ==================== STEP 3: STANDARD FEATURES ====================
 
@@ -769,6 +827,7 @@ def main():
         total_perf_success = 0
         total_perf_errors = 0
 
+        all_perf_data = []
         for series in unique_series:
             print(f"\n📊 Processing series: {series}")
             perf_data = fetch_performance_data(token_prd, series)
@@ -777,9 +836,17 @@ def main():
                 success, errors = load_performance_to_db(cursor, series, perf_data)
                 total_perf_success += success
                 total_perf_errors += errors
+                all_perf_data.extend(perf_data)
                 connection.commit()
 
         print(f"\n✅ Performance data loaded: {total_perf_success} records, {total_perf_errors} errors")
+
+        # Update Models with base performance data (pontoon_gauge, fuel_capacity)
+        if all_perf_data:
+            print("\n🔄 Updating Models with base performance package data...")
+            updated, perf_update_errors = update_models_with_performance_data(cursor, all_perf_data)
+            connection.commit()
+            print(f"✅ Updated {updated} models with performance specs")
 
         # STEP 3: Fetch and load standard features
         print("\n" + "=" * 80)
