@@ -510,7 +510,7 @@ def main():
         # Connect to database
         log("Connecting to database...")
         conn = mysql.connector.connect(**DB_CONFIG)
-        cursor = conn.cursor()
+        cursor = conn.cursor(buffered=True)
         log("✅ Connected to database")
 
         # Get boat information from appropriate BoatOptions table
