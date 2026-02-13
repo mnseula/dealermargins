@@ -102,14 +102,28 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
 
     // CPQ FIX: Read boat package values from DLR2 table (set by Calculate2021.js)
     // This ensures CPQ boats include the base boat cost in totals
-    var boatPackageSP = Number(getValue('DLR2', 'PKG_SALE')) || 0;
-    var boatPackageMS = Number(getValue('DLR2', 'PKG_MSRP')) || 0;
+    console.log('DEBUG: Before reading DLR2 values');
+    console.log('DEBUG: pkgrowtotal_SP from boattable loop =', pkgrowtotal_SP);
+    console.log('DEBUG: pkgrowtotal_MS from boattable loop =', pkgrowtotal_MS);
+
+    var pkgSaleRaw = getValue('DLR2', 'PKG_SALE');
+    var pkgMsrpRaw = getValue('DLR2', 'PKG_MSRP');
+    console.log('DEBUG: getValue DLR2/PKG_SALE returned:', pkgSaleRaw, 'type:', typeof pkgSaleRaw);
+    console.log('DEBUG: getValue DLR2/PKG_MSRP returned:', pkgMsrpRaw, 'type:', typeof pkgMsrpRaw);
+
+    var boatPackageSP = Number(pkgSaleRaw) || 0;
+    var boatPackageMS = Number(pkgMsrpRaw) || 0;
+    console.log('DEBUG: After Number conversion: SP =', boatPackageSP, ', MS =', boatPackageMS);
 
     if (boatPackageSP > 0 || boatPackageMS > 0) {
         console.log('CPQ BOAT - Using boat package from DLR2: SP=$' + boatPackageSP + ', MS=$' + boatPackageMS);
         // Override the row totals with values from DLR2
         pkgrowtotal_SP = boatPackageSP;
         pkgrowtotal_MS = boatPackageMS;
+        console.log('DEBUG: Set pkgrowtotal_SP =', pkgrowtotal_SP);
+        console.log('DEBUG: Set pkgrowtotal_MS =', pkgrowtotal_MS);
+    } else {
+        console.log('DEBUG: DLR2 values are 0 or undefined - using boattable totals');
     }
 
     if (removeeng === '0' && hasupgradedprerig !== '1') {
