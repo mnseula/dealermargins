@@ -132,12 +132,17 @@ def fetch_model_prices(token: str) -> List[Dict]:
                         'beam_str': custom_props.get('BeamStr', ''),
                         'loa': custom_props.get('LOA', 0),
                         'loa_str': custom_props.get('LOAStr', ''),
+                        'tube_length_str': custom_props.get('TubeLengthStr', ''),
+                        'tube_length_num': custom_props.get('TubeLengthNum', 0),
+                        'deck_length_str': custom_props.get('DeckLengthStr', ''),
+                        'deck_length_num': custom_props.get('DeckLengthNum', 0),
                         'seats': custom_props.get('Seats', 0),
                         'visible': item.get('visible', True),
                         'image_link': custom_props.get('ImageLink', ''),
                         'has_arch': custom_props.get('Arch', False),
                         'has_windshield': custom_props.get('Windshield', False),
-                        'twin_engine': custom_props.get('TwinEngine', False)
+                        'twin_engine': custom_props.get('TwinEngine', False),
+                        'engine_configuration': custom_props.get('EngineConfiguration', '')
                     })
 
         print(f"✅ Fetched {len(models)} models with pricing")
@@ -170,9 +175,10 @@ def load_model_prices_to_db(cursor, models: List[Dict]):
                 """INSERT INTO Models (
                    model_id, series_id, floorplan_code, floorplan_desc,
                    length_feet, length_str, beam_length, beam_str,
-                   loa, loa_str, seats, visible, image_link,
-                   has_arch, has_windshield, twin_engine
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                   loa, loa_str, tube_length_str, tube_length_num,
+                   deck_length_str, deck_length_num, seats, visible, image_link,
+                   has_arch, has_windshield, twin_engine, engine_configuration
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON DUPLICATE KEY UPDATE
                    series_id = VALUES(series_id),
                    floorplan_code = VALUES(floorplan_code),
@@ -183,20 +189,27 @@ def load_model_prices_to_db(cursor, models: List[Dict]):
                    beam_str = VALUES(beam_str),
                    loa = VALUES(loa),
                    loa_str = VALUES(loa_str),
+                   tube_length_str = VALUES(tube_length_str),
+                   tube_length_num = VALUES(tube_length_num),
+                   deck_length_str = VALUES(deck_length_str),
+                   deck_length_num = VALUES(deck_length_num),
                    seats = VALUES(seats),
                    visible = VALUES(visible),
                    image_link = VALUES(image_link),
                    has_arch = VALUES(has_arch),
                    has_windshield = VALUES(has_windshield),
                    twin_engine = VALUES(twin_engine),
+                   engine_configuration = VALUES(engine_configuration),
                    updated_at = NOW()""",
                 (
                     model['model_id'], model['series'], model['floorplan'], model['floorplan_desc'],
                     model['length'] if model['length'] else None, model['length_str'],
                     model['beam_length'] if model['beam_length'] else None, model['beam_str'],
                     model['loa'] if model['loa'] else None, model['loa_str'],
+                    model['tube_length_str'], model['tube_length_num'] if model['tube_length_num'] else None,
+                    model['deck_length_str'], model['deck_length_num'] if model['deck_length_num'] else None,
                     model['seats'] if model['seats'] else None, model['visible'], model['image_link'],
-                    model['has_arch'], model['has_windshield'], model['twin_engine']
+                    model['has_arch'], model['has_windshield'], model['twin_engine'], model['engine_configuration']
                 )
             )
 
