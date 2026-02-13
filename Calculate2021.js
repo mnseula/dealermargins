@@ -710,11 +710,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
                 // Now display pre-rig separately when there's no engine
                 console.log("Standalone PRE-RIG detected (no engine): $", dealercost);
 
-                // Calculate sale price from dealer cost
-                if (dealercost == 0) { saleprice = 0; }
-                else { saleprice = (Number(dealercost / optionmargin) * vol_disc); }
-
-                // CPQ MSRP Support: Use real MSRP if available
+                // CPQ MSRP Support: Get real MSRP if available (needed for 0% margin check)
                 var prerigHasRealMSRP = (boatoptions[i].MSRP !== undefined && boatoptions[i].MSRP !== null && Number(boatoptions[i].MSRP) > 0);
                 if (prerigHasRealMSRP) {
                     msrp = Number(boatoptions[i].MSRP).toFixed(2);
@@ -723,6 +719,17 @@ window.Calculate2021 = window.Calculate2021 || function () {
                     msrp = Math.round(Number((dealercost * msrpVolume * msrpLoyalty )/ msrpMargin)).toFixed(2);
                 } else {
                     msrp = Math.round(Number((dealercost * msrpVolume)/ msrpMargin)).toFixed(2);
+                }
+
+                // Calculate sale price - special case for 0% margin
+                if (optionmargin >= 0.99 && optionmargin <= 1.01) {
+                    // 0% margin: Sale Price = MSRP (selling at full retail)
+                    saleprice = Number(msrp);
+                    console.log("Standalone PRE-RIG - 0% margin detected, Sale Price = MSRP: $", saleprice);
+                } else {
+                    // Normal margin: Calculate from dealer cost
+                    if (dealercost == 0) { saleprice = 0; }
+                    else { saleprice = (Number(dealercost / optionmargin) * vol_disc); }
                 }
 
                 boattable.push({
