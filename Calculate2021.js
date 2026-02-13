@@ -79,7 +79,38 @@ window.Calculate2021 = window.Calculate2021 || function () {
         if (mctType === 'ENZ') { hasEngineDiscount = true; }
         console.log('hasEngineDiscount', hasEngineDiscount);
 
-        if (mct === 'PONTOONS') {
+        // ACTION ITEM 2 FIX: For CPQ boats, skip PONTOONS line items to prevent double-counting
+        // CPQ boats already have pricing from window.cpqBaseBoatDealerCost/MSRP set in packagePricing.js
+        var isCpqBoat = (isCpqAuthorized && window.cpqBaseBoatDealerCost && Number(window.cpqBaseBoatDealerCost) > 0);
+
+        if ((mct === 'PONTOONS' || mct === 'Pontoon Boats OB') && isCpqBoat) {
+            // CPQ boat - use CPQ base boat dealer cost instead of line item
+            console.log('CPQ BOAT - Using CPQ base boat dealer cost: $' + window.cpqBaseBoatDealerCost);
+
+            // Add CPQ base boat cost to package (only once, not for each PONTOONS line)
+            if (!window.cpqBoatAdded) {
+                var cpqDealerCost = Number(window.cpqBaseBoatDealerCost);
+                boatpackageprice = boatpackageprice + cpqDealerCost;
+                console.log('CPQ BOAT - Added base boat to boatpackageprice: $' + boatpackageprice);
+
+                // Calculate sale price for CPQ base boat
+                saleboatpackageprice += ((cpqDealerCost * vol_disc) / baseboatmargin) + Number(freight) + Number(prep) + Number(additionalCharge);
+                console.log('CPQ BOAT - Added base boat to saleboatpackageprice: $' + saleboatpackageprice);
+
+                // Set dealer cost values
+                setValue('DLR2', 'BOAT_DC', cpqDealerCost);
+                setValue('DLR2', 'BOAT_DESC', 'CPQ Base Boat');
+
+                window.cpqBoatAdded = true;  // Flag to prevent adding multiple times
+            }
+
+            // Store real MSRP for later use
+            if (hasRealMSRP) {
+                window.pontoonRealMSRP = Number(realMSRP);
+                console.log('Stored CPQ pontoon real MSRP: $' + window.pontoonRealMSRP);
+            }
+        } else if (mct === 'PONTOONS') {
+            // Legacy boat - process normally
             boatpackageprice = boatpackageprice + Number(dealercost); //dealer cost has no f & p
 
             //PACKAGE DISCOUNTS WERE RECEIVED FROM MICHAEL BLANK
@@ -438,42 +469,47 @@ window.Calculate2021 = window.Calculate2021 || function () {
         var pc = boatoptions[i].ItemMasterProdCat;
         var saleprice = 0;
 
-        if (mct == 'PONTOONS') {
-            // Detect if this is a CPQ boat (has real MSRP) or legacy boat
-            var isCPQBoat = (window.pontoonRealMSRP !== null && window.pontoonRealMSRP !== undefined);
+        // ACTION ITEM 2 FIX: Skip PONTOONS line items for CPQ boats to prevent double-counting
+        var isCpqBoat = (isCpqAuthorized && window.cpqBaseBoatDealerCost && Number(window.cpqBaseBoatDealerCost) > 0);
 
-            // MSRP: Use real MSRP from CPQ if available, otherwise calculate from dealer cost
-            if (isCPQBoat) {
+        if ((mct == 'PONTOONS' || mct == 'Pontoon Boats OB') && isCpqBoat) {
+            // CPQ boat - calculate pricing using CPQ dealer cost
+            console.log("CPQ BOAT - Processing with CPQ dealer cost: $" + window.cpqBaseBoatDealerCost);
+
+            // Calculate sale price from CPQ dealer cost
+            saleprice = Number((window.cpqBaseBoatDealerCost * vol_disc) / baseboatmargin) + Number(freight) + Number(prep) + Number(additionalCharge);
+
+            // Calculate MSRP from CPQ MSRP if available, otherwise calculate from dealer cost
+            if (window.cpqBaseBoatMSRP && Number(window.cpqBaseBoatMSRP) > 0) {
+                msrpprice = Number(window.cpqBaseBoatMSRP);
+                console.log("CPQ BOAT - Using CPQ MSRP: $" + msrpprice);
+            } else {
+                msrpprice = Number((window.cpqBaseBoatDealerCost * vol_disc) / msrpMargin) + Number(additionalCharge);
+                console.log("CPQ BOAT - Calculated MSRP from dealer cost: $" + msrpprice);
+            }
+
+            setValue('DLR2', 'BOAT_SP', Math.round(saleprice));
+            setValue('DLR2', 'BOAT_MS', Math.round(msrpprice));
+        } else if (mct == 'PONTOONS') {
+            // Legacy boat - process normally
+            // CPQ MSRP Support: Use real MSRP if available, otherwise calculate
+            if (window.pontoonRealMSRP !== null && window.pontoonRealMSRP !== undefined) {
                 msrpprice = Number(window.pontoonRealMSRP);
-                console.log("CPQ Boat - Using real MSRP from CPQ: $", msrpprice);
+                console.log("Using real MSRP from CPQ: $", msrpprice);
             } else {
                 msrpprice = Number((dealercost) * vol_disc) / msrpMargin + Number(additionalCharge);
-                console.log("Legacy Boat - Calculated MSRP from dealer cost: $", msrpprice);
+                console.log("Calculated MSRP from dealer cost: $", msrpprice);
             }
 
-            // SALE PRICE: Different formulas for CPQ vs Legacy boats
-            if (isCPQBoat) {
-                // CPQ: dealercost = base price from CPQ (before margins)
-                // Apply margin by MULTIPLYING to reduce price
-                // Example: $100k * 0.80 (20% margin) = $80k sale price
-                // If margin = 0% (baseboatmargin=1.00), sale = original CPQ price
-                saleprice = Number((dealercost * vol_disc) * baseboatmargin) + Number(freight) + Number(prep) + Number(additionalCharge);
-                console.log("CPQ Boat - Applied margin by multiplying: dealercost=" + dealercost + " * baseboatmargin=" + baseboatmargin + " = saleprice=" + Math.round(saleprice));
-            } else {
-                // Legacy: dealercost = what dealer paid (after margins already applied by Bennington)
-                // Calculate sale price by DIVIDING to work backward
-                // Example: $80k / 0.80 (20% margin) = $100k sale price
-                saleprice = Number((dealercost * vol_disc) / baseboatmargin) + Number(freight) + Number(prep) + Number(additionalCharge);
-                console.log("Legacy Boat - Applied margin by dividing: dealercost=" + dealercost + " / baseboatmargin=" + baseboatmargin + " = saleprice=" + Math.round(saleprice));
-            }
+            saleprice = Number((dealercost * vol_disc) / baseboatmargin) + Number(freight) + Number(prep) + Number(additionalCharge);
 
-            // Special handling for SV series (legacy boats only - CPQ doesn't use this)
-            if(series === 'SV' && !isCPQBoat) {
+            if(series === 'SV') {
                 saleprice = Number((dealercost * msrpVolume * msrpLoyalty) / baseboatmargin) + Number(freight) + Number(prep) + Number(additionalCharge);
-                msrpprice = saleprice;
-                console.log("SV Series special pricing applied");
+                // For SV series, only override MSRP with saleprice if we don't have real CPQ MSRP
+                if (window.pontoonRealMSRP === null || window.pontoonRealMSRP === undefined) {
+                    msrpprice = saleprice;
+                }
             }
-
             setValue('DLR2', 'BOAT_SP', Math.round(saleprice));
             setValue('DLR2', 'BOAT_MS', Math.round(msrpprice));
         }
