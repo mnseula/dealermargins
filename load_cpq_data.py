@@ -138,7 +138,7 @@ def fetch_model_prices(token: str) -> List[Dict]:
                         'deck_length_num': custom_props.get('DeckLengthNum', 0),
                         'seats': custom_props.get('Seats', 0),
                         'visible': item.get('visible', True),
-                        'image_link': custom_props.get('ImageLink', ''),
+                        'image_link': custom_props.get('ImageLinkHighRes', '') or custom_props.get('ImageLink', ''),
                         'has_arch': custom_props.get('Arch', False),
                         'has_windshield': custom_props.get('Windshield', False),
                         'twin_engine': custom_props.get('TwinEngine', False),
@@ -382,7 +382,7 @@ def load_performance_to_db(cursor, series: str, perf_data: List[Dict]):
         os.unlink(perf_csv.name)
 
 def update_models_with_performance_data(cursor, perf_data: List[Dict]):
-    """Update Models table with pontoon_gauge and fuel_capacity from base performance package"""
+    """Update Models table with pontoon_gauge, fuel_capacity, tube_length, deck_length from base performance package"""
     print(f"  🔄 Updating Models with base performance data...")
     
     # Group performance records by model_id
@@ -413,18 +413,23 @@ def update_models_with_performance_data(cursor, perf_data: List[Dict]):
             if not base_record:
                 base_record = min(records, key=lambda x: x.get('MaxHP', 9999) or 9999)
             
-            # Extract pontoon_gauge and fuel_capacity
+            # Extract all fields from performance data
             pontoon_gauge = base_record.get('PontoonGauge')
             fuel_capacity = base_record.get('FuelCapacity')
+            tube_length_str = base_record.get('TubeLengthStr')
+            deck_length_str = base_record.get('DeckLengthStr')
             
-            if pontoon_gauge or fuel_capacity:
+            # Only update if at least one field has data
+            if pontoon_gauge or fuel_capacity or tube_length_str or deck_length_str:
                 cursor.execute(
                     """UPDATE Models 
                        SET pontoon_gauge = COALESCE(%s, pontoon_gauge),
                            fuel_capacity = COALESCE(%s, fuel_capacity),
+                           tube_length_str = COALESCE(%s, tube_length_str),
+                           deck_length_str = COALESCE(%s, deck_length_str),
                            updated_at = NOW()
                        WHERE model_id = %s""",
-                    (pontoon_gauge, fuel_capacity, model_id)
+                    (pontoon_gauge, fuel_capacity, tube_length_str, deck_length_str, model_id)
                 )
                 updated += cursor.rowcount
         
