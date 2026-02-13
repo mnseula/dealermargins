@@ -233,12 +233,20 @@ def categorize_items(line_items: List) -> Dict:
     return categories
 
 def calculate_totals_with_margins(categorized: Dict, margins: Optional[Dict]) -> Tuple[Dict, Dict, Dict]:
-    """Calculate MSRP totals, dealer costs, and savings"""
+    """Calculate MSRP totals, dealer costs, and savings
+
+    IMPORTANT: Excludes BS1/BOA (boat items) to prevent double-counting.
+    Base boat MSRP comes from Models/ModelPricing tables, not from line items.
+    """
     msrp_totals = {}
     dealer_costs = {}
     savings = {}
 
     for cat, items in categorized.items():
+        # Skip boat items (BS1/BOA) - base boat already counted in Models table
+        if cat in ('BS1', 'BOA'):
+            continue
+
         msrp = sum(item[5] or 0 for item in items)
         msrp_totals[cat] = msrp
 
@@ -298,9 +306,13 @@ def print_window_sticker(boat: Dict, line_items: List, table_name: str, margins:
     print("=" * 80)
 
     for cat in sorted_cats:
+        # Skip boat items (BS1/BOA) - base boat already in Models table
+        if cat in ('BS1', 'BOA'):
+            continue
+
         items = categorized[cat]
         cat_name = CATEGORY_MAP.get(cat, {'name': cat})['name']
-        cat_msrp = msrp_totals[cat]
+        cat_msrp = msrp_totals.get(cat, 0)
 
         # Skip zero or very small amounts
         if abs(cat_msrp) < 0.01:
@@ -337,6 +349,10 @@ def print_window_sticker(boat: Dict, line_items: List, table_name: str, margins:
     total_savings = 0
 
     for cat in sorted_cats:
+        # Skip boat items (BS1/BOA) - already in Models table
+        if cat in ('BS1', 'BOA'):
+            continue
+
         cat_name = CATEGORY_MAP.get(cat, {'name': cat})['name']
         msrp = msrp_totals.get(cat, 0)
 

@@ -141,6 +141,7 @@ BEGIN
     ORDER BY sf.area, sf.sort_order;
 
     -- Result Set 4: Included Options from Sales Database (read-only)
+    -- EXCLUDES boat items (BS1/BOA) to prevent double-counting - base boat MSRP comes from Models table
     -- If identifier provided, filter to that specific boat
     -- Query production database - dynamically select BoatOptions table based on year
     -- Year 2024 → BoatOptions24, Year 2025 → BoatOptions25, Year 2026 → BoatOptions26
@@ -160,6 +161,7 @@ BEGIN
         FROM ', @table_name, '
         WHERE ItemNo IS NOT NULL
           AND ItemNo != ''''
+          AND ItemMasterProdCat NOT IN (''BS1'', ''BOA'')
           AND (
               (? IS NULL AND BoatModelNo = ?)
               OR BoatSerialNo = ?

@@ -101,9 +101,16 @@ def categorize_items(line_items: List) -> Dict:
     return categories
 
 def calculate_totals(categorized: Dict) -> Dict:
-    """Calculate totals by category"""
+    """Calculate totals by category
+
+    IMPORTANT: Excludes BS1/BOA (boat items) to prevent double-counting.
+    Base boat MSRP comes from Models/ModelPricing tables, not from line items.
+    """
     totals = {}
     for cat, items in categorized.items():
+        # Skip boat items (BS1/BOA) - base boat already counted in Models table
+        if cat in ('BS1', 'BOA'):
+            continue
         total = sum(item[5] or 0 for item in items)
         totals[cat] = total
     return totals
@@ -142,9 +149,13 @@ def print_window_sticker(boat_info: Dict, line_items: List):
     print("-" * 80)
 
     for cat in sorted_cats:
+        # Skip boat items (BS1/BOA) - base boat already in Models table
+        if cat in ('BS1', 'BOA'):
+            continue
+
         items = categorized[cat]
         cat_name = CATEGORY_MAP.get(cat, {'name': cat})['name']
-        cat_total = totals[cat]
+        cat_total = totals.get(cat, 0)
 
         if cat_total == 0:
             continue  # Skip zero-amount categories
@@ -167,16 +178,15 @@ def print_window_sticker(boat_info: Dict, line_items: List):
     print("💰 PRICING SUMMARY")
     print("=" * 80)
 
-    # Main categories
-    base_boat = totals.get('BOA', 0)
+    # Main categories (NOTE: BS1/BOA already excluded in calculate_totals)
     engine = totals.get('ENG', 0) + totals.get('ENA', 0) + totals.get('ENI', 0)
-    accessories = totals.get('ACY', 0)
+    accessories = totals.get('ACY', 0) + totals.get('ACC', 0)
     prep = totals.get('PPR', 0) + totals.get('PRE', 0)
     labor = totals.get('LAB', 0)
     wip = totals.get('WIP', 0)
 
-    print(f"\n   Base Boat Package:           ${base_boat:15,.2f}")
-    print(f"   Engine Package:              ${engine:15,.2f}")
+    # No longer showing base boat here - it comes from Models table
+    print(f"\n   Engine Package:              ${engine:15,.2f}")
     print(f"   Accessories:                 ${accessories:15,.2f}")
     if prep > 0:
         print(f"   Prep & Rigging:              ${prep:15,.2f}")
@@ -185,8 +195,8 @@ def print_window_sticker(boat_info: Dict, line_items: List):
     if wip > 0:
         print(f"   Work in Progress:            ${wip:15,.2f}")
 
-    # Other items
-    other_cats = set(totals.keys()) - {'BOA', 'ENG', 'ENA', 'ENI', 'ACY', 'PPR', 'PRE', 'LAB', 'WIP'}
+    # Other items (excluding boat items which are already filtered)
+    other_cats = set(totals.keys()) - {'ENG', 'ENA', 'ENI', 'ACY', 'ACC', 'PPR', 'PRE', 'LAB', 'WIP'}
     other_total = sum(totals.get(c, 0) for c in other_cats if totals.get(c, 0) != 0)
 
     if other_total != 0:
