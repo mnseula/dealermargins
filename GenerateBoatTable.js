@@ -175,8 +175,16 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
             '<tbody>' + '<tr>' + '<td colspan="1" style="text-align: left"><strong>Item Description</strong></td>' +
             '<td><strong>Item #</strong></td><td><strong>Qty</strong></td><td type="DC">Dealer Cost</td><td type="MS"><strong>MSRP</strong></td><td type="SP"><strong>Sale Price</strong</td></tr>' + boatrow + prerigrow + rows + '</tbody>' + '</table>';
 
-        total_SP = boatrowtotal_SP + prerigrowtotal_SP + rowstotal_SP;
-        total_MS = boatrowtotal_MS + prerigrowtotal_MS + rowstotal_MS;
+        // CPQ FIX: Use pkgrowtotal if set (CPQ boat), otherwise use boatrowtotal (legacy boat)
+        if (pkgrowtotal_SP > 0) {
+            console.log('DEBUG: Using pkgrowtotal (CPQ boat) for removed engine case');
+            total_SP = pkgrowtotal_SP + prerigrowtotal_SP + rowstotal_SP;
+            total_MS = pkgrowtotal_MS + prerigrowtotal_MS + rowstotal_MS;
+        } else {
+            console.log('DEBUG: Using boatrowtotal (legacy boat) for removed engine case');
+            total_SP = boatrowtotal_SP + prerigrowtotal_SP + rowstotal_SP;
+            total_MS = boatrowtotal_MS + prerigrowtotal_MS + rowstotal_MS;
+        }
         console.log('total_SP', total_SP);
         console.log('total_MS', total_MS);
     }
