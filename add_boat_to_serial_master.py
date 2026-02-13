@@ -21,6 +21,7 @@ Date: 2026-02-09
 
 import mysql.connector
 from mysql.connector import Error
+import pymssql
 import sys
 from datetime import datetime
 
@@ -44,12 +45,122 @@ TEST_DEALER = {
     'DealerCountry': 'US'
 }
 
+# MSSQL Configuration (Source - CSI/ERP)
+MSSQL_CONFIG = {
+    'server': 'MPL1STGSQL086.POLARISSTAGE.COM',
+    'database': 'CSISTG',
+    'user': 'svccsimarine',
+    'password': 'CNKmoFxEsXs0D9egZQXH',
+    'timeout': 300,
+    'login_timeout': 60
+}
+
 # ==================== HELPER FUNCTIONS ====================
 
 def log(message: str, level: str = "INFO"):
     """Print timestamped log message"""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{timestamp}] [{level}] {message}")
+
+def get_color_fields_from_mssql(erp_order: str) -> dict:
+    """
+    Query MSSQL for color and configuration fields.
+    Returns dict with ProdNo, BenningtonOwned, PanelColor, AccentPanel, BaseVinyl, ColorPackage, TrimAccent
+    """
+    try:
+        conn = pymssql.connect(**MSSQL_CONFIG)
+        cursor = conn.cursor(as_dict=True)
+        
+        # Query 1: Get order-level fields and BOA line fields
+        query1 = """
+        SELECT 
+            co.Uf_BENN_ProductionNumber AS ProdNo,
+            co.Uf_BENN_BenningtonOwned AS BenningtonOwned,
+            coi.Uf_BENN_PannelColor AS PanelColor,
+            coi.Uf_BENN_BaseVnyl AS BaseVinyl,
+            coi.config_id
+        FROM [CSISTG].[dbo].[co_mst] co
+        LEFT JOIN [CSISTG].[dbo].[coitem_mst] coi 
+            ON co.co_num = coi.co_num 
+            AND co.site_ref = coi.site_ref
+        LEFT JOIN [CSISTG].[dbo].[item_mst] im 
+            ON coi.item = im.item 
+            AND coi.site_ref = im.site_ref
+        WHERE co.co_num = %s
+            AND co.site_ref = 'BENN'
+            AND im.Uf_BENN_MaterialCostType = 'BOA'
+        """
+        
+        cursor.execute(query1, (erp_order,))
+        result1 = cursor.fetchone()
+        
+        color_data = {
+            'ProdNo': None,
+            'BenningtonOwned': None,
+            'PanelColor': None,
+            'AccentPanel': None,
+            'BaseVinyl': None,
+            'ColorPackage': None,
+            'TrimAccent': None
+        }
+        
+        if result1:
+            color_data['ProdNo'] = result1.get('ProdNo')
+            color_data['BenningtonOwned'] = result1.get('BenningtonOwned')
+            color_data['PanelColor'] = result1.get('PanelColor')
+            color_data['BaseVinyl'] = result1.get('BaseVinyl')
+            config_id = result1.get('config_id')
+            
+            # Query 2: Get config attributes for color fields
+            if config_id:
+                query2 = """
+                SELECT 
+                    attr_name,
+                    attr_value
+                FROM [CSISTG].[dbo].[cfg_attr_mst]
+                WHERE config_id = %s
+                    AND site_ref = 'BENN'
+                    AND attr_value IS NOT NULL 
+                    AND attr_value != ''
+                    AND (
+                        attr_name LIKE '%Accent Panel%'
+                        OR attr_name LIKE '%Color Package%'
+                        OR attr_name LIKE '%Trim Accent%'
+                        OR attr_name = 'PANEL COLOR'
+                    )
+                """
+                cursor.execute(query2, (config_id,))
+                config_results = cursor.fetchall()
+                
+                for row in config_results:
+                    attr_name = row.get('attr_name', '').upper()
+                    attr_value = row.get('attr_value')
+                    
+                    if 'ACCENT PANEL COLOR' in attr_name:
+                        color_data['AccentPanel'] = attr_value
+                    elif 'EXTERIOR COLOR PACKAGES' in attr_name or 'COLOR PACKAGE' in attr_name:
+                        color_data['ColorPackage'] = attr_value
+                    elif 'TRIM ACCENTS' in attr_name:
+                        color_data['TrimAccent'] = attr_value
+                    elif attr_name == 'PANEL COLOR' and not color_data['PanelColor']:
+                        color_data['PanelColor'] = attr_value
+        
+        cursor.close()
+        conn.close()
+        
+        return color_data
+        
+    except Exception as e:
+        log(f"⚠️  Could not fetch color fields from MSSQL: {e}", "WARNING")
+        return {
+            'ProdNo': None,
+            'BenningtonOwned': None,
+            'PanelColor': None,
+            'AccentPanel': None,
+            'BaseVinyl': None,
+            'ColorPackage': None,
+            'TrimAccent': None
+        }
 
 def get_table_name_from_hull(hull_number: str) -> str:
     """
@@ -293,9 +404,16 @@ def insert_serial_number_master(cursor, boat_info: dict) -> bool:
             DealerZip,
             DealerCountry,
             WebOrderNo,
-            Active
+            Active,
+            ProdNo,
+            BenningtonOwned,
+            PanelColor,
+            AccentPanel,
+            BaseVinyl,
+            ColorPackage,
+            TrimAccent
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
 
     values = (
@@ -315,7 +433,14 @@ def insert_serial_number_master(cursor, boat_info: dict) -> bool:
         TEST_DEALER['DealerZip'],          # DealerZip
         TEST_DEALER['DealerCountry'],      # DealerCountry
         boat_info['web_order_no'],         # WebOrderNo
-        0                                   # Active (0 = unregistered)
+        0,                                  # Active (0 = unregistered)
+        boat_info.get('ProdNo'),           # ProdNo
+        boat_info.get('BenningtonOwned'),  # BenningtonOwned
+        boat_info.get('PanelColor'),       # PanelColor
+        boat_info.get('AccentPanel'),      # AccentPanel
+        boat_info.get('BaseVinyl'),        # BaseVinyl
+        boat_info.get('ColorPackage'),     # ColorPackage
+        boat_info.get('TrimAccent')        # TrimAccent
     )
 
     try:
@@ -406,6 +531,18 @@ def main():
         log(f"   Invoice: {boat_info['invoice_no']}")
         log(f"   Invoice Date: {boat_info['invoice_date']}")
 
+        # Fetch color and config fields from MSSQL
+        log("Fetching color and configuration fields from MSSQL...")
+        color_fields = get_color_fields_from_mssql(erp_order)
+        boat_info.update(color_fields)
+        
+        if color_fields['PanelColor']:
+            log(f"   PanelColor: {color_fields['PanelColor']}")
+        if color_fields['AccentPanel']:
+            log(f"   AccentPanel: {color_fields['AccentPanel']}")
+        if color_fields['BaseVinyl']:
+            log(f"   BaseVinyl: {color_fields['BaseVinyl']}")
+
         # Check if boat already exists
         log("Checking if boat already exists...")
         in_master, in_status = check_if_exists(cursor, hull_number)
@@ -470,6 +607,18 @@ def main():
         print(f"Dealer:            {TEST_DEALER['DealerNumber']} ({TEST_DEALER['DealerName']})")
         print(f"Active:            {master_row[0] if master_row else 'N/A'} (0 = unregistered)")
         print(f"Registered:        {status_row[0] if status_row else 'N/A'} (0 = not sold)")
+        if boat_info.get('PanelColor') or boat_info.get('AccentPanel') or boat_info.get('BaseVinyl'):
+            print("\nColor/Configuration Fields:")
+            if boat_info.get('PanelColor'):
+                print(f"  PanelColor:      {boat_info['PanelColor']}")
+            if boat_info.get('AccentPanel'):
+                print(f"  AccentPanel:     {boat_info['AccentPanel']}")
+            if boat_info.get('BaseVinyl'):
+                print(f"  BaseVinyl:       {boat_info['BaseVinyl']}")
+            if boat_info.get('ColorPackage'):
+                print(f"  ColorPackage:    {boat_info['ColorPackage']}")
+            if boat_info.get('TrimAccent'):
+                print(f"  TrimAccent:      {boat_info['TrimAccent']}")
         print("\nUnregistered Invoiced Boat Status:")
         print(f"  ✅ InvoiceNo IS NOT NULL: {boat_info['invoice_no']}")
         print(f"  ✅ Active = 0: {master_row[0] == 0 if master_row else False}")
