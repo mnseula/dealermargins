@@ -1,6 +1,6 @@
 # Complete Workflow: From Invoiced Boat to Window Sticker
 
-**Last Updated:** 2026-02-09
+**Last Updated:** 2026-02-10
 **Purpose:** Step-by-step guide to get an invoiced boat from ERP into the window sticker system
 
 ---
@@ -8,10 +8,10 @@
 ## Table of Contents
 1. [Overview](#overview)
 2. [Prerequisites](#prerequisites)
-3. [Step 1: Import Boats from ERP](#step-1-import-boats-from-erp)
-4. [Step 2: Sync CPQ Data (if needed)](#step-2-sync-cpq-data-if-needed)
-5. [Step 3: Add Boats to SerialNumberMaster](#step-3-add-boats-to-serialnumbermaster)
-6. [Step 4: Generate Window Sticker](#step-4-generate-window-sticker)
+3. [Before You Start](#before-you-start)
+4. [Step 1: Import Boats from ERP](#step-1-import-boats-from-erp)
+5. [Step 2: Add Boats to SerialNumberMaster](#step-2-add-boats-to-serialnumbermaster)
+6. [Step 3: Generate Window Sticker](#step-3-generate-window-sticker)
 7. [Troubleshooting](#troubleshooting)
 8. [Technical Details](#technical-details)
 
@@ -23,7 +23,7 @@
 ```
 ERP (MSSQL)
     ↓ [import_boatoptions_production.py]
-BoatOptions26 (MySQL)
+BoatOptions[YY] (MySQL)
     ↓ [add_boat_to_serial_master.py]
 SerialNumberMaster + SerialNumberRegistrationStatus
     ↓ [User selects boat in UI]
@@ -32,10 +32,10 @@ Window Sticker (queries warrantyparts_test for CPQ data)
 
 ### Key Databases
 - **ERP (MSSQL):** Source of truth for invoiced boats
-- **warrantyparts.BoatOptions26:** Imported boat line items
+- **warrantyparts.BoatOptions[YY]:** Imported boat line items (e.g., BoatOptions26 for 2026 models)
 - **warrantyparts.SerialNumberMaster:** Boat master records
 - **warrantyparts.SerialNumberRegistrationStatus:** Registration status
-- **warrantyparts_test:** CPQ catalog data (models, features, specs)
+- **warrantyparts_test:** CPQ catalog data (models, features, specs) - loaded once from APIs
 
 ---
 
@@ -56,33 +56,64 @@ Window Sticker (queries warrantyparts_test for CPQ data)
 
 ---
 
+## Before You Start
+
+### ⚠️ Production Warning
+The import script modifies **PRODUCTION DATA** in the `warrantyparts` database. Verify before running:
+
+```bash
+# Test ERP connectivity first
+python3 -c "import pymssql; print('✅ MSSQL driver available')"
+
+# Test MySQL connectivity
+python3 -c "import mysql.connector; print('✅ MySQL driver available')"
+```
+
+### Pre-Flight Checklist
+- [ ] ERP (MSSQL) is accessible
+- [ ] MySQL RDS is accessible  
+- [ ] Boats have been invoiced in ERP (have InvoiceNo)
+- [ ] You know the target date range (default: 2025-12-14 onwards)
+- [ ] CPQ catalog data exists in `warrantyparts_test` (run `load_cpq_data.py` if first time)
+
+### Data Routing
+The import script automatically routes boats to year-specific tables based on serial number:
+- Serial ending in "25" → BoatOptions25
+- Serial ending in "26" → BoatOptions26
+- Serial ending in "24" → BoatOptions24
+- Pre-2015 boats are excluded (no CPQ support)
+
+---
+
 ## Step 1: Import Boats from ERP
 
 ### What This Does
 Imports invoiced boats from ERP into `BoatOptions26` table.
 
 ### When to Run
-- After boats are invoiced in ERP (typically after a certain date)
-- For our example: Import boats from December 15, 2025 onwards
+- After boats are invoiced in ERP
+- Import boats from **2025-12-14 onwards** (CPQ go-live date)
+- Can be re-run safely (upserts existing records)
 
 ### Command
 ```bash
-python import_boatoptions_production.py
+python3 import_boatoptions_production.py
 ```
 
 ### What It Does
-1. Connects to ERP (MSSQL) and queries invoiced orders
-2. Filters boats from 2015+ (year 15+) to avoid old tables without CPQ columns
-3. Extracts boat line items + CPQ configuration attributes
-4. Routes to correct table based on model year (BoatOptions26 for 2026 boats)
-5. Inserts all line items into MySQL
+1. Connects to ERP (MSSQL) and queries invoiced orders from 2025-12-14 onwards
+2. Extracts **TWO types of data**:
+   - **Part 1:** Main order lines (boat, engine, prerigs, accessories)
+   - **Part 2:** CPQ configuration attributes from `cfg_attr_mst` (Base Boat, Pre-Rig, Accessories, Standard Features)
+3. Classifies each row: PONTOONS, PRE-RIG, ACCESSORIES, or STANDARD FEATURES
+4. Routes to correct year table based on serial number suffix:
+   - ETWINVTEST012**6** → BoatOptions26
+   - ETWINVTEST012**5** → BoatOptions25
+5. **Upserts** all line items using `ON DUPLICATE KEY UPDATE`
 
-### Configuration in Script
+### Important: 2015+ Filter
 ```python
-# Date filter (line ~34)
-AND co.order_date >= '2025-12-14'
-
-# Year filter (lines 208, 306) - Only 2015+ boats
+# Script filters out pre-2015 boats (no CPQ columns in old tables)
 AND TRY_CAST(RIGHT(COALESCE(...BoatSerialNumber), 2) AS INT) >= 15
 ```
 
@@ -90,7 +121,8 @@ AND TRY_CAST(RIGHT(COALESCE(...BoatSerialNumber), 2) AS INT) >= 15
 ```
 Extracted: 302 rows from MSSQL
 Breakdown by table:
-  BoatOptions26: 302 rows
+  BoatOptions25: 150 rows
+  BoatOptions26: 152 rows
 
 CPQ orders: 182
 Non-CPQ orders: 120
@@ -104,66 +136,23 @@ Non-CPQ orders: 120
 SELECT * FROM warrantyparts.BoatOptions26
 WHERE BoatSerialNo = 'ETWINVTEST0126';
 
--- Should show ~58 rows (boat + engine + accessories + config attributes)
+-- Should show ~58 rows:
+--   1 boat line (Base Boat)
+--   1 engine line
+--   ~10 accessories/prerigs
+--   ~45 CPQ config attributes (with CfgName, CfgPage, etc.)
+
+-- Check CPQ metadata exists
+SELECT CfgName, CfgPage, CfgScreen, ItemDesc1 
+FROM warrantyparts.BoatOptions26 
+WHERE BoatSerialNo = 'ETWINVTEST0126' 
+  AND CfgName IS NOT NULL
+LIMIT 5;
 ```
 
 ---
 
-## Step 2: Sync CPQ Data (if needed)
-
-### What This Does
-Loads CPQ catalog data (models, features, specs) from Infor CPQ APIs into `warrantyparts_test`.
-
-### When to Run
-- **First time setup:** Yes, run this
-- **New model year:** Yes, when new models are released
-- **Regular imports:** Usually NOT needed (catalog doesn't change often)
-- **New models added to CPQ:** Yes, to get latest catalog
-
-### Command
-```bash
-python3 load_cpq_data.py
-```
-
-### What It Loads
-1. **Models** - All boat models (22SFC, 23ML, 25QXFBWA, etc.)
-2. **StandardFeatures** - All standard features master list
-3. **ModelStandardFeatures** - Which features go with which models (by year)
-4. **ModelPerformance** - Performance specs (HP, weight, capacity, etc.)
-5. **PerformancePackages** - Performance package definitions
-6. **Dealers** - Dealer information
-7. **DealerMargins** - Margin percentages
-
-### Expected Output
-```
-Models: Loaded 283 models
-Standard Features: Loaded 2475 features
-Model Standard Features: Loaded 15000+ mappings
-Performance Data: Loaded 1200+ records
-✅ All data loaded successfully
-```
-
-### Verification
-```sql
--- Check if your models exist
-SELECT * FROM warrantyparts_test.Models
-WHERE model_id IN ('22SFC', '23ML');
-
--- Check standard features for a model
-SELECT COUNT(*) FROM warrantyparts_test.ModelStandardFeatures
-WHERE model_id = '22SFC' AND year = 2025;
--- Should show 51 features for 22SFC
-```
-
-### Important Notes
-- **CPQ APIs are the source of truth** - All model data comes from APIs
-- **warrantyparts_test stores the data** - For fast local queries
-- **Window stickers query warrantyparts_test** - Not the APIs directly
-- **Eos sync is for legacy boats only** - CPQ boats don't need it
-
----
-
-## Step 3: Add Boats to SerialNumberMaster
+## Step 2: Add Boats to SerialNumberMaster
 
 ### What This Does
 Adds boat records to SerialNumberMaster and SerialNumberRegistrationStatus so they appear in the dealer's boat list.
@@ -246,7 +235,32 @@ All manually added boats use **dealer 50 (PONTOON BOAT, LLC)** to:
 
 ---
 
-## Step 4: Generate Window Sticker
+### CPQ Catalog Data (Reference)
+
+**Note:** This data should already exist in `warrantyparts_test`. Only run if setting up a new environment.
+
+```bash
+# Load CPQ catalog from APIs (one-time setup)
+python3 load_cpq_data.py
+```
+
+**What it loads:**
+- **Models** - All boat models (283 models)
+- **StandardFeatures** - Master feature list (2,475 features)
+- **ModelStandardFeatures** - Model × feature mappings by year
+- **ModelPerformance** - Performance specs
+- **PerformancePackages** - Package definitions
+
+**When to run:**
+- First-time environment setup
+- New model year released
+- New models added to CPQ
+
+**NOT needed for regular boat imports** - Catalog data doesn't change often.
+
+---
+
+## Step 3: Generate Window Sticker
 
 ### Access the System
 1. Open the window sticker application in your browser
@@ -369,6 +383,36 @@ WHERE sm.Boat_SerialNo = 'YOURBOAT';
 
 ---
 
+### Issue: Need to re-import or update boat data
+
+**Symptom:**
+- Boat data is incomplete or incorrect
+- Missing line items
+- Wrong pricing
+
+**Solution:**
+The import script uses `ON DUPLICATE KEY UPDATE`, so it's safe to re-run:
+
+```bash
+python3 import_boatoptions_production.py
+```
+
+This will:
+- Update existing records with latest ERP data
+- Insert any missing records
+- Preserve SerialNumberMaster entries (separate table)
+
+**Verify update:**
+```sql
+-- Check row counts before/after
+SELECT BoatSerialNo, COUNT(*) as rows, MAX(order_date) as last_update
+FROM warrantyparts.BoatOptions26
+WHERE BoatSerialNo = 'YOURBOAT'
+GROUP BY BoatSerialNo;
+```
+
+---
+
 ### Issue: Standard features are missing
 
 **Symptoms:**
@@ -412,6 +456,37 @@ WHERE model_id = '22SFC' AND year = 2025;
 **4. BoatModelNo is NULL**
 - Should be set during import
 - If NULL, update: `UPDATE BoatOptions26 SET BoatModelNo = '22SFC' WHERE BoatSerialNo = 'YOURBOAT'`
+
+---
+
+### Issue: Boat shows fewer than 58 rows
+
+**Expected breakdown per boat:**
+- 1 boat line (Base Boat configuration)
+- 1 engine line
+- ~10 accessories/prerig items
+- ~45 CPQ configuration attributes (CfgName, CfgPage, etc.)
+- **Total: ~58 rows**
+
+**If count is low:**
+```sql
+-- Check what's missing
+SELECT 
+    CASE 
+        WHEN ItemMasterMCT = 'BOA' THEN 'Boat'
+        WHEN ItemMasterMCT = 'ENG' THEN 'Engine'
+        WHEN ItemMasterMCT = 'PRE' THEN 'Pre-Rig'
+        WHEN ItemMasterMCT = 'ACC' THEN 'Accessory'
+        WHEN CfgName IS NOT NULL THEN 'CPQ Attribute'
+        ELSE 'Other'
+    END as item_type,
+    COUNT(*) as count
+FROM warrantyparts.BoatOptions26
+WHERE BoatSerialNo = 'YOURBOAT'
+GROUP BY item_type;
+```
+
+**Missing CPQ attributes?** Check if `cfg_attr_mst` has data in ERP for that order.
 
 ---
 
@@ -491,10 +566,9 @@ This identifies boats that are:
 ### Important Files
 
 #### Python Scripts
-- `import_boatoptions_production.py` - Import boats from ERP
+- `import_boatoptions_production.py` - Import boats from ERP (production)
 - `add_boat_to_serial_master.py` - Add to SerialNumberMaster
-- `load_cpq_data.py` - Load CPQ catalog from APIs
-- `sync_cpq_to_eos.py` - Sync to Eos (legacy only, NOT needed for CPQ)
+- `load_cpq_data.py` - Load CPQ catalog from APIs (one-time setup)
 
 #### JavaScript Files
 - `getunregisteredboats.js` - Loads boat when selected
@@ -537,9 +611,9 @@ This identifies boats that are:
 │                    INFOR CPQ APIs                            │
 │  (Source of Truth for Models, Features, Specs)              │
 └─────────────────────┬───────────────────────────────────────┘
-                      │
-                      │ load_cpq_data.py (when catalog changes)
-                      ▼
+                       │
+                       │ load_cpq_data.py (one-time setup)
+                       ▼
 ┌─────────────────────────────────────────────────────────────┐
 │              warrantyparts_test Database                     │
 │  • Models                                                    │
@@ -548,13 +622,14 @@ This identifies boats that are:
 │  • ModelPerformance                                          │
 │  • PerformancePackages                                       │
 └─────────────────────┬───────────────────────────────────────┘
-                      │
-                      │ GET_CPQ_* stored procedures
-                      │
+                       │
+                       │ GET_CPQ_* stored procedures
+                       │
 ┌─────────────────────┴───────────────────────────────────────┐
 │                                                              │
-│  ERP (MSSQL)        ──import──>    BoatOptions26            │
+│  ERP (MSSQL)        ──import──>    BoatOptions[YY]          │
 │  Invoiced Boats                    (warrantyparts)          │
+│                                    Year-specific tables      │
 │                                           │                  │
 │                                           │ add_boat script  │
 │                                           ▼                  │
@@ -598,20 +673,31 @@ This identifies boats that are:
 
 ## Quick Reference Commands
 
-### Import New Boats
+### Import New Boats (Production)
 ```bash
 cd /path/to/scripts
-python import_boatoptions_production.py
+python3 import_boatoptions_production.py
 ```
 
-### Add Boat to System
+### Add Single Boat to System
 ```bash
 python3 add_boat_to_serial_master.py <HULL_NUMBER> <ERP_ORDER>
 ```
 
-### Refresh CPQ Catalog (rare)
-```bash
-python3 load_cpq_data.py
+### Check Import Status
+```sql
+-- See recently imported boats
+SELECT BoatSerialNo, BoatModelNo, InvoiceNo, COUNT(*) as row_count
+FROM warrantyparts.BoatOptions26
+GROUP BY BoatSerialNo, BoatModelNo, InvoiceNo
+ORDER BY MAX(order_date) DESC
+LIMIT 10;
+
+-- Check CPQ attributes were imported
+SELECT BoatSerialNo, COUNT(*) as cpq_rows
+FROM warrantyparts.BoatOptions26
+WHERE CfgName IS NOT NULL
+GROUP BY BoatSerialNo;
 ```
 
 ### Check Boat Status
@@ -636,20 +722,28 @@ FROM warrantyparts_test.ModelStandardFeatures
 WHERE model_id = '22SFC' AND year = 2025;
 ```
 
+### Load CPQ Catalog (First Time Only)
+```bash
+python3 load_cpq_data.py
+```
+
 ---
 
 ## Summary
 
 **The Complete Process:**
-1. ✅ Import boats from ERP → BoatOptions26
-2. ✅ Ensure CPQ catalog is loaded → warrantyparts_test
-3. ✅ Add boats to SerialNumberMaster (dealer 50, Active=0)
-4. ✅ Add boats to SerialNumberRegistrationStatus (Registered=0)
-5. ✅ Select dealer 50 in UI
-6. ✅ Select boat from list
-7. ✅ Print window sticker with all features!
+1. ✅ Import boats from ERP → BoatOptions[YY] (year-specific tables)
+2. ✅ Add boats to SerialNumberMaster (dealer 50, Active=0)
+3. ✅ Add boats to SerialNumberRegistrationStatus (Registered=0)
+4. ✅ Select dealer 50 in UI
+5. ✅ Select boat from list
+6. ✅ Print window sticker with all features!
 
 **Remember:**
+- Import uses **production** `warrantyparts` database (not test)
+- Script **upserts** - safe to re-run, updates existing records
+- Routes to year tables automatically (25→BoatOptions25, 26→BoatOptions26)
+- Imports **~58 rows per boat** (1 boat + 1 engine + ~10 accessories + ~45 CPQ attributes)
 - CPQ boats use **exact model IDs** from API (don't transform!)
 - CPQ data comes from **warrantyparts_test** (not Eos)
 - Test boats always use **dealer 50**
@@ -660,6 +754,6 @@ WHERE model_id = '22SFC' AND year = 2025;
 
 ---
 
-**Last Updated:** 2026-02-09
+**Last Updated:** 2026-02-10
 **Maintained By:** Bennington Marine IT
 **Questions?** Check CLAUDE.md or UNREGISTERED_INVOICED_BOATS_GUIDE.md
