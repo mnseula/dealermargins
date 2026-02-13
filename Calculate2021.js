@@ -704,6 +704,38 @@ window.Calculate2021 = window.Calculate2021 || function () {
                     'MSRP': msrp,
                     'Increment': '1'
                 });
+            } else if (dealercost > 0) {
+                // FIX: Handle standalone pre-rig (pre-rig without engine)
+                // Previously, pre-rig only showed when packaged with engine (showpkgline == '1')
+                // Now display pre-rig separately when there's no engine
+                console.log("Standalone PRE-RIG detected (no engine): $", dealercost);
+
+                // Calculate sale price from dealer cost
+                if (dealercost == 0) { saleprice = 0; }
+                else { saleprice = (Number(dealercost / optionmargin) * vol_disc); }
+
+                // CPQ MSRP Support: Use real MSRP if available
+                var prerigHasRealMSRP = (boatoptions[i].MSRP !== undefined && boatoptions[i].MSRP !== null && Number(boatoptions[i].MSRP) > 0);
+                if (prerigHasRealMSRP) {
+                    msrp = Number(boatoptions[i].MSRP).toFixed(2);
+                    console.log("Using real MSRP from CPQ for standalone prerig: $", msrp);
+                } else if(series === 'SV') {
+                    msrp = Math.round(Number((dealercost * msrpVolume * msrpLoyalty )/ msrpMargin)).toFixed(2);
+                } else {
+                    msrp = Math.round(Number((dealercost * msrpVolume)/ msrpMargin)).toFixed(2);
+                }
+
+                boattable.push({
+                    'ItemDesc1': itemdesc,
+                    'ItemNo': displayItemNo, // Use ItemDesc1 for display
+                    'Qty': qty,
+                    'MCT': mct,
+                    'PC': pc,
+                    'DealerCost': dealercost,
+                    'SalePrice': Math.round(saleprice),
+                    'MSRP': msrp,
+                    'Increment': '0'  // Not part of package, display separately
+                });
             }
         }
 
