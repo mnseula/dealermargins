@@ -337,7 +337,16 @@ window.Calculate2021 = window.Calculate2021 || function () {
             if ((defaultprerigprice === undefined || defaultprerigprice === false) && hasengine === '1') { window.defaultengineprice = getEngineInfo(window.engineitemno, engproductid) };
             window.prerigincrement = prerigonboatprice - defaultprerigprice;
 
-            setValue('DLR2', 'PRERIG_FULL_W_MARGIN_SALE', Math.round(prerigonboatprice / optionmargin) * vol_disc);
+            // Special case: If option margin is 0%, use MSRP pricing
+            if (optionmargin >= 0.99 && optionmargin <= 1.01) {
+                // 0% margin: prerig sale price = prerig MSRP
+                var prerigMSRP = serialYear < 20 ?
+                    Math.round(prerigonboatprice / msrpMargin) :
+                    Math.round(prerigonboatprice / msrpMargin) * vol_disc;
+                setValue('DLR2', 'PRERIG_FULL_W_MARGIN_SALE', prerigMSRP);
+            } else {
+                setValue('DLR2', 'PRERIG_FULL_W_MARGIN_SALE', Math.round(prerigonboatprice / optionmargin) * vol_disc);
+            }
 
             if (serialYear < 20) {
                 setValue('DLR2', 'PRERIG_FULL_W_MARGIN_MSRP', Math.round(prerigonboatprice / msrpMargin));
@@ -346,14 +355,24 @@ window.Calculate2021 = window.Calculate2021 || function () {
                 setValue('DLR2', 'PRERIG_FULL_W_MARGIN_MSRP', Math.round(prerigonboatprice / msrpMargin) * vol_disc);
             }
 
-            defaultprerigsp = (defaultprerigprice / optionmargin) * vol_disc;
+            // Special case: If option margin is 0%, use MSRP pricing
+            if (optionmargin >= 0.99 && optionmargin <= 1.01) {
+                defaultprerigsp = (defaultprerigprice / msrpMargin) * vol_disc;  // Use MSRP margin instead
+            } else {
+                defaultprerigsp = (defaultprerigprice / optionmargin) * vol_disc;
+            }
             defaultprerigprice = getValue('DLR2', 'DEF_PRERIG_COST');
 
             if (prodCategory != 'PL1' && prodCategory != 'PL2' && prodCategory != 'PL3' && prodCategory != 'PL4' && prodCategory != 'PL5' && prodCategory != 'PL6') {
                 boatpackageprice = boatpackageprice + Number(defaultprerigprice);
             }
 
-            prerigsp = (Number(prerigincrement) / optionmargin) * vol_disc;
+            // Special case: If option margin is 0%, use MSRP pricing
+            if (optionmargin >= 0.99 && optionmargin <= 1.01) {
+                prerigsp = (Number(prerigincrement) / msrpMargin) * vol_disc;  // Use MSRP margin instead
+            } else {
+                prerigsp = (Number(prerigincrement) / optionmargin) * vol_disc;
+            }
 
             if (prodCategory != 'PL1' && prodCategory != 'PL2' && prodCategory != 'PL3' && prodCategory != 'PL4' && prodCategory != 'PL5' && prodCategory != 'PL6') {
                 saleboatpackageprice = saleboatpackageprice + defaultprerigsp;
@@ -526,7 +545,14 @@ window.Calculate2021 = window.Calculate2021 || function () {
 
             // Calculate sale price
             if (dealercost > 0) {
-                saleprice = (Number(dealercost / optionmargin) * vol_disc);
+                // Special case: If option margin is 0%, need to use MSRP (calculated below)
+                // This will be overridden after MSRP is determined
+                if (optionmargin >= 0.99 && optionmargin <= 1.01) {
+                    // Temporarily use dealercost, will be replaced with MSRP below
+                    saleprice = Number(dealercost);
+                } else {
+                    saleprice = (Number(dealercost / optionmargin) * vol_disc);
+                }
             } else {
                 saleprice = Number(dealercost);
             }
@@ -544,6 +570,11 @@ window.Calculate2021 = window.Calculate2021 || function () {
             if (series == 'SV' && !itemHasRealMSRP) {
                 msrpprice = Number(msrpprice * msrpLoyalty);
                 saleprice = msrpprice;
+            }
+
+            // Special case: If option margin is 0%, sale price should equal MSRP
+            if (optionmargin >= 0.99 && optionmargin <= 1.01 && dealercost > 0) {
+                saleprice = msrpprice;  // 0% margin: use MSRP
             }
 
             // Handle zero dealer cost edge case
