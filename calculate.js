@@ -612,10 +612,12 @@ window.Calculate2021 = window.Calculate2021 || function () {
             else if (mctType === 'DIS' || mctType === 'DIV') {
             } else if ((mct === 'PONTOONS' || mct === 'Pontoon Boats OB') && isCpqBoat) {
                 // CPQ BOAT: Add PONTOONS items to boattable for display (totals come from DLR2, not boattable)
-                // Only add if item has non-zero MSRP from database to avoid duplicate/placeholder entries
-                var itemMSRP = boatoptions[j].MSRP || 0;
-                if (Number(itemMSRP) > 0) {
-                    console.log("CPQ BOAT - Adding base boat to boattable for display: " + itemdesc + " MSRP: $" + itemMSRP);
+                // Only show "Pontoon Boats OB" item (has descriptive name like "22 M SWINGBACK")
+                // Use CPQ MSRP from window.cpqBaseBoatMSRP instead of database MSRP (which may be $0)
+                if (mct === 'Pontoon Boats OB') {
+                    var displayMSRP = window.cpqBaseBoatMSRP || boatoptions[j].MSRP || 0;
+                    var displaySale = Math.round(saleprice).toFixed(2);
+                    console.log("CPQ BOAT - Adding base boat to boattable for display: " + itemdesc + " MSRP: $" + displayMSRP);
                     boattable.push({
                         'ItemDesc1': itemdesc,
                         'ItemNo': displayItemNo,
@@ -623,11 +625,11 @@ window.Calculate2021 = window.Calculate2021 || function () {
                         'MCT': mct,
                         'PC': pc,
                         'DealerCost': dealercost,
-                        'SalePrice': Math.round(saleprice).toFixed(2),
-                        'MSRP': Math.round(itemMSRP).toFixed(2)
+                        'SalePrice': displaySale,
+                        'MSRP': Math.round(displayMSRP).toFixed(2)
                     });
                 } else {
-                    console.log("CPQ BOAT - Skipping base boat item with $0 MSRP: " + itemdesc);
+                    console.log("CPQ BOAT - Skipping base boat item (not display item): " + itemdesc);
                 }
             } else {
                 // Add to boattable

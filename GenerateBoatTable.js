@@ -138,15 +138,17 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     if (removeeng === '0' && hasupgradedprerig !== '1') {
         if (boatpricingtype == 'SV') {
             if (pkgrowtotal_SP > 0) {
-                total_SP = baseboatrowtotal_SP + pkgrowtotal_SP + enginerowtotal_SP + rowstotal_SP;
-                total_MS = baseboatrowtotal_MS + pkgrowtotal_MS + enginerowtotal_MS + rowstotal_MS;
-                console.log('total_SP', total_SP);
-                console.log('total_MS', total_MS);
+                // CPQ boat: pkgrowtotal already includes base boat from DLR2, don't add baseboatrowtotal again
+                total_SP = pkgrowtotal_SP + enginerowtotal_SP + rowstotal_SP;
+                total_MS = pkgrowtotal_MS + enginerowtotal_MS + rowstotal_MS;
+                console.log('CPQ total_SP (without baseboatrow):', total_SP);
+                console.log('CPQ total_MS (without baseboatrow):', total_MS);
             } else {
+                // Legacy boat: include baseboatrowtotal as before
                 total_SP = baseboatrowtotal_SP + boatrowtotal_SP + enginerowtotal_SP + rowstotal_SP;
                 total_MS = baseboatrowtotal_MS + boatrowtotal_MS + enginerowtotal_MS + rowstotal_MS;
-                console.log('total_SP', total_SP);
-                console.log('total_MS', total_MS);
+                console.log('Legacy total_SP', total_SP);
+                console.log('Legacy total_MS', total_MS);
             }
             console.log('Pricing is SV, Upgraded Prerig - NO, removeengine - NO');
             table = '<table id = "included" border="1" cellpadding="3" cellspacing="1" style="width: 100%; margin:auto">' +
@@ -156,10 +158,19 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
             table = '<table id = "included" border="1" cellpadding="3" cellspacing="1" style="width: 100%; margin:auto">' +
                 '<tbody>' + '<tr>' + '<td colspan="1" style="text-align: left"><strong>Item Description</strong></td>' +
                 '<td><strong>Item #</strong></td><td><strong>Qty</strong></td><td type="DC"><strong>Dealer Cost</strong></td><td type="MS"><strong>MSRP</strong></td><td type="SP"><strong>Sale Price</strong></td></tr>' + baseboatrow + pkgrow + enginerow + rows + '</tbody>' + '</table>';
-            total_SP = baseboatrowtotal_SP + pkgrowtotal_SP + enginerowtotal_SP + rowstotal_SP;
-            total_MS = baseboatrowtotal_MS + pkgrowtotal_MS + enginerowtotal_MS + rowstotal_MS;
-            console.log('total_SP', total_SP);
-            console.log('total_MS', total_MS);
+            if (pkgrowtotal_SP > 0) {
+                // CPQ boat: pkgrowtotal already includes base boat from DLR2, don't add baseboatrowtotal again
+                total_SP = pkgrowtotal_SP + enginerowtotal_SP + rowstotal_SP;
+                total_MS = pkgrowtotal_MS + enginerowtotal_MS + rowstotal_MS;
+                console.log('CPQ total_SP (without baseboatrow):', total_SP);
+                console.log('CPQ total_MS (without baseboatrow):', total_MS);
+            } else {
+                // Legacy boat: include baseboatrowtotal as before
+                total_SP = baseboatrowtotal_SP + pkgrowtotal_SP + enginerowtotal_SP + rowstotal_SP;
+                total_MS = baseboatrowtotal_MS + pkgrowtotal_MS + enginerowtotal_MS + rowstotal_MS;
+                console.log('Legacy total_SP', total_SP);
+                console.log('Legacy total_MS', total_MS);
+            }
         }
         //console.log(table);
     } else if (removeeng === '0' && hasupgradedprerig === '1') {
@@ -168,15 +179,24 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
             '<tbody>' + '<tr>' + '<td colspan="1" style="text-align: left"><strong>Item Description</strong></td>' +
             '<td><strong>Item #</strong></td><td><strong>Qty</strong></td><td type="DC"><strong>Dealer Cost</strong></td><td type="MS"><strong>MSRP</strong></td><td type="SP"><strong>Sale Price</strong></td></tr>' + baseboatrow + pkgrow + enginerow + prerigrow + rows + '</tbody>' + '</table>';
 
-        total_SP = baseboatrowtotal_SP + pkgrowtotal_SP + enginerowtotal_SP + prerigrowtotal_SP + rowstotal_SP;
-        total_MS = baseboatrowtotal_MS + pkgrowtotal_MS + enginerowtotal_MS + prerigrowtotal_MS + rowstotal_MS;
+        if (pkgrowtotal_SP > 0) {
+            // CPQ boat: pkgrowtotal already includes base boat from DLR2, don't add baseboatrowtotal again
+            total_SP = pkgrowtotal_SP + enginerowtotal_SP + prerigrowtotal_SP + rowstotal_SP;
+            total_MS = pkgrowtotal_MS + enginerowtotal_MS + prerigrowtotal_MS + rowstotal_MS;
+            console.log('CPQ with prerig total_SP (without baseboatrow):', total_SP);
+            console.log('CPQ with prerig total_MS (without baseboatrow):', total_MS);
+        } else {
+            // Legacy boat: include baseboatrowtotal as before
+            total_SP = baseboatrowtotal_SP + pkgrowtotal_SP + enginerowtotal_SP + prerigrowtotal_SP + rowstotal_SP;
+            total_MS = baseboatrowtotal_MS + pkgrowtotal_MS + enginerowtotal_MS + prerigrowtotal_MS + rowstotal_MS;
+            console.log('Legacy with prerig total_SP', total_SP);
+            console.log('Legacy with prerig total_MS', total_MS);
+        }
         console.log('pkgrowtotal_MS', pkgrowtotal_MS);
         console.log('enginerowtotal_MS', enginerowtotal_MS);
         console.log('prerigrowtotal_MS', prerigrowtotal_MS);
         console.log('rowstotal_MS', rowstotal_MS);
         //console.log(table);
-        console.log('total_SP', total_SP);
-        console.log('total_MS', total_MS);
 
     } else if (removeeng === '1') {
         console.log('Engine has been removed layout');
@@ -187,12 +207,18 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         // CPQ FIX: Use pkgrowtotal if set (CPQ boat), otherwise use boatrowtotal + baseboatrowtotal (legacy boat)
         if (pkgrowtotal_SP > 0) {
             console.log('DEBUG: Using pkgrowtotal (CPQ boat) for removed engine case');
-            total_SP = baseboatrowtotal_SP + pkgrowtotal_SP + prerigrowtotal_SP + rowstotal_SP;
-            total_MS = baseboatrowtotal_MS + pkgrowtotal_MS + prerigrowtotal_MS + rowstotal_MS;
+            // CPQ boat: pkgrowtotal already includes base boat from DLR2, don't add baseboatrowtotal again
+            total_SP = pkgrowtotal_SP + prerigrowtotal_SP + rowstotal_SP;
+            total_MS = pkgrowtotal_MS + prerigrowtotal_MS + rowstotal_MS;
+            console.log('CPQ removed engine total_SP (without baseboatrow):', total_SP);
+            console.log('CPQ removed engine total_MS (without baseboatrow):', total_MS);
         } else {
             console.log('DEBUG: Using boatrowtotal + baseboatrowtotal (legacy boat) for removed engine case');
+            // Legacy boat: include baseboatrowtotal as before
             total_SP = baseboatrowtotal_SP + boatrowtotal_SP + prerigrowtotal_SP + rowstotal_SP;
             total_MS = baseboatrowtotal_MS + boatrowtotal_MS + prerigrowtotal_MS + rowstotal_MS;
+            console.log('Legacy removed engine total_SP', total_SP);
+            console.log('Legacy removed engine total_MS', total_MS);
         }
         console.log('total_SP', total_SP);
         console.log('total_MS', total_MS);
