@@ -20,6 +20,7 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     window.table = "";
     var pkgrow = "";
     var boatrow = "";
+    var baseboatrow = "";
     var enginerow = "";
     var prerigrow = "";
     var rows = "";
@@ -27,12 +28,14 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     //vars to keep running totals
     var pkgrowtotal_SP = 0;
     var boatrowtotal_SP = 0;
+    var baseboatrowtotal_SP = 0;
     var enginerowtotal_SP = 0;
     var prerigrowtotal_SP = 0;
     var rowstotal_SP = 0;
 
     var pkgrowtotal_MS = 0;
     var boatrowtotal_MS = 0;
+    var baseboatrowtotal_MS = 0;
     var enginerowtotal_MS = 0;
     var prerigrowtotal_MS = 0;
     var rowstotal_MS = 0;
@@ -66,6 +69,10 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
             boatrow = '<tr>' + '<td>' + desc + '</td><td>' + itemno + '</td><td align="center">' + qty + '</td><td type="DC" align="right">' + dc + '</td><td type="MS" align="right">' + msrp + '</td><td type="SP" align="right">' + sp + '</td></tr>';
             boatrowtotal_SP = boatrowtotal_SP + Number(sp); // + Number(additionalCharge);
             boatrowtotal_MS = boatrowtotal_MS + Number(msrp); // + Number(additionalCharge);
+        } else if (mct === 'BOA') {
+            baseboatrow += '<tr>' + '<td>' + desc + '</td><td>' + itemno + '</td><td align="center">' + qty + '</td><td type="DC" align="right">' + dc + '</td><td type="MS" align="right">' + msrp + '</td><td type="SP" align="right">' + sp + '</td></tr>';
+            baseboatrowtotal_SP = baseboatrowtotal_SP + Number(sp);
+            baseboatrowtotal_MS = baseboatrowtotal_MS + Number(msrp);
         } else if (mct === 'ENGINES' && inc === '1') { //never gonna show the full price of an engine.
             enginerow += '<tr>' + '<td>' + desc + '</td><td>' + itemno + '</td><td align="center">' + qty + '</td><td type="DC" align="right">' + dc + '</td><td type="MS" align="right">' + msrp + '</td><td type="SP" align="right">' + sp + '</td></tr>';
             enginerowtotal_SP = enginerowtotal_SP + Number(sp);
@@ -129,26 +136,26 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     if (removeeng === '0' && hasupgradedprerig !== '1') {
         if (boatpricingtype == 'SV') {
             if (pkgrowtotal_SP > 0) {
-                total_SP = pkgrowtotal_SP + enginerowtotal_SP + rowstotal_SP;
-                total_MS = pkgrowtotal_MS + enginerowtotal_MS + rowstotal_MS;
+                total_SP = baseboatrowtotal_SP + pkgrowtotal_SP + enginerowtotal_SP + rowstotal_SP;
+                total_MS = baseboatrowtotal_MS + pkgrowtotal_MS + enginerowtotal_MS + rowstotal_MS;
                 console.log('total_SP', total_SP);
                 console.log('total_MS', total_MS);
             } else {
-                total_SP = boatrowtotal_SP + enginerowtotal_SP + rowstotal_SP;
-                total_MS = boatrowtotal_MS + enginerowtotal_MS + rowstotal_MS;
+                total_SP = baseboatrowtotal_SP + boatrowtotal_SP + enginerowtotal_SP + rowstotal_SP;
+                total_MS = baseboatrowtotal_MS + boatrowtotal_MS + enginerowtotal_MS + rowstotal_MS;
                 console.log('total_SP', total_SP);
                 console.log('total_MS', total_MS);
             }
             console.log('Pricing is SV, Upgraded Prerig - NO, removeengine - NO');
             table = '<table id = "included" border="1" cellpadding="3" cellspacing="1" style="width: 100%; margin:auto">' +
                 '<tbody>' + '<tr>' + '<td colspan="1" style="text-align: left"><strong>Item Description</strong></td>' +
-                '<td><strong>Item #</strong></td><td><strong>Qty</strong></td><td type="DC"><strong>Dealer Cost</strong></td><td type="MS"><strong>MSRP</strong></td><td type="SP"><strong>Sale Price</strong></td></tr>' + pkgrow + enginerow + rows + '</tbody>' + '</table>';
+                '<td><strong>Item #</strong></td><td><strong>Qty</strong></td><td type="DC"><strong>Dealer Cost</strong></td><td type="MS"><strong>MSRP</strong></td><td type="SP"><strong>Sale Price</strong></td></tr>' + baseboatrow + pkgrow + enginerow + rows + '</tbody>' + '</table>';
         } else {
             table = '<table id = "included" border="1" cellpadding="3" cellspacing="1" style="width: 100%; margin:auto">' +
                 '<tbody>' + '<tr>' + '<td colspan="1" style="text-align: left"><strong>Item Description</strong></td>' +
-                '<td><strong>Item #</strong></td><td><strong>Qty</strong></td><td type="DC"><strong>Dealer Cost</strong></td><td type="MS"><strong>MSRP</strong></td><td type="SP"><strong>Sale Price</strong></td></tr>' + pkgrow + enginerow + rows + '</tbody>' + '</table>';
-            total_SP = pkgrowtotal_SP + enginerowtotal_SP + rowstotal_SP;
-            total_MS = pkgrowtotal_MS + enginerowtotal_MS + rowstotal_MS;
+                '<td><strong>Item #</strong></td><td><strong>Qty</strong></td><td type="DC"><strong>Dealer Cost</strong></td><td type="MS"><strong>MSRP</strong></td><td type="SP"><strong>Sale Price</strong></td></tr>' + baseboatrow + pkgrow + enginerow + rows + '</tbody>' + '</table>';
+            total_SP = baseboatrowtotal_SP + pkgrowtotal_SP + enginerowtotal_SP + rowstotal_SP;
+            total_MS = baseboatrowtotal_MS + pkgrowtotal_MS + enginerowtotal_MS + rowstotal_MS;
             console.log('total_SP', total_SP);
             console.log('total_MS', total_MS);
         }
@@ -157,10 +164,10 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         console.log('Engine Not removed but has upgraded prerig');
         table = '<table id = "included" border="1" cellpadding="3" cellspacing="1" style="width: 100%; margin:auto">' +
             '<tbody>' + '<tr>' + '<td colspan="1" style="text-align: left"><strong>Item Description</strong></td>' +
-            '<td><strong>Item #</strong></td><td><strong>Qty</strong></td><td type="DC"><strong>Dealer Cost</strong></td><td type="MS"><strong>MSRP</strong></td><td type="SP"><strong>Sale Price</strong></td></tr>' + pkgrow + enginerow + prerigrow + rows + '</tbody>' + '</table>';
+            '<td><strong>Item #</strong></td><td><strong>Qty</strong></td><td type="DC"><strong>Dealer Cost</strong></td><td type="MS"><strong>MSRP</strong></td><td type="SP"><strong>Sale Price</strong></td></tr>' + baseboatrow + pkgrow + enginerow + prerigrow + rows + '</tbody>' + '</table>';
 
-        total_SP = pkgrowtotal_SP + enginerowtotal_SP + prerigrowtotal_SP + rowstotal_SP;
-        total_MS = pkgrowtotal_MS + enginerowtotal_MS + prerigrowtotal_MS + rowstotal_MS;
+        total_SP = baseboatrowtotal_SP + pkgrowtotal_SP + enginerowtotal_SP + prerigrowtotal_SP + rowstotal_SP;
+        total_MS = baseboatrowtotal_MS + pkgrowtotal_MS + enginerowtotal_MS + prerigrowtotal_MS + rowstotal_MS;
         console.log('pkgrowtotal_MS', pkgrowtotal_MS);
         console.log('enginerowtotal_MS', enginerowtotal_MS);
         console.log('prerigrowtotal_MS', prerigrowtotal_MS);
@@ -173,17 +180,17 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         console.log('Engine has been removed layout');
         table = '<table id = "included" border="1" cellpadding="3" cellspacing="1" style="width: 100%; margin:auto">' +
             '<tbody>' + '<tr>' + '<td colspan="1" style="text-align: left"><strong>Item Description</strong></td>' +
-            '<td><strong>Item #</strong></td><td><strong>Qty</strong></td><td type="DC">Dealer Cost</td><td type="MS"><strong>MSRP</strong></td><td type="SP"><strong>Sale Price</strong</td></tr>' + boatrow + prerigrow + rows + '</tbody>' + '</table>';
+            '<td><strong>Item #</strong></td><td><strong>Qty</strong></td><td type="DC">Dealer Cost</td><td type="MS"><strong>MSRP</strong></td><td type="SP"><strong>Sale Price</strong</td></tr>' + baseboatrow + boatrow + prerigrow + rows + '</tbody>' + '</table>';
 
-        // CPQ FIX: Use pkgrowtotal if set (CPQ boat), otherwise use boatrowtotal (legacy boat)
+        // CPQ FIX: Use pkgrowtotal if set (CPQ boat), otherwise use boatrowtotal + baseboatrowtotal (legacy boat)
         if (pkgrowtotal_SP > 0) {
             console.log('DEBUG: Using pkgrowtotal (CPQ boat) for removed engine case');
-            total_SP = pkgrowtotal_SP + prerigrowtotal_SP + rowstotal_SP;
-            total_MS = pkgrowtotal_MS + prerigrowtotal_MS + rowstotal_MS;
+            total_SP = baseboatrowtotal_SP + pkgrowtotal_SP + prerigrowtotal_SP + rowstotal_SP;
+            total_MS = baseboatrowtotal_MS + pkgrowtotal_MS + prerigrowtotal_MS + rowstotal_MS;
         } else {
-            console.log('DEBUG: Using boatrowtotal (legacy boat) for removed engine case');
-            total_SP = boatrowtotal_SP + prerigrowtotal_SP + rowstotal_SP;
-            total_MS = boatrowtotal_MS + prerigrowtotal_MS + rowstotal_MS;
+            console.log('DEBUG: Using boatrowtotal + baseboatrowtotal (legacy boat) for removed engine case');
+            total_SP = baseboatrowtotal_SP + boatrowtotal_SP + prerigrowtotal_SP + rowstotal_SP;
+            total_MS = baseboatrowtotal_MS + boatrowtotal_MS + prerigrowtotal_MS + rowstotal_MS;
         }
         console.log('total_SP', total_SP);
         console.log('total_MS', total_MS);
