@@ -488,6 +488,11 @@ window.Calculate2021 = window.Calculate2021 || function () {
 
         // ACTION ITEM 2 FIX: Skip PONTOONS line items for CPQ boats to prevent double-counting
         var isCpqBoat = (isCpqAuthorized && window.cpqBaseBoatDealerCost && Number(window.cpqBaseBoatDealerCost) > 0);
+        
+        // DEBUG: Log all PONTOONS items to see what's happening
+        if (mct === 'PONTOONS' || mct === 'Pontoon Boats OB') {
+            console.log("DEBUG PONTOONS ITEM: itemno=" + itemno + ", mct=" + mct + ", mctType=" + mctType + ", isCpqBoat=" + isCpqBoat + ", itemdesc=" + itemdesc);
+        }
 
         if ((mct == 'PONTOONS' || mct == 'Pontoon Boats OB') && isCpqBoat) {
             // CPQ boat - calculate pricing using CPQ dealer cost
@@ -614,8 +619,9 @@ window.Calculate2021 = window.Calculate2021 || function () {
                 // CPQ BOAT: Add PONTOONS items to boattable for display (totals come from DLR2, not boattable)
                 // Only show "Pontoon Boats OB" item (has descriptive name like "22 M SWINGBACK")
                 // Use CPQ MSRP from window.cpqBaseBoatMSRP instead of database MSRP (which may be $0)
+                console.log("DEBUG: CPQ boat check - mct='" + mct + "', isCpqBoat=" + isCpqBoat + ", itemdesc=" + itemdesc);
                 if (mct === 'Pontoon Boats OB') {
-                    var displayMSRP = window.cpqBaseBoatMSRP || boatoptions[j].MSRP || 0;
+                    var displayMSRP = window.cpqBaseBoatMSRP || boatoptions[i].MSRP || 0;
                     var displaySale = Math.round(saleprice).toFixed(2);
                     console.log("CPQ BOAT - Adding base boat to boattable for display: " + itemdesc + " MSRP: $" + displayMSRP);
                     boattable.push({
