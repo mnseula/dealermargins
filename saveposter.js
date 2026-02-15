@@ -65,7 +65,8 @@ else{
 if(!isAnswered('PERF_LOGOS')){
     setAnswer('PERF_LOGOS','NONE');
 }
-var perflogo = getAnswer('PERF_LOGOS').split('/')[1];
+var perfLogoAnswer = getAnswer('PERF_LOGOS');
+var perflogo = (perfLogoAnswer && perfLogoAnswer.includes('/')) ? perfLogoAnswer.split('/')[1] : '';
 var printoptions = getAnswer('COLOR').split('/')[1];
 //var printoptions = ""; !!!!!!!!!!!!! CHANGE TO THIS ONCE THE PORTRAIT AND LANDSCAPE CHANGE COMES OUT!
 
