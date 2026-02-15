@@ -256,6 +256,10 @@ function getSpecTbl2(realmodel) { //used in standards/specs in the product.
 var isCpqBoat = (window.cpqBaseBoatMSRP && Number(window.cpqBaseBoatMSRP) > 0 && 
                  window.cpqBaseBoatDealerCost && Number(window.cpqBaseBoatDealerCost) > 0);
 
+console.log('CPQ FLYER DEBUG - window.cpqBaseBoatMSRP:', window.cpqBaseBoatMSRP);
+console.log('CPQ FLYER DEBUG - window.cpqBaseBoatDealerCost:', window.cpqBaseBoatDealerCost);
+console.log('CPQ FLYER DEBUG - isCpqBoat:', isCpqBoat);
+
 if (isCpqBoat) {
     // CPQ BOAT: Use CPQ pricing data
     console.log('CPQ FLYER - Using CPQ pricing data');
@@ -263,22 +267,31 @@ if (isCpqBoat) {
     // Use CPQ MSRP
     var cpqMSRP = Number(window.cpqBaseBoatMSRP);
     flyerMSRP = cpqMSRP.toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    console.log('CPQ FLYER DEBUG - Setting FLYER_MSRP to:', flyerMSRP);
     setValue('PRICING','FLYER_MSRP',flyerMSRP);
     
     // Get the calculated sale price from DLR2 (set by Calculate2021.js)
     var cpqSalePrice = getValue('DLR2', 'PKG_SALE');
+    console.log('CPQ FLYER DEBUG - DLR2.PKG_SALE:', cpqSalePrice);
+    
     if (!cpqSalePrice || cpqSalePrice === true || cpqSalePrice === false) {
         // Fallback: calculate from CPQ dealer cost
+        console.log('CPQ FLYER DEBUG - Using fallback dealer cost');
         cpqSalePrice = Number(window.cpqBaseBoatDealerCost); // This is simplified - actual calc includes margins
     }
     
+    console.log('CPQ FLYER DEBUG - Final cpqSalePrice:', cpqSalePrice);
+    
     if (cpqSalePrice && Number(cpqSalePrice) > 0) {
+        console.log('CPQ FLYER DEBUG - Setting FLYER_FINAL_PRICE to:', Number(cpqSalePrice).toFixed(2));
         setValue('PRICING','FLYER_FINAL_PRICE', Number(cpqSalePrice).toFixed(2));
         
         // Calculate discount for CPQ boats
         var calculatedDiscount = cpqMSRP - Number(cpqSalePrice);
+        console.log('CPQ FLYER DEBUG - calculatedDiscount:', calculatedDiscount);
         if (calculatedDiscount > 0) {
             // Normal case: Sale price is less than MSRP, show savings
+            console.log('CPQ FLYER DEBUG - Setting FLYER_DISCOUNT to:', calculatedDiscount.toFixed(2));
             setValue('PRICING','FLYER_DISCOUNT', calculatedDiscount.toFixed(2));
         } else if (calculatedDiscount < 0) {
             // CPQ Special case: Sale price exceeds MSRP, show $0 savings
@@ -286,6 +299,8 @@ if (isCpqBoat) {
             setValue('PRICING','FLYER_DISCOUNT', '0.00');
         }
         // If calculatedDiscount == 0, no discount field is set (no savings shown)
+    } else {
+        console.log('CPQ FLYER DEBUG - cpqSalePrice is not valid:', cpqSalePrice);
     }
 } else {
     // LEGACY BOAT: Use EXTRAS table pricing
