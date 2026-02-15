@@ -681,34 +681,6 @@ if(boatPricing =='SV'){
 }
 wsContents += "    <div id=\"overheadimg\"> " + img + "<\/div>";
 
-// CPQ BASE BOAT CONFIGURATION: Show configuration attributes for CPQ boats
-if (isCpqAuthorized && window.cpqLhsData && window.cpqLhsData.model_id) {
-    wsContents += "    <div class=\"title\">BASE BOAT CONFIGURATION<\/div>";
-    wsContents += "    <div id=\"baseboatconfig\" style=\"font-size:10px; margin-bottom:10px;\">";
-    wsContents += "      <table width=\"100%\" border=\"1\">";
-    wsContents += "        <tbody>";
-    wsContents += "          <tr><td width=\"50%\"><strong>Model:<\/strong><\/td><td>" + (window.cpqLhsData.model_id || '') + "<\/td><\/tr>";
-    wsContents += "          <tr><td><strong>Series:<\/strong><\/td><td>" + (window.cpqLhsData.series_id || '') + "<\/td><\/tr>";
-    if (window.cpqLhsData.floorplan_desc) {
-        wsContents += "          <tr><td><strong>Floorplan:<\/strong><\/td><td>" + window.cpqLhsData.floorplan_desc + "<\/td><\/tr>";
-    }
-    if (window.cpqLhsData.performance_pkg) {
-        wsContents += "          <tr><td><strong>Performance Package:<\/strong><\/td><td>" + window.cpqLhsData.performance_pkg + "<\/td><\/tr>";
-    }
-    // Show base boat MSRP from DLR2
-    var baseBoatMSRP = getValue('DLR2', 'BOAT_MS');
-    var baseBoatSale = getValue('DLR2', 'BOAT_SP');
-    if (baseBoatMSRP && baseBoatMSRP !== false) {
-        wsContents += "          <tr><td><strong>Base Boat MSRP:<\/strong><\/td><td>$" + CurrencyFormat2(baseBoatMSRP) + "<\/td><\/tr>";
-    }
-    if (baseBoatSale && baseBoatSale !== false && !hasAnswer('PRICING_TYPE', 'MSRP')) {
-        wsContents += "          <tr><td><strong>Base Boat Sale Price:<\/strong><\/td><td>$" + CurrencyFormat2(baseBoatSale) + "<\/td><\/tr>";
-    }
-    wsContents += "        <\/tbody>";
-    wsContents += "      <\/table>";
-    wsContents += "    <\/div>";
-}
-
 wsContents += "    <div class=\"title\">INCLUDED OPTIONS <\/div>";
 wsContents += "    <div id=\"includedoptions\">" + document.getElementById('included').outerHTML + "<\/div>";
 
