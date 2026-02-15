@@ -284,7 +284,7 @@ if (isCpqBoat) {
     
     // Use CPQ MSRP
     var cpqMSRP = Number(window.cpqBaseBoatMSRP);
-    flyerMSRP = cpqMSRP.toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    flyerMSRP = cpqMSRP.toLocaleString("en-US", {minimumFractionDigits: 0, maximumFractionDigits: 0});
     console.log('CPQ FLYER DEBUG - Setting FLYER_MSRP to:', flyerMSRP);
     setValue('PRICING','FLYER_MSRP',flyerMSRP);
     
@@ -301,8 +301,8 @@ if (isCpqBoat) {
     console.log('CPQ FLYER DEBUG - Final cpqSalePrice:', cpqSalePrice);
 
     if (cpqSalePrice && Number(cpqSalePrice) > 0) {
-        // Format sale price with commas and 2 decimals
-        var formattedSalePrice = Number(cpqSalePrice).toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        // Format sale price with commas, no decimals
+        var formattedSalePrice = Number(cpqSalePrice).toLocaleString("en-US", {minimumFractionDigits: 0, maximumFractionDigits: 0});
         console.log('CPQ FLYER DEBUG - Setting FLYER_FINAL_PRICE to:', formattedSalePrice);
         setValue('PRICING','FLYER_FINAL_PRICE', formattedSalePrice);
 
@@ -311,12 +311,12 @@ if (isCpqBoat) {
         console.log('CPQ FLYER DEBUG - calculatedDiscount:', calculatedDiscount);
         if (calculatedDiscount > 0) {
             // Normal case: Sale price is less than MSRP, show savings
-            console.log('CPQ FLYER DEBUG - Setting FLYER_DISCOUNT to:', calculatedDiscount.toFixed(2));
-            setValue('PRICING','FLYER_DISCOUNT', calculatedDiscount.toFixed(2));
+            console.log('CPQ FLYER DEBUG - Setting FLYER_DISCOUNT to:', Math.round(calculatedDiscount));
+            setValue('PRICING','FLYER_DISCOUNT', Math.round(calculatedDiscount).toString());
         } else {
-            // Sale price >= MSRP, show $0 savings (use Math.abs to avoid -0.00)
+            // Sale price >= MSRP, show $0 savings
             console.log('CPQ FLYER - Sale price >= MSRP, setting discount to $0');
-            setValue('PRICING','FLYER_DISCOUNT', '0.00');
+            setValue('PRICING','FLYER_DISCOUNT', '0');
         }
     } else {
         console.log('CPQ FLYER DEBUG - cpqSalePrice is not valid:', cpqSalePrice);
