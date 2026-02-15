@@ -143,7 +143,7 @@ else{
         //if(mct !== 'BOAT' && mct !== 'BOATPKG'){
         //optionsList += newOptionItem1 + itemdesc + newOptionItem2 + itemno + newOptionItem3 + itemno + newOptionItem4;
         console.log('hidden',hidden);
-        if (hidden === '0' && itemno !== 'NPPNPRICE16S' && itemno !== 'NPPNPRICE18S' && itemno !== 'NPPNPRICE19S' && itemno !== 'NPPNPRICE20S' && itemno !== 'NPPNPRICE21S' && itemno !== 'NPPNPRICE22S' && itemno !== 'NPPNPRICE23S' && itemno !== 'NPPNPRICE24S'&& itemno !== 'NPPNPRICE25S'&& itemno !== 'NPPNPRICELX/LT'){
+        if ((hidden === '0' || hidden === 0) && itemno !== 'NPPNPRICE16S' && itemno !== 'NPPNPRICE18S' && itemno !== 'NPPNPRICE19S' && itemno !== 'NPPNPRICE20S' && itemno !== 'NPPNPRICE21S' && itemno !== 'NPPNPRICE22S' && itemno !== 'NPPNPRICE23S' && itemno !== 'NPPNPRICE24S'&& itemno !== 'NPPNPRICE25S'&& itemno !== 'NPPNPRICELX/LT'){
             optionsList += newOptionItem1 + itemdesc + newOptionItem2 + itemno + newOptionItem3 + itemno + newOptionItem4;
         }
         else{
