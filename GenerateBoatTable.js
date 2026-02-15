@@ -107,25 +107,20 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         console.log('Adding CPQ base boat configuration to table');
         var configRows = '';
 
-        // Header row for base boat configuration
-        configRows += '<tr style="background-color:#f0f0f0;"><td colspan="6"><strong>BASE BOAT CONFIGURATION</strong></td></tr>';
+        // Configuration info in a single row
+        var configInfo = 'Model: ' + (window.cpqLhsData.model_id || '') +
+                        ' | Series: ' + (window.cpqLhsData.series_id || '');
 
-        // Model and Series
-        configRows += '<tr><td colspan="3">Model: ' + (window.cpqLhsData.model_id || '') +
-                      ' | Series: ' + (window.cpqLhsData.series_id || '') + '</td>' +
-                      '<td colspan="3" align="right">&nbsp;</td></tr>';
-
-        // Floorplan if available
         if (window.cpqLhsData.floorplan_desc) {
-            configRows += '<tr><td colspan="3">Floorplan: ' + window.cpqLhsData.floorplan_desc + '</td>' +
-                         '<td colspan="3" align="right">&nbsp;</td></tr>';
+            configInfo += ' | Floorplan: ' + window.cpqLhsData.floorplan_desc;
         }
 
-        // Performance package if available
         if (window.cpqLhsData.performance_pkg) {
-            configRows += '<tr><td colspan="3">Performance Package: ' + window.cpqLhsData.performance_pkg + '</td>' +
-                         '<td colspan="3" align="right">&nbsp;</td></tr>';
+            configInfo += ' | Perf Pkg: ' + window.cpqLhsData.performance_pkg;
         }
+
+        // Single configuration row with all info
+        configRows += '<tr style="background-color:#f0f0f0;"><td colspan="6"><strong>BASE BOAT: </strong>' + configInfo + '</td></tr>';
 
         // Prepend configuration rows before base boat items
         baseboatrow = configRows + baseboatrow;
