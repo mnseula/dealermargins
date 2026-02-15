@@ -8,13 +8,13 @@ if (flyerTitle === true) {
 }
 window.flyerMSRP = (getValue('PRICING', 'FLYER_MSRP'));
 
-if (flyerDiscount === false) {
+if (flyerDiscount === false || flyerDiscount === true) {
     flyerDiscount = '';
 }
-if (flyerFinal === false) {
+if (flyerFinal === false || flyerFinal === true) {
     flyerFinal = '';
 }
-if (flyerTitle === false) {
+if (flyerTitle === false || flyerTitle === true) {
     flyerTitle = '';
 }
 
