@@ -519,13 +519,6 @@ window.Calculate2021 = window.Calculate2021 || function () {
                 console.log("CPQ BOAT - Calculated Sale Price from dealer cost: $" + saleprice);
             }
 
-            // CPQ Fix: Cap sale price at MSRP if it exceeds it
-            // CPQ MSRP is the maximum advertised price, so sale price should never exceed it
-            if (saleprice > msrpprice) {
-                console.log("CPQ BOAT - Sale price ($" + saleprice + ") exceeds MSRP ($" + msrpprice + "), capping at MSRP");
-                saleprice = msrpprice;
-            }
-
             setValue('DLR2', 'BOAT_SP', Math.round(saleprice));
             setValue('DLR2', 'BOAT_MS', Math.round(msrpprice));
         } else if (mct == 'PONTOONS') {
