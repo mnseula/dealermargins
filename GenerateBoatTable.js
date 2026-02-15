@@ -70,6 +70,7 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
             boatrowtotal_SP = boatrowtotal_SP + Number(sp); // + Number(additionalCharge);
             boatrowtotal_MS = boatrowtotal_MS + Number(msrp); // + Number(additionalCharge);
         } else if (mct === 'BOA') {
+            console.log('DEBUG: Found BOA item:', itemno, desc, 'MSRP:', msrp);
             baseboatrow += '<tr>' + '<td>' + desc + '</td><td>' + itemno + '</td><td align="center">' + qty + '</td><td type="DC" align="right">' + dc + '</td><td type="MS" align="right">' + msrp + '</td><td type="SP" align="right">' + sp + '</td></tr>';
             baseboatrowtotal_SP = baseboatrowtotal_SP + Number(sp);
             baseboatrowtotal_MS = baseboatrowtotal_MS + Number(msrp);
@@ -106,6 +107,9 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
 
     console.log('remove engine', removeeng);
     console.log('hasupgradedprerig', hasupgradedprerig);
+    console.log('DEBUG: baseboatrow length:', baseboatrow.length);
+    console.log('DEBUG: baseboatrowtotal_MS:', baseboatrowtotal_MS);
+    console.log('DEBUG: baseboatrowtotal_SP:', baseboatrowtotal_SP);
 
     // CPQ FIX: Read boat package values from DLR2 table (set by Calculate2021.js)
     // This ensures CPQ boats include the base boat cost in totals
