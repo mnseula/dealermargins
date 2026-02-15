@@ -258,6 +258,22 @@ flyerMSRP = flyerMSRP.slice(0, -3);
 
 setValue('PRICING','FLYER_MSRP',flyerMSRP);
 
+// NEW: Set selling price and calculate discount for new boats
+var flyerSellingPrice = getValue('EXTRAS','TOTAL');
+if(flyerSellingPrice && flyerSellingPrice !== '' && flyerSellingPrice !== true && flyerSellingPrice !== false) {
+    // Remove any formatting and set final price
+    flyerSellingPrice = flyerSellingPrice.toString().replace(/[^0-9.]/g, '');
+    setValue('PRICING','FLYER_FINAL_PRICE',flyerSellingPrice);
+    
+    // Calculate discount: MSRP - Sale Price
+    var msrpNum = parseFloat(flyerMSRP.replace(/[^0-9.]/g, '')) || 0;
+    var saleNum = parseFloat(flyerSellingPrice) || 0;
+    var calculatedDiscount = msrpNum - saleNum;
+    if(calculatedDiscount > 0) {
+        setValue('PRICING','FLYER_DISCOUNT',calculatedDiscount.toFixed(2));
+    }
+}
+
 document.getElementById("model").disabled = true;
 document.getElementById("loa").disabled = true;
 document.getElementById("beam").disabled = true;
