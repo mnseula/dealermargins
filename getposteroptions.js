@@ -252,25 +252,56 @@ function getSpecTbl2(realmodel) { //used in standards/specs in the product.
     return specCapTbl;
 }
 
-window.flyerMSRP = (getValue('EXTRAS','TOTAL_MS_EXT'));
-//window.flyerMSRP = (getValue('DLR2','PKG_MSRP').toLocaleString("en-US"));
-flyerMSRP = flyerMSRP.slice(0, -3);
+// Check if this is a CPQ boat
+var isCpqBoat = (window.cpqBaseBoatMSRP && Number(window.cpqBaseBoatMSRP) > 0 && 
+                 window.cpqBaseBoatDealerCost && Number(window.cpqBaseBoatDealerCost) > 0);
 
-setValue('PRICING','FLYER_MSRP',flyerMSRP);
-
-// NEW: Set selling price and calculate discount for new boats
-var flyerSellingPrice = getValue('EXTRAS','TOTAL');
-if(flyerSellingPrice && flyerSellingPrice !== '' && flyerSellingPrice !== true && flyerSellingPrice !== false) {
-    // Remove any formatting and set final price
-    flyerSellingPrice = flyerSellingPrice.toString().replace(/[^0-9.]/g, '');
-    setValue('PRICING','FLYER_FINAL_PRICE',flyerSellingPrice);
+if (isCpqBoat) {
+    // CPQ BOAT: Use CPQ pricing data
+    console.log('CPQ FLYER - Using CPQ pricing data');
     
-    // Calculate discount: MSRP - Sale Price
-    var msrpNum = parseFloat(flyerMSRP.replace(/[^0-9.]/g, '')) || 0;
-    var saleNum = parseFloat(flyerSellingPrice) || 0;
-    var calculatedDiscount = msrpNum - saleNum;
-    if(calculatedDiscount > 0) {
-        setValue('PRICING','FLYER_DISCOUNT',calculatedDiscount.toFixed(2));
+    // Use CPQ MSRP
+    var cpqMSRP = Number(window.cpqBaseBoatMSRP);
+    flyerMSRP = cpqMSRP.toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    setValue('PRICING','FLYER_MSRP',flyerMSRP);
+    
+    // Get the calculated sale price from DLR2 (set by Calculate2021.js)
+    var cpqSalePrice = getValue('DLR2', 'PKG_SALE');
+    if (!cpqSalePrice || cpqSalePrice === true || cpqSalePrice === false) {
+        // Fallback: calculate from CPQ dealer cost
+        cpqSalePrice = Number(window.cpqBaseBoatDealerCost); // This is simplified - actual calc includes margins
+    }
+    
+    if (cpqSalePrice && Number(cpqSalePrice) > 0) {
+        setValue('PRICING','FLYER_FINAL_PRICE', Number(cpqSalePrice).toFixed(2));
+        
+        // Calculate discount
+        var calculatedDiscount = cpqMSRP - Number(cpqSalePrice);
+        if (calculatedDiscount > 0) {
+            setValue('PRICING','FLYER_DISCOUNT', calculatedDiscount.toFixed(2));
+        }
+    }
+} else {
+    // LEGACY BOAT: Use EXTRAS table pricing
+    window.flyerMSRP = (getValue('EXTRAS','TOTAL_MS_EXT'));
+    flyerMSRP = flyerMSRP.slice(0, -3);
+    
+    setValue('PRICING','FLYER_MSRP',flyerMSRP);
+    
+    // Set selling price and calculate discount for new boats
+    var flyerSellingPrice = getValue('EXTRAS','TOTAL');
+    if(flyerSellingPrice && flyerSellingPrice !== '' && flyerSellingPrice !== true && flyerSellingPrice !== false) {
+        // Remove any formatting and set final price
+        flyerSellingPrice = flyerSellingPrice.toString().replace(/[^0-9.]/g, '');
+        setValue('PRICING','FLYER_FINAL_PRICE',flyerSellingPrice);
+        
+        // Calculate discount: MSRP - Sale Price
+        var msrpNum = parseFloat(flyerMSRP.replace(/[^0-9.]/g, '')) || 0;
+        var saleNum = parseFloat(flyerSellingPrice) || 0;
+        var calculatedDiscount = msrpNum - saleNum;
+        if(calculatedDiscount > 0) {
+            setValue('PRICING','FLYER_DISCOUNT',calculatedDiscount.toFixed(2));
+        }
     }
 }
 
