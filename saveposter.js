@@ -10,7 +10,7 @@ var i = 1; //order
 $('#sortable li').each(function (index) {
     var part = $(this).context.lastChild.id;
     var descTB = 'tb' + $(this).context.lastChild.id;
-    var desc = $('input:text[name= ' + descTB  +  ']').val();
+    var desc = $('input:text[name="' + descTB  + '"]').val();
     var state = $(this).context.className;
     var hide = 0;
 
