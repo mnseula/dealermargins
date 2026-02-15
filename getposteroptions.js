@@ -357,21 +357,27 @@ if(previouslySaved !== 0 && pricingtable && pricingtable.length > 0){
     document.getElementById("cap").value = pricingtable[0].capacity;
     document.getElementById("fuel").value = pricingtable[0].fuel;
 
-    if(pricingtable[0].title !== '1'){
-    setValue('PRICING','FLYER_TITLE',pricingtable[0].title);
+    // CPQ Fix: Don't restore pricing values for CPQ boats - use calculated values instead
+    if (!isCpqBoat) {
+        if(pricingtable[0].title !== '1'){
+            setValue('PRICING','FLYER_TITLE',pricingtable[0].title);
+        }
+        if(pricingtable[0].msrp !== '1'){
+            setValue('PRICING','FLYER_MSRP',pricingtable[0].msrp);
+        }
+        if(pricingtable[0].discount !== '1'){
+            setValue('PRICING','FLYER_DISCOUNT',pricingtable[0].discount);
+        }
+        if(pricingtable[0].final_price !== '1'){
+            setValue('PRICING','FLYER_FINAL_PRICE',pricingtable[0].final_price);
+        }
+    } else {
+        console.log('CPQ FLYER - Skipping restore of pricing values, using calculated values');
     }
-    if(pricingtable[0].msrp !== '1'){
-    setValue('PRICING','FLYER_MSRP',pricingtable[0].msrp);
-    }
-    if(pricingtable[0].discount !== '1'){
-    setValue('PRICING','FLYER_DISCOUNT',pricingtable[0].discount);
-    }
-    if(pricingtable[0].final_price !== '1'){
-    setValue('PRICING','FLYER_FINAL_PRICE',pricingtable[0].final_price);
-    }
+    
     setValue('PRICING','FONT_SIZE',pricingtable[0].font);
     if(pricingtable[0].dlr_boat_img_url.length > 1){
-    setValue('DLR_IMG','DLR_IMG_URL',pricingtable[0].dlr_boat_img_url);
+        setValue('DLR_IMG','DLR_IMG_URL',pricingtable[0].dlr_boat_img_url);
     }
 
     setAnswer('POSTER_IMG',pricingtable[0].posterimg);
