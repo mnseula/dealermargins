@@ -68,6 +68,22 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
 
     }
 
+    // CPQ DETECTION: Check for external_confirmation_ref (most reliable indicator)
+    // CPQ boats have this field populated, legacy boats have NULL
+    window.isCPQBoat = false;
+    if (serialYear > 14 && window.boatoptions && window.boatoptions.length > 0) {
+        for (var i = 0; i < window.boatoptions.length; i++) {
+            var item = window.boatoptions[i];
+
+            // PRIMARY CPQ DETECTION: Check external_confirmation_ref
+            if (item.external_confirmation_ref && item.external_confirmation_ref !== null && item.external_confirmation_ref !== '') {
+                window.isCPQBoat = true;
+                console.log('✅ CPQ BOAT DETECTED via external_confirmation_ref:', item.external_confirmation_ref);
+                break; // Found CPQ indicator, no need to check further
+            }
+        }
+    }
+
     // CPQ LOGIC: Fix swapped MSRP/ExtSalesAmount for CPQ boats
     // Only applies to boats with CfgName field (CPQ boats)
     if (serialYear > 14 && window.boatoptions && window.boatoptions.length > 0) {
@@ -306,13 +322,16 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
         }
     }
 
-    // CPQ CATCHALL - Added 2026-02-06
+    // CPQ CATCHALL - Fallback detection method
     // CPQ boats use floorplan codes (ML, QB, etc.) not year codes
     // If no year code matched (two still '0'), use serialYear to determine year
-    window.isCPQBoat = false;  // Flag to track if this is a CPQ boat (window var for print.js)
+    // NOTE: window.isCPQBoat may already be set by external_confirmation_ref check (primary method)
     if (two === '0') {
-        window.isCPQBoat = true;  // Mark as CPQ boat
-        console.log('CPQ boat detected (no year code match) - using serialYear:', serialYear);
+        if (!window.isCPQBoat) {
+            window.isCPQBoat = true;  // Mark as CPQ boat (fallback method)
+            console.log('CPQ boat detected via year code catchall - using serialYear:', serialYear);
+        }
+        // If already detected via external_confirmation_ref, just use the year mapping
         if (serialYear === 26) {
             two = '25';  // 2026 boats use 2025 model year lists
         } else if (serialYear === 25) {
