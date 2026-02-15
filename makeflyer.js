@@ -8,6 +8,10 @@ if (flyerTitle === true) {
 }
 window.flyerMSRP = (getValue('PRICING', 'FLYER_MSRP'));
 
+console.log('CPQ FLYER DEBUG makeflyer - flyerDiscount:', flyerDiscount, 'type:', typeof flyerDiscount);
+console.log('CPQ FLYER DEBUG makeflyer - flyerFinal:', flyerFinal);
+console.log('CPQ FLYER DEBUG makeflyer - flyerMSRP:', flyerMSRP);
+
 if (flyerDiscount === false || flyerDiscount === true) {
     flyerDiscount = '';
 }
@@ -611,7 +615,9 @@ if (hasAnswer('LAYOUT', 'PORTRAIT')) {
     flyerbody += "    <div id = \"msrpPrice\">$" + flyerMSRP + "<\/div>";
     flyerbody += "    <div id = \"savings\">SAVINGS<\/div>";
     // CPQ Fix: Don't show negative sign for $0 discount
+    console.log('CPQ FLYER DEBUG - flyerDiscount before prefix:', flyerDiscount, 'Number:', Number(flyerDiscount), 'is > 0:', Number(flyerDiscount) > 0);
     var savingsPrefix = (flyerDiscount && Number(flyerDiscount) > 0) ? '$-' : '$';
+    console.log('CPQ FLYER DEBUG - savingsPrefix:', savingsPrefix);
     flyerbody += "    <div id = \"savingsPrice\">" + savingsPrefix + flyerDiscount + "<\/div>";
     flyerbody += "    <div id = \"saleprice\">SALE PRICE<\/div>";
     flyerbody += "    <div id = \"saleMoney\">$" + flyerFinal + "<\/div>";

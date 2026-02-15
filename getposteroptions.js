@@ -254,7 +254,7 @@ function getSpecTbl2(realmodel) { //used in standards/specs in the product.
         '</tr>' +
         '<tr>' +
         '<td style="text-align: left; font-size:13px; white-space: nowrap;">CAPACITY:</strong></td>' +
-        '<td style="text-align: left; font-size:13px"><input type="text" id="cap" value="' + (window.cpqLhsData && window.cpqLhsData.person_capacity ? window.cpqLhsData.person_capacity : (prfPkgs && prfPkgs.length > 0 ? prfPkgs[0].CAP : '')) + '"></td>' +
+        '<td style="text-align: left; font-size:13px"><input type="text" id="cap" value="' + (function() { if(window.cpqLhsData) { console.log('CPQ LHS Data fields:', Object.keys(window.cpqLhsData)); console.log('CPQ LHS Data:', window.cpqLhsData); return window.cpqLhsData.person_capacity || window.cpqLhsData.max_person_capacity || window.cpqLhsData.capacity || ''; } else { return (prfPkgs && prfPkgs.length > 0 ? prfPkgs[0].CAP : ''); } })() + '"></td>' +
         '</tr>' +
         '<tr>' +
         '<td style="text-align: left; font-size:13px; white-space: nowrap;">HULL WEIGHT:</strong></td>' +
