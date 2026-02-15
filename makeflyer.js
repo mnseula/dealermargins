@@ -610,7 +610,9 @@ if (hasAnswer('LAYOUT', 'PORTRAIT')) {
     flyerbody += "    <div id = \"msrp\">MSRP<\/div>";
     flyerbody += "    <div id = \"msrpPrice\">$" + flyerMSRP + "<\/div>";
     flyerbody += "    <div id = \"savings\">SAVINGS<\/div>";
-    flyerbody += "    <div id = \"savingsPrice\">$-" + flyerDiscount + "<\/div>";
+    // CPQ Fix: Don't show negative sign for $0 discount
+    var savingsPrefix = (flyerDiscount && Number(flyerDiscount) > 0) ? '$-' : '$';
+    flyerbody += "    <div id = \"savingsPrice\">" + savingsPrefix + flyerDiscount + "<\/div>";
     flyerbody += "    <div id = \"saleprice\">SALE PRICE<\/div>";
     flyerbody += "    <div id = \"saleMoney\">$" + flyerFinal + "<\/div>";
     flyerbody += "    <div id = \"optionalPricing\">" + optionalPricing + "<\/div>";
@@ -1119,7 +1121,9 @@ if (hasAnswer('LAYOUT', 'LANDSCAPE')) {
     flyerbody += "    <div id = \"msrp\">MSRP<\/div>";
     flyerbody += "    <div id = \"msrpContent\">$" + flyerMSRP + "<\/div>";
     flyerbody += "    <div id = \"savings\">SAVINGS<\/div>";
-    flyerbody += "    <div id = \"savingsContent\">$-" + flyerDiscount + "<\/div>";
+    // CPQ Fix: Don't show negative sign for $0 discount
+    var savingsPrefixLandscape = (flyerDiscount && Number(flyerDiscount) > 0) ? '$-' : '$';
+    flyerbody += "    <div id = \"savingsContent\">" + savingsPrefixLandscape + flyerDiscount + "<\/div>";
     flyerbody += "    <div id = \"saleprice\">SALE PRICE<\/div>";
     flyerbody += "    <div id = \"salepriceContent\">$" + flyerFinal + "<\/div>";
     flyerbody += "    <div id = \"optionalPricing\">"+ optionalPricing +"<\/div>";

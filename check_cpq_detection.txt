@@ -1,0 +1,19 @@
+Look for these console log messages:
+
+1. "CPQ BOAT - Using CPQ base boat dealer cost: $..."
+2. "CPQ BOAT - Added base boat to boatpackageprice: $..."
+3. "CPQ BOAT - Added base boat to saleboatpackageprice: $..."
+
+If you DON'T see these messages, then isCpqBoat is false, which means:
+   - Either isCpqAuthorized is false
+   - Or window.cpqBaseBoatDealerCost is not set or is 0
+
+Please also check:
+- What is window.cpqBaseBoatDealerCost set to?
+- What is window.cpqBaseBoatMSRP set to?
+- What is isCpqAuthorized set to?
+
+You can check these in the browser console by typing:
+   window.cpqBaseBoatDealerCost
+   window.cpqBaseBoatMSRP
+   isCpqAuthorized

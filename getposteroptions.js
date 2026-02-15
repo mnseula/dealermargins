@@ -254,11 +254,11 @@ function getSpecTbl2(realmodel) { //used in standards/specs in the product.
         '</tr>' +
         '<tr>' +
         '<td style="text-align: left; font-size:13px; white-space: nowrap;">CAPACITY:</strong></td>' +
-        '<td style="text-align: left; font-size:13px"><input type="text" id="cap" value="' + (prfPkgs && prfPkgs.length > 0 ? prfPkgs[0].CAP : '') + '"></td>' +
+        '<td style="text-align: left; font-size:13px"><input type="text" id="cap" value="' + (window.cpqLhsData && window.cpqLhsData.person_capacity ? window.cpqLhsData.person_capacity : (prfPkgs && prfPkgs.length > 0 ? prfPkgs[0].CAP : '')) + '"></td>' +
         '</tr>' +
         '<tr>' +
         '<td style="text-align: left; font-size:13px; white-space: nowrap;">HULL WEIGHT:</strong></td>' +
-        '<td style="text-align: left; font-size:13px"><input type="text" id="weight" value="' + (prfPkgs && prfPkgs.length > 0 ? prfPkgs[0].WEIGHT : '') + '"></td>' +
+        '<td style="text-align: left; font-size:13px"><input type="text" id="weight" value="' + (window.cpqLhsData && window.cpqLhsData.hull_weight ? window.cpqLhsData.hull_weight : (prfPkgs && prfPkgs.length > 0 ? prfPkgs[0].WEIGHT : '')) + '"></td>' +
         '</tr>' +
         '<tr>' +
         '<td style="text-align: left; font-size:13px; white-space: nowrap;">FUEL CAPACITY:</strong></td>' +
