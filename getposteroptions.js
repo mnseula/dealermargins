@@ -353,9 +353,14 @@ document.getElementById("weight").disabled = true;
 if(previouslySaved !== 0 && pricingtable && pricingtable.length > 0){
     console.log('Restore Previously Saved Pricing and Settings');
 
-    document.getElementById("engine").value = pricingtable[0].power;
-    document.getElementById("cap").value = pricingtable[0].capacity;
-    document.getElementById("fuel").value = pricingtable[0].fuel;
+    // CPQ Fix: Don't restore spec values for CPQ boats - use values from window.cpqLhsData instead
+    if (!isCpqBoat) {
+        document.getElementById("engine").value = pricingtable[0].power;
+        document.getElementById("cap").value = pricingtable[0].capacity;
+        document.getElementById("fuel").value = pricingtable[0].fuel;
+    } else {
+        console.log('CPQ FLYER - Skipping restore of spec values (using CPQ LHS data)');
+    }
 
     // CPQ Fix: Don't restore pricing values for CPQ boats - use calculated values instead
     if (!isCpqBoat) {
