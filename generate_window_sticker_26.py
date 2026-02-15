@@ -149,10 +149,6 @@ def print_window_sticker(boat_info: Dict, line_items: List):
     print("-" * 80)
 
     for cat in sorted_cats:
-        # Skip boat items (BS1/BOA) - base boat already in Models table
-        if cat in ('BS1', 'BOA'):
-            continue
-
         items = categorized[cat]
         cat_name = CATEGORY_MAP.get(cat, {'name': cat})['name']
         cat_total = totals.get(cat, 0)
@@ -178,15 +174,18 @@ def print_window_sticker(boat_info: Dict, line_items: List):
     print("💰 PRICING SUMMARY")
     print("=" * 80)
 
-    # Main categories (NOTE: BS1/BOA already excluded in calculate_totals)
+    # Main categories
+    base_boat = sum(item[5] or 0 for item in categorized.get('BOA', []))
     engine = totals.get('ENG', 0) + totals.get('ENA', 0) + totals.get('ENI', 0)
     accessories = totals.get('ACY', 0) + totals.get('ACC', 0)
     prep = totals.get('PPR', 0) + totals.get('PRE', 0)
     labor = totals.get('LAB', 0)
     wip = totals.get('WIP', 0)
 
-    # No longer showing base boat here - it comes from Models table
-    print(f"\n   Engine Package:              ${engine:15,.2f}")
+    # Show base boat from line items
+    if base_boat > 0:
+        print(f"\n   Base Boat:                   ${base_boat:15,.2f}")
+    print(f"   Engine Package:              ${engine:15,.2f}")
     print(f"   Accessories:                 ${accessories:15,.2f}")
     if prep > 0:
         print(f"   Prep & Rigging:              ${prep:15,.2f}")
@@ -202,8 +201,8 @@ def print_window_sticker(boat_info: Dict, line_items: List):
     if other_total != 0:
         print(f"   Other Items:                 ${other_total:15,.2f}")
 
-    # Grand total
-    grand_total = sum(totals.values())
+    # Grand total (include base boat which is excluded from totals dict)
+    grand_total = base_boat + sum(totals.values())
     print(f"   " + "-" * 48)
     print(f"   TOTAL MSRP:                  ${grand_total:15,.2f}")
 
