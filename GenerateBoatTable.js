@@ -102,6 +102,35 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         }
     });
 
+    // CPQ BASE BOAT CONFIGURATION: Add configuration details to table for CPQ boats
+    if (window.isCPQBoat && window.cpqLhsData && window.cpqLhsData.model_id && baseboatrow.length > 0) {
+        console.log('Adding CPQ base boat configuration to table');
+        var configRows = '';
+
+        // Header row for base boat configuration
+        configRows += '<tr style="background-color:#f0f0f0;"><td colspan="6"><strong>BASE BOAT CONFIGURATION</strong></td></tr>';
+
+        // Model and Series
+        configRows += '<tr><td colspan="3">Model: ' + (window.cpqLhsData.model_id || '') +
+                      ' | Series: ' + (window.cpqLhsData.series_id || '') + '</td>' +
+                      '<td colspan="3" align="right">&nbsp;</td></tr>';
+
+        // Floorplan if available
+        if (window.cpqLhsData.floorplan_desc) {
+            configRows += '<tr><td colspan="3">Floorplan: ' + window.cpqLhsData.floorplan_desc + '</td>' +
+                         '<td colspan="3" align="right">&nbsp;</td></tr>';
+        }
+
+        // Performance package if available
+        if (window.cpqLhsData.performance_pkg) {
+            configRows += '<tr><td colspan="3">Performance Package: ' + window.cpqLhsData.performance_pkg + '</td>' +
+                         '<td colspan="3" align="right">&nbsp;</td></tr>';
+        }
+
+        // Prepend configuration rows before base boat items
+        baseboatrow = configRows + baseboatrow;
+    }
+
     console.log('remove engine', removeeng);
     console.log('hasupgradedprerig', hasupgradedprerig);
     console.log('DEBUG: baseboatrow length:', baseboatrow.length);
