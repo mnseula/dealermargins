@@ -199,9 +199,27 @@ function getSpecTbl2(realmodel) { //used in standards/specs in the product.
     diam = diam.replace(/'/g, "&apos;").replace(/"/g, "&quot;");
 
     //Lookup the description of the Engine Config and the Fuel Type from Local Lists to print words instead of a number.
-
-    var engConfigDesc = loadByListName('list_EngineTypes', 'LIST/engineConfigID["' + boatSpecs[0].ENG_CONFIG_ID + '"]')[0].engineConfigName;
-    var fuelTypeDesc = loadByListName('list_FuelTypes', 'LIST/FUEL_TYPE_ID["' + boatSpecs[0].FUEL_TYPE_ID + '"]')[0].FUEL_TYPE_NAME;
+    // CPQ Fix: Add error handling for missing engine config data
+    var engConfigDesc = 'Single Outboard'; // Default for CPQ boats
+    var fuelTypeDesc = 'Gasoline'; // Default for CPQ boats
+    
+    try {
+        if (boatSpecs[0].ENG_CONFIG_ID) {
+            var engConfigResult = loadByListName('list_EngineTypes', 'LIST/engineConfigID["' + boatSpecs[0].ENG_CONFIG_ID + '"]');
+            if (engConfigResult && engConfigResult.length > 0 && engConfigResult[0].engineConfigName) {
+                engConfigDesc = engConfigResult[0].engineConfigName;
+            }
+        }
+        
+        if (boatSpecs[0].FUEL_TYPE_ID) {
+            var fuelTypeResult = loadByListName('list_FuelTypes', 'LIST/FUEL_TYPE_ID["' + boatSpecs[0].FUEL_TYPE_ID + '"]');
+            if (fuelTypeResult && fuelTypeResult.length > 0 && fuelTypeResult[0].FUEL_TYPE_NAME) {
+                fuelTypeDesc = fuelTypeResult[0].FUEL_TYPE_NAME;
+            }
+        }
+    } catch (e) {
+        console.log('CPQ FLYER - Using default engine/fuel specs for CPQ boat');
+    }
 
     //console.log(boatSpecs);
     // Create Spec Table
@@ -236,11 +254,11 @@ function getSpecTbl2(realmodel) { //used in standards/specs in the product.
         '</tr>' +
         '<tr>' +
         '<td style="text-align: left; font-size:13px; white-space: nowrap;">CAPACITY:</strong></td>' +
-        '<td style="text-align: left; font-size:13px"><input type="text" id="cap" value="' + prfPkgs[0].CAP + '"></td>' +
+        '<td style="text-align: left; font-size:13px"><input type="text" id="cap" value="' + (prfPkgs && prfPkgs.length > 0 ? prfPkgs[0].CAP : '') + '"></td>' +
         '</tr>' +
         '<tr>' +
         '<td style="text-align: left; font-size:13px; white-space: nowrap;">HULL WEIGHT:</strong></td>' +
-        '<td style="text-align: left; font-size:13px"><input type="text" id="weight" value="' + prfPkgs[0].WEIGHT + '"></td>' +
+        '<td style="text-align: left; font-size:13px"><input type="text" id="weight" value="' + (prfPkgs && prfPkgs.length > 0 ? prfPkgs[0].WEIGHT : '') + '"></td>' +
         '</tr>' +
         '<tr>' +
         '<td style="text-align: left; font-size:13px; white-space: nowrap;">FUEL CAPACITY:</strong></td>' +
