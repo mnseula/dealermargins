@@ -73,7 +73,7 @@ var accentCol = "DEFAULT COLOR";
 $('#sortable li').each(function(index) {
     //var part = $(this).context.lastChild.id;
     var descTB = 'tb' + $(this).context.lastChild.id;
-    var desc = $('input:text[name= ' + descTB + ']').val();
+    var desc = $('input:text[name="' + descTB + '"]').val();
     var state = $(this).context.className;
 
     var accentHelp = "PANEL -"; //use this substring to test and grab accent panel
@@ -202,7 +202,7 @@ if (hasAnswer('LAYOUT', 'PORTRAIT')) {
 
     $('#sortable li').each(function(index) {
         var descTB = 'tb' + $(this).context.lastChild.id;
-        var desc = $('input:text[name= ' + descTB + ']').val();
+        var desc = $('input:text[name="' + descTB + '"]').val();
         var state = $(this).context.className;
 
         if (state.substring(0, 14) == 'ui-state-focus') {
@@ -653,7 +653,7 @@ if (hasAnswer('LAYOUT', 'LANDSCAPE')) {
 
     $('#sortable li').each(function(index) {
         var descTB = 'tb' + $(this).context.lastChild.id;
-        var desc = $('input:text[name= ' + descTB + ']').val();
+        var desc = $('input:text[name="' + descTB + '"]').val();
         var state = $(this).context.className;
 
         if (state.substring(0, 14) == 'ui-state-focus') {
