@@ -68,17 +68,17 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
 
     }
 
-    // CPQ DETECTION: Check for external_confirmation_ref (most reliable indicator)
+    // CPQ DETECTION: Check for CfgName (most reliable indicator)
     // CPQ boats have this field populated, legacy boats have NULL
     window.isCPQBoat = false;
     if (serialYear > 14 && window.boatoptions && window.boatoptions.length > 0) {
         for (var i = 0; i < window.boatoptions.length; i++) {
             var item = window.boatoptions[i];
 
-            // PRIMARY CPQ DETECTION: Check external_confirmation_ref
-            if (item.external_confirmation_ref && item.external_confirmation_ref !== null && item.external_confirmation_ref !== '') {
+            // PRIMARY CPQ DETECTION: Check CfgName
+            if (item.CfgName && item.CfgName !== null && item.CfgName !== '') {
                 window.isCPQBoat = true;
-                console.log('✅ CPQ BOAT DETECTED via external_confirmation_ref:', item.external_confirmation_ref);
+                console.log('✅ CPQ BOAT DETECTED via CfgName:', item.CfgName);
                 break; // Found CPQ indicator, no need to check further
             }
         }
