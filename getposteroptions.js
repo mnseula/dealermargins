@@ -275,11 +275,17 @@ if (isCpqBoat) {
     if (cpqSalePrice && Number(cpqSalePrice) > 0) {
         setValue('PRICING','FLYER_FINAL_PRICE', Number(cpqSalePrice).toFixed(2));
         
-        // Calculate discount
+        // Calculate discount for CPQ boats
         var calculatedDiscount = cpqMSRP - Number(cpqSalePrice);
         if (calculatedDiscount > 0) {
+            // Normal case: Sale price is less than MSRP, show savings
             setValue('PRICING','FLYER_DISCOUNT', calculatedDiscount.toFixed(2));
+        } else if (calculatedDiscount < 0) {
+            // CPQ Special case: Sale price exceeds MSRP, show $0 savings
+            console.log('CPQ FLYER - Sale price exceeds MSRP, setting discount to $0');
+            setValue('PRICING','FLYER_DISCOUNT', '0.00');
         }
+        // If calculatedDiscount == 0, no discount field is set (no savings shown)
     }
 } else {
     // LEGACY BOAT: Use EXTRAS table pricing
