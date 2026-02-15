@@ -102,29 +102,6 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         }
     });
 
-    // CPQ BASE BOAT CONFIGURATION: Add configuration details to table for CPQ boats
-    if (window.isCPQBoat && window.cpqLhsData && window.cpqLhsData.model_id && baseboatrow.length > 0) {
-        console.log('Adding CPQ base boat configuration to table');
-        var configRows = '';
-
-        // Configuration info in a single row
-        var configInfo = 'Model: ' + (window.cpqLhsData.model_id || '') +
-                        ' | Series: ' + (window.cpqLhsData.series_id || '');
-
-        if (window.cpqLhsData.floorplan_desc) {
-            configInfo += ' | Floorplan: ' + window.cpqLhsData.floorplan_desc;
-        }
-
-        if (window.cpqLhsData.performance_pkg) {
-            configInfo += ' | Perf Pkg: ' + window.cpqLhsData.performance_pkg;
-        }
-
-        // Single configuration row with all info
-        configRows += '<tr style="background-color:#f0f0f0;"><td colspan="6"><strong>BASE BOAT: </strong>' + configInfo + '</td></tr>';
-
-        // Prepend configuration rows before base boat items
-        baseboatrow = configRows + baseboatrow;
-    }
 
     console.log('remove engine', removeeng);
     console.log('hasupgradedprerig', hasupgradedprerig);
