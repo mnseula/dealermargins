@@ -67,8 +67,7 @@ if(!isAnswered('PERF_LOGOS')){
 }
 var perfLogoAnswer = getAnswer('PERF_LOGOS');
 var perflogo = (perfLogoAnswer && perfLogoAnswer.includes('/')) ? perfLogoAnswer.split('/')[1] : '';
-var colorAnswer = getAnswer('COLOR');
-var printoptions = (colorAnswer && colorAnswer.includes('/')) ? colorAnswer.split('/')[1] : '';
+var printoptions = getAnswer('COLOR');  // Store full answer path, not just the part after '/'
 //var printoptions = ""; !!!!!!!!!!!!! CHANGE TO THIS ONCE THE PORTRAIT AND LANDSCAPE CHANGE COMES OUT!
 
 var dlr_img_url = getValue('DLR_IMG','DLR_IMG_URL');
