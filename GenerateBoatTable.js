@@ -65,12 +65,9 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
             pkgrow = '<tr>' + '<td>' + desc + '</td><td>' + itemno + '</td><td align="center">1</td><td type = "DC" align="right">' + dc + '</td><td type= "MS" align="right">' + msrp + '</td><td type = "SP" align="right">' + sp + '</td></tr>';
             pkgrowtotal_SP = pkgrowtotal_SP + Number(sp);
             pkgrowtotal_MS = pkgrowtotal_MS + Number(msrp);
-        } else if (mct === 'PONTOONS' || mct === 'Pontoon Boats OB') {
-            boatrow = '<tr>' + '<td>' + desc + '</td><td>' + itemno + '</td><td align="center">' + qty + '</td><td type="DC" align="right">' + dc + '</td><td type="MS" align="right">' + msrp + '</td><td type="SP" align="right">' + sp + '</td></tr>';
-            boatrowtotal_SP = boatrowtotal_SP + Number(sp); // + Number(additionalCharge);
-            boatrowtotal_MS = boatrowtotal_MS + Number(msrp); // + Number(additionalCharge);
-        } else if (mct === 'BOA') {
-            console.log('DEBUG: Found BOA item:', itemno, desc, 'MSRP:', msrp);
+        } else if (mct === 'BOA' || mct === 'PONTOONS' || mct === 'Pontoon Boats OB') {
+            // Base boat items - BOA for legacy boats, PONTOONS for CPQ boats
+            console.log('DEBUG: Found base boat item:', itemno, desc, 'MCT:', mct, 'MSRP:', msrp);
             baseboatrow += '<tr>' + '<td>' + desc + '</td><td>' + itemno + '</td><td align="center">' + qty + '</td><td type="DC" align="right">' + dc + '</td><td type="MS" align="right">' + msrp + '</td><td type="SP" align="right">' + sp + '</td></tr>';
             baseboatrowtotal_SP = baseboatrowtotal_SP + Number(sp);
             baseboatrowtotal_MS = baseboatrowtotal_MS + Number(msrp);

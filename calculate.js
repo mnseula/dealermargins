@@ -611,8 +611,18 @@ window.Calculate2021 = window.Calculate2021 || function () {
             }
             else if (mctType === 'DIS' || mctType === 'DIV') {
             } else if ((mct === 'PONTOONS' || mct === 'Pontoon Boats OB') && isCpqBoat) {
-                // ACTION ITEM 2 FIX: Skip PONTOONS items for CPQ boats to prevent double-counting
-                console.log("CPQ BOAT - Skipping boattable entry for PONTOONS item: " + itemdesc);
+                // CPQ BOAT: Add PONTOONS items to boattable for display (totals come from DLR2, not boattable)
+                console.log("CPQ BOAT - Adding base boat to boattable for display: " + itemdesc + " MSRP: $" + msrpprice);
+                boattable.push({
+                    'ItemDesc1': itemdesc,
+                    'ItemNo': displayItemNo,
+                    'Qty': qty,
+                    'MCT': mct,
+                    'PC': pc,
+                    'DealerCost': dealercost,
+                    'SalePrice': Math.round(saleprice).toFixed(2),
+                    'MSRP': Math.round(msrpprice).toFixed(2)
+                });
             } else {
                 // Add to boattable
                 boattable.push({
