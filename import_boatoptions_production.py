@@ -18,13 +18,22 @@ Features:
 - CFG table scraping for configured CPQ items with MSRP
 
 Usage:
+    # Staging (default)
     python3 import_boatoptions_production.py
+    
+    # Production
+    python3 import_boatoptions_production.py --prd
+
+Command Line Arguments:
+    --prd, --production    Use production MSSQL database (CSIPRD)
+                           Default is staging (CSISTG) if not specified
 
 Author: Claude Code
 Date: 2026-02-11
 """
 
 import sys
+import argparse
 import csv
 import tempfile
 import os
@@ -35,11 +44,47 @@ import mysql.connector
 from mysql.connector import Error as MySQLError
 
 # ============================================================================
-# DATABASE CONFIGURATIONS
+# COMMAND LINE ARGUMENTS
 # ============================================================================
 
-# MSSQL (Source - CSI/ERP)
-MSSQL_CONFIG = {
+parser = argparse.ArgumentParser(
+    description='Import boat options from MSSQL to MySQL',
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+    epilog="""
+Examples:
+    # Staging (default)
+    python3 import_boatoptions_production.py
+    
+    # Production
+    python3 import_boatoptions_production.py --prd
+    
+    # In JAMS - Staging job:
+    Command: python3 import_boatoptions_production.py
+    
+    # In JAMS - Production job:
+    Command: python3 import_boatoptions_production.py --prd
+    """
+)
+parser.add_argument(
+    '--prd', '--production',
+    action='store_true',
+    dest='use_production',
+    default=False,
+    help='Use production MSSQL database (CSIPRD). Default is staging (CSISTG).'
+)
+# Parse known args to allow other args from existing code
+args, remaining_argv = parser.parse_known_args()
+# Put remaining args back for further parsing if needed
+sys.argv[1:] = remaining_argv
+
+# ============================================================================
+# DATABASE CONFIGURATION - COMMAND LINE SWITCH
+# ============================================================================
+
+USE_PRODUCTION = args.use_production
+
+# MSSQL Configuration - Staging (Default)
+MSSQL_CONFIG_STAGING = {
     'server': 'MPL1STGSQL086.POLARISSTAGE.COM',
     'database': 'CSISTG',
     'user': 'svccsimarine',
@@ -47,6 +92,25 @@ MSSQL_CONFIG = {
     'timeout': 300,
     'login_timeout': 60
 }
+
+# MSSQL Configuration - Production
+MSSQL_CONFIG_PRODUCTION = {
+    'server': 'MPL1ITSSQL086.POLARISIND.COM',
+    'database': 'CSIPRD',
+    'user': 'svcSpecs01',
+    'password': 'SD4nzr0CJ5oj38',
+    'timeout': 300,
+    'login_timeout': 60
+}
+
+# Select configuration based on command line argument
+MSSQL_CONFIG = MSSQL_CONFIG_PRODUCTION if USE_PRODUCTION else MSSQL_CONFIG_STAGING
+
+# Log which database we're using (for JAMS logs)
+if USE_PRODUCTION:
+    print(f"⚠️  USING PRODUCTION DATABASE: {MSSQL_CONFIG['database']} on {MSSQL_CONFIG['server']}")
+else:
+    print(f"ℹ️  Using STAGING database: {MSSQL_CONFIG['database']} on {MSSQL_CONFIG['server']}")
 
 # MySQL (Destination - PRODUCTION DATABASE)
 # Note: Database is specified in table names (cpq.BoatOptions or warrantyparts.BoatOptions15)

@@ -20,8 +20,16 @@ Unlike add_boat_to_serial_master.py which uses dealer 50, this script:
 - Processes boats from BoatOptions15 through BoatOptions26 ONLY
 
 Usage:
-    python3 bulk_add_cpq_boats_all_dealers.py --dry-run        # Preview mode
-    python3 bulk_add_cpq_boats_all_dealers.py --confirm        # Production mode
+    # Staging (default)
+    python3 bulk_add_cpq_boats_all_dealers.py --dry-run
+    python3 bulk_add_cpq_boats_all_dealers.py --confirm
+    
+    # Production
+    python3 bulk_add_cpq_boats_all_dealers.py --prd --confirm
+
+Command Line Arguments:
+    --prd, --production    Use production MSSQL database (CSIPRD)
+                           Default is staging (CSISTG) if not specified
 
 Required arguments for production:
     --confirm        Required for production runs (safety check for JAMS automation)
@@ -42,6 +50,9 @@ Examples:
     python3 bulk_add_cpq_boats_all_dealers.py --confirm --year 26
     python3 bulk_add_cpq_boats_all_dealers.py --confirm --dealer 333836
 
+    # With production database
+    python3 bulk_add_cpq_boats_all_dealers.py --prd --confirm
+
     # Small test batches (no --confirm needed with --limit)
     python3 bulk_add_cpq_boats_all_dealers.py --limit 10
 
@@ -58,6 +69,74 @@ from mysql.connector import Error as MySQLError
 import pymssql
 
 # ============================================================================
+# COMMAND LINE ARGUMENTS
+# ============================================================================
+
+parser = argparse.ArgumentParser(
+    description='Bulk add CPQ boats to SerialNumberMaster',
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+    epilog="""
+Examples:
+    # Dry run (safe to test) - staging database
+    python3 bulk_add_cpq_boats_all_dealers.py --dry-run
+    python3 bulk_add_cpq_boats_all_dealers.py --dry-run --year 26
+
+    # Production run - staging database
+    python3 bulk_add_cpq_boats_all_dealers.py --confirm
+    python3 bulk_add_cpq_boats_all_dealers.py --confirm --year 26
+    python3 bulk_add_cpq_boats_all_dealers.py --confirm --dealer 333836
+
+    # Production run - production database
+    python3 bulk_add_cpq_boats_all_dealers.py --prd --confirm
+
+    # Small test batches (no --confirm needed with --limit)
+    python3 bulk_add_cpq_boats_all_dealers.py --limit 10
+    
+    # In JAMS - Staging job:
+    Command: python3 bulk_add_cpq_boats_all_dealers.py --confirm
+    
+    # In JAMS - Production job:
+    Command: python3 bulk_add_cpq_boats_all_dealers.py --prd --confirm
+    """
+)
+parser.add_argument(
+    '--prd', '--production',
+    action='store_true',
+    dest='use_production',
+    default=False,
+    help='Use production MSSQL database (CSIPRD). Default is staging (CSISTG).'
+)
+parser.add_argument(
+    '--confirm',
+    action='store_true',
+    help='Required for production runs (safety check for JAMS automation)'
+)
+parser.add_argument(
+    '--dry-run',
+    action='store_true',
+    help='Show what would be done without making changes'
+)
+parser.add_argument(
+    '--limit',
+    type=int,
+    metavar='N',
+    help='Process only N boats (for testing)'
+)
+parser.add_argument(
+    '--year',
+    type=str,
+    metavar='YY',
+    help='Process only boats from specific year table (e.g., 26 for BoatOptions26)'
+)
+parser.add_argument(
+    '--dealer',
+    type=str,
+    metavar='ID',
+    help='Process only boats for specific dealer'
+)
+args = parser.parse_args()
+
+# ============================================================================
 # DATABASE CONFIGURATION
 # ============================================================================
 
@@ -69,8 +148,12 @@ MYSQL_CONFIG = {
     'password': 'VWvHG9vfG23g7gD'
 }
 
-# MSSQL Configuration (Source - CSI/ERP for dealer info)
-MSSQL_CONFIG = {
+# ==================== MSSQL DATABASE SWITCH ====================
+
+USE_PRODUCTION = args.use_production
+
+# MSSQL Configuration - Staging (Default)
+MSSQL_CONFIG_STAGING = {
     'server': 'MPL1STGSQL086.POLARISSTAGE.COM',
     'database': 'CSISTG',
     'user': 'svccsimarine',
@@ -78,6 +161,25 @@ MSSQL_CONFIG = {
     'timeout': 300,
     'login_timeout': 60
 }
+
+# MSSQL Configuration - Production
+MSSQL_CONFIG_PRODUCTION = {
+    'server': 'MPL1ITSSQL086.POLARISIND.COM',
+    'database': 'CSIPRD',
+    'user': 'svcSpecs01',
+    'password': 'SD4nzr0CJ5oj38',
+    'timeout': 300,
+    'login_timeout': 60
+}
+
+# Select configuration based on command line argument
+MSSQL_CONFIG = MSSQL_CONFIG_PRODUCTION if USE_PRODUCTION else MSSQL_CONFIG_STAGING
+
+# Log which database we're using (for JAMS logs)
+if USE_PRODUCTION:
+    print(f"⚠️  USING PRODUCTION DATABASE: {MSSQL_CONFIG['database']} on {MSSQL_CONFIG['server']}")
+else:
+    print(f"ℹ️  Using STAGING database: {MSSQL_CONFIG['database']} on {MSSQL_CONFIG['server']}")
 
 # BoatOptions tables to process (2015 onwards - CPQ era)
 BOAT_OPTIONS_TABLES = [

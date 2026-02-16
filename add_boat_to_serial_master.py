@@ -9,11 +9,19 @@ The script automatically determines which BoatOptions table to use based on the 
 of the hull serial number (e.g., ETWINVTEST0126 -> BoatOptions26).
 
 Usage:
+    # Staging (default)
     python3 add_boat_to_serial_master.py <hull_number> <erp_order>
+    
+    # Production
+    python3 add_boat_to_serial_master.py --prd <hull_number> <erp_order>
+
+Command Line Arguments:
+    --prd, --production    Use production MSSQL database (CSIPRD)
+                           Default is staging (CSISTG) if not specified
 
 Example:
     python3 add_boat_to_serial_master.py ETWINVTEST0126 SO00936076
-    python3 add_boat_to_serial_master.py ETWINVTEST0104 SO00936074
+    python3 add_boat_to_serial_master.py --prd ETWINVTEST0126 SO00936076
 
 Author: Claude Code
 Date: 2026-02-09
@@ -23,7 +31,39 @@ import mysql.connector
 from mysql.connector import Error
 import pymssql
 import sys
+import argparse
 from datetime import datetime
+
+# ==================== COMMAND LINE ARGUMENTS ====================
+
+parser = argparse.ArgumentParser(
+    description='Add boat to SerialNumberMaster and SerialNumberRegistrationStatus',
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+    epilog="""
+Examples:
+    # Staging (default)
+    python3 add_boat_to_serial_master.py ETWINVTEST0126 SO00936076
+    
+    # Production
+    python3 add_boat_to_serial_master.py --prd ETWINVTEST0126 SO00936076
+    
+    # In JAMS - Staging job:
+    Command: python3 add_boat_to_serial_master.py {{HULL_NUMBER}} {{ERP_ORDER}}
+    
+    # In JAMS - Production job:
+    Command: python3 add_boat_to_serial_master.py --prd {{HULL_NUMBER}} {{ERP_ORDER}}
+    """
+)
+parser.add_argument(
+    '--prd', '--production',
+    action='store_true',
+    dest='use_production',
+    default=False,
+    help='Use production MSSQL database (CSIPRD). Default is staging (CSISTG).'
+)
+parser.add_argument('hull_number', help='Boat hull serial number')
+parser.add_argument('erp_order', help='ERP order number')
+args = parser.parse_args()
 
 # ==================== CONFIGURATION ====================
 
@@ -45,8 +85,12 @@ TEST_DEALER = {
     'DealerCountry': 'US'
 }
 
-# MSSQL Configuration (Source - CSI/ERP)
-MSSQL_CONFIG = {
+# ==================== MSSQL DATABASE SWITCH ====================
+
+USE_PRODUCTION = args.use_production
+
+# MSSQL Configuration - Staging (Default)
+MSSQL_CONFIG_STAGING = {
     'server': 'MPL1STGSQL086.POLARISSTAGE.COM',
     'database': 'CSISTG',
     'user': 'svccsimarine',
@@ -54,6 +98,25 @@ MSSQL_CONFIG = {
     'timeout': 300,
     'login_timeout': 60
 }
+
+# MSSQL Configuration - Production
+MSSQL_CONFIG_PRODUCTION = {
+    'server': 'MPL1ITSSQL086.POLARISIND.COM',
+    'database': 'CSIPRD',
+    'user': 'svcSpecs01',
+    'password': 'SD4nzr0CJ5oj38',
+    'timeout': 300,
+    'login_timeout': 60
+}
+
+# Select configuration based on command line argument
+MSSQL_CONFIG = MSSQL_CONFIG_PRODUCTION if USE_PRODUCTION else MSSQL_CONFIG_STAGING
+
+# Log which database we're using (for JAMS logs)
+if USE_PRODUCTION:
+    print(f"⚠️  USING PRODUCTION DATABASE: {MSSQL_CONFIG['database']} on {MSSQL_CONFIG['server']}")
+else:
+    print(f"ℹ️  Using STAGING database: {MSSQL_CONFIG['database']} on {MSSQL_CONFIG['server']}")
 
 # ==================== HELPER FUNCTIONS ====================
 
