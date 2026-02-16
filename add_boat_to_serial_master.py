@@ -225,52 +225,6 @@ def get_color_fields_from_mssql(erp_order: str) -> dict:
             'TrimAccent': None
         }
 
-def get_dealer_info_from_mssql(erp_order: str) -> dict:
-    """
-    Query MSSQL for dealer information from the order.
-    Returns dict with dealer details or None if not found.
-    """
-    try:
-        conn = pymssql.connect(**MSSQL_CONFIG)
-        cursor = conn.cursor(as_dict=True)
-        
-        query = """
-        SELECT 
-            co.cust_num AS DealerNumber,
-            cust.name AS DealerName,
-            cust.city AS DealerCity,
-            cust.state AS DealerState,
-            cust.zip AS DealerZip,
-            cust.country AS DealerCountry
-        FROM [CSISTG].[dbo].[co_mst] co
-        LEFT JOIN [CSISTG].[dbo].[customer_mst] cust
-            ON co.cust_num = cust.cust_num
-            AND co.site_ref = cust.site_ref
-        WHERE co.co_num = %s
-            AND co.site_ref = 'BENN'
-        """
-        
-        cursor.execute(query, (erp_order,))
-        result = cursor.fetchone()
-        
-        cursor.close()
-        conn.close()
-        
-        if result:
-            return {
-                'DealerNumber': result.get('DealerNumber'),
-                'DealerName': result.get('DealerName'),
-                'DealerCity': result.get('DealerCity'),
-                'DealerState': result.get('DealerState'),
-                'DealerZip': result.get('DealerZip'),
-                'DealerCountry': result.get('DealerCountry')
-            }
-        return None
-        
-    except Exception as e:
-        log(f"⚠️  Could not fetch dealer info from MSSQL: {e}", "WARNING")
-        return None
-
 def get_table_name_from_hull(hull_number: str) -> str:
     """
     Determine the BoatOptions table name from the hull number.
@@ -607,11 +561,7 @@ def main():
     print(f"Hull Number:  {hull_number}")
     print(f"ERP Order:    {erp_order}")
     
-    # Determine which dealer to use based on --prd flag
-    if USE_PRODUCTION:
-        print(f"Mode:         PRODUCTION - Will use real dealer from ERP")
-    else:
-        print(f"Test Dealer:  {TEST_DEALER['DealerNumber']} ({TEST_DEALER['DealerName']})")
+    print(f"Test Dealer:  {TEST_DEALER['DealerNumber']} ({TEST_DEALER['DealerName']})")
     
     print(f"Started:      {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 80)
@@ -653,18 +603,8 @@ def main():
         if color_fields['BaseVinyl']:
             log(f"   BaseVinyl: {color_fields['BaseVinyl']}")
         
-        # Get dealer info based on --prd flag
-        if USE_PRODUCTION:
-            log("Fetching dealer information from MSSQL (Production mode)...")
-            dealer_info = get_dealer_info_from_mssql(erp_order)
-            if not dealer_info:
-                log("⚠️  Could not fetch dealer info from MSSQL, falling back to test dealer", "WARNING")
-                dealer_info = TEST_DEALER
-            else:
-                log(f"   Dealer: {dealer_info['DealerNumber']} ({dealer_info['DealerName']})")
-        else:
-            # Staging mode - use test dealer 50
-            dealer_info = TEST_DEALER
+        # Always use test dealer 50 for this script (manual staging additions)
+        dealer_info = TEST_DEALER
 
         # Check if boat already exists
         log("Checking if boat already exists...")
