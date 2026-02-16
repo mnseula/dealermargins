@@ -14,7 +14,15 @@ Unlike add_boat_to_serial_master.py which adds one boat with a test dealer, this
 The script queries MSSQL for boat orders with dealer information, then inserts into MySQL.
 
 Usage:
+    # Staging (default)
     python3 bulk_add_invoiced_boats_to_serial_master.py
+    
+    # Production
+    python3 bulk_add_invoiced_boats_to_serial_master.py --prd
+
+Command Line Arguments:
+    --prd, --production    Use production MSSQL database (CSIPRD)
+                           Default is staging (CSISTG) if not specified
 
 Optional arguments:
     --limit N        Process only N boats (for testing)
@@ -25,6 +33,7 @@ Examples:
     python3 bulk_add_invoiced_boats_to_serial_master.py
     python3 bulk_add_invoiced_boats_to_serial_master.py --limit 10 --dry-run
     python3 bulk_add_invoiced_boats_to_serial_master.py --year 2026
+    python3 bulk_add_invoiced_boats_to_serial_master.py --prd --year 2026
 
 Author: Claude Code
 Date: 2026-02-12
@@ -39,11 +48,64 @@ import mysql.connector
 from mysql.connector import Error as MySQLError
 
 # ============================================================================
+# COMMAND LINE ARGUMENTS
+# ============================================================================
+
+parser = argparse.ArgumentParser(
+    description='Bulk add invoiced boats to SerialNumberMaster',
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+    epilog="""
+Examples:
+    # Staging (default)
+    python3 bulk_add_invoiced_boats_to_serial_master.py
+    python3 bulk_add_invoiced_boats_to_serial_master.py --limit 10 --dry-run
+    python3 bulk_add_invoiced_boats_to_serial_master.py --year 2026
+    
+    # Production
+    python3 bulk_add_invoiced_boats_to_serial_master.py --prd
+    python3 bulk_add_invoiced_boats_to_serial_master.py --prd --year 2026
+    
+    # In JAMS - Staging job:
+    Command: python3 bulk_add_invoiced_boats_to_serial_master.py
+    
+    # In JAMS - Production job:
+    Command: python3 bulk_add_invoiced_boats_to_serial_master.py --prd
+    """
+)
+parser.add_argument(
+    '--prd', '--production',
+    action='store_true',
+    dest='use_production',
+    default=False,
+    help='Use production MSSQL database (CSIPRD). Default is staging (CSISTG).'
+)
+parser.add_argument(
+    '--limit',
+    type=int,
+    metavar='N',
+    help='Process only N boats (for testing)'
+)
+parser.add_argument(
+    '--dry-run',
+    action='store_true',
+    help='Show what would be done without making changes'
+)
+parser.add_argument(
+    '--year',
+    type=int,
+    metavar='YYYY',
+    help='Process only boats from specific year (e.g., 2026)'
+)
+args = parser.parse_args()
+
+# ============================================================================
 # DATABASE CONFIGURATIONS
 # ============================================================================
 
-# MSSQL (Source - CSI/ERP)
-MSSQL_CONFIG = {
+USE_PRODUCTION = args.use_production
+
+# MSSQL Configuration - Staging (Default)
+MSSQL_CONFIG_STAGING = {
     'server': 'MPL1STGSQL086.POLARISSTAGE.COM',
     'database': 'CSISTG',
     'user': 'svccsimarine',
@@ -51,6 +113,25 @@ MSSQL_CONFIG = {
     'timeout': 300,
     'login_timeout': 60
 }
+
+# MSSQL Configuration - Production
+MSSQL_CONFIG_PRODUCTION = {
+    'server': 'MPL1ITSSQL086.POLARISIND.COM',
+    'database': 'CSIPRD',
+    'user': 'svcSpecs01',
+    'password': 'SD4nzr0CJ5oj38',
+    'timeout': 300,
+    'login_timeout': 60
+}
+
+# Select configuration based on command line argument
+MSSQL_CONFIG = MSSQL_CONFIG_PRODUCTION if USE_PRODUCTION else MSSQL_CONFIG_STAGING
+
+# Log which database we're using (for JAMS logs)
+if USE_PRODUCTION:
+    print(f"⚠️  USING PRODUCTION DATABASE: {MSSQL_CONFIG['database']} on {MSSQL_CONFIG['server']}")
+else:
+    print(f"ℹ️  Using STAGING database: {MSSQL_CONFIG['database']} on {MSSQL_CONFIG['server']}")
 
 # MySQL (Destination - SerialNumberMaster)
 MYSQL_CONFIG = {
