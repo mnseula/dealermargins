@@ -326,6 +326,17 @@ window.Calculate2021 = window.Calculate2021 || function () {
             setValue('DLR2', 'ENGINE_INC', engineincrement);
         }
         if (mct === 'PRE-RIG') {
+            // CPQ FIX: Skip rigging items from package calculation - they appear as line items
+            var isRigging = (isCpqBoat && macoladesc && 
+                macoladesc.toUpperCase().includes('RIGGING'));
+            
+            if (isRigging) {
+                hasprerig = '1';
+                console.log('CPQ: Skipping rigging item from package calculation:', macoladesc);
+                // Continue to next iteration - don't add to prerigonboatprice
+                return true; // Skip the rest of this iteration
+            }
+            
             hasprerig = '1';
             var prerigonboatprice = dealercost;
 
@@ -382,11 +393,22 @@ window.Calculate2021 = window.Calculate2021 || function () {
 
     if (window.retryPrerig == 1 && window.hasengine == 1) {
         console.error('We need to retry pre rig if it now has an engine');
-        var manualPreRig = $.grep(boatoptions, function (rec) { return rec.MCTDesc === 'PRE-RIG'; });
-        var dealercost = manualPreRig.ExtSalesAmount;
-
-        hasprerig = '1';
-        var prerigonboatprice = dealercost;
+        var manualPreRig = $.grep(boatoptions, function (rec) { 
+            // CPQ FIX: Skip rigging items in retry
+            if (isCpqBoat && rec.ItemDesc1 && 
+                rec.ItemDesc1.toUpperCase().includes('RIGGING')) {
+                return false;
+            }
+            return rec.MCTDesc === 'PRE-RIG'; 
+        });
+        
+        if (manualPreRig.length === 0) {
+            console.log('CPQ: No pre-rig items found after filtering rigging');
+            hasprerig = '1';
+        } else {
+            var dealercost = manualPreRig[0].ExtSalesAmount;
+            hasprerig = '1';
+            var prerigonboatprice = dealercost;
         if ((defaultprerigprice === undefined || defaultprerigprice === false)) {
             defaultprerigprice = getValue('DLR2', 'DEF_PRERIG_COST');
             if (defaultprerigprice == false) { window.retryPrerig = 1; }
@@ -402,6 +424,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
         boatpackageprice = boatpackageprice + Number(defaultprerigprice);
         prerigsp = (Number(prerigincrement) / optionmargin) * vol_disc;
         saleboatpackageprice = saleboatpackageprice + defaultprerigsp;
+        }
     }
 
     if (hasengine == '0') {
