@@ -382,11 +382,24 @@ window.Calculate2021 = window.Calculate2021 || function () {
 
     if (window.retryPrerig == 1 && window.hasengine == 1) {
         console.error('We need to retry pre rig if it now has an engine');
-        var manualPreRig = $.grep(boatoptions, function (rec) { return rec.MCTDesc === 'PRE-RIG'; });
-        var dealercost = manualPreRig.ExtSalesAmount;
+        var manualPreRig = $.grep(boatoptions, function (rec) {
+            // CPQ FIX: Skip rigging items in retry - already processed in main loop
+            if (isCpqBoat && rec.ItemDesc1 &&
+                rec.ItemDesc1.toUpperCase().includes('RIGGING')) {
+                console.log('CPQ: Skipping rigging item in retry (already counted):', rec.ItemDesc1);
+                return false;
+            }
+            return rec.MCTDesc === 'PRE-RIG';
+        });
 
-        hasprerig = '1';
-        var prerigonboatprice = dealercost;
+        // If no pre-rig items found after filtering, skip retry processing
+        if (manualPreRig.length === 0) {
+            console.log('CPQ: No pre-rig items to retry after filtering rigging');
+        } else {
+            var dealercost = manualPreRig[0].ExtSalesAmount;
+
+            hasprerig = '1';
+            var prerigonboatprice = dealercost;
         if ((defaultprerigprice === undefined || defaultprerigprice === false)) {
             defaultprerigprice = getValue('DLR2', 'DEF_PRERIG_COST');
             if (defaultprerigprice == false) { window.retryPrerig = 1; }
@@ -396,12 +409,13 @@ window.Calculate2021 = window.Calculate2021 || function () {
         console.debug('defaultprerigprice', defaultprerigprice);
         window.prerigincrement = prerigonboatprice - defaultprerigprice;
 
-        defaultprerigsp = (defaultprerigprice / optionmargin) * vol_disc;
-        defaultprerigprice = getValue('DLR2', 'DEF_PRERIG_COST');
+            defaultprerigsp = (defaultprerigprice / optionmargin) * vol_disc;
+            defaultprerigprice = getValue('DLR2', 'DEF_PRERIG_COST');
 
-        boatpackageprice = boatpackageprice + Number(defaultprerigprice);
-        prerigsp = (Number(prerigincrement) / optionmargin) * vol_disc;
-        saleboatpackageprice = saleboatpackageprice + defaultprerigsp;
+            boatpackageprice = boatpackageprice + Number(defaultprerigprice);
+            prerigsp = (Number(prerigincrement) / optionmargin) * vol_disc;
+            saleboatpackageprice = saleboatpackageprice + defaultprerigsp;
+        }
     }
 
     if (hasengine == '0') {
