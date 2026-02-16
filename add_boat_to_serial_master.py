@@ -225,6 +225,52 @@ def get_color_fields_from_mssql(erp_order: str) -> dict:
             'TrimAccent': None
         }
 
+def get_dealer_info_from_mssql(erp_order: str) -> dict:
+    """
+    Query MSSQL for dealer information from the order.
+    Returns dict with dealer details or None if not found.
+    """
+    try:
+        conn = pymssql.connect(**MSSQL_CONFIG)
+        cursor = conn.cursor(as_dict=True)
+        
+        query = """
+        SELECT 
+            co.cust_num AS DealerNumber,
+            cust.name AS DealerName,
+            cust.city AS DealerCity,
+            cust.state AS DealerState,
+            cust.zip AS DealerZip,
+            cust.country AS DealerCountry
+        FROM [CSISTG].[dbo].[co_mst] co
+        LEFT JOIN [CSISTG].[dbo].[customer_mst] cust
+            ON co.cust_num = cust.cust_num
+            AND co.site_ref = cust.site_ref
+        WHERE co.co_num = %s
+            AND co.site_ref = 'BENN'
+        """
+        
+        cursor.execute(query, (erp_order,))
+        result = cursor.fetchone()
+        
+        cursor.close()
+        conn.close()
+        
+        if result:
+            return {
+                'DealerNumber': result.get('DealerNumber'),
+                'DealerName': result.get('DealerName'),
+                'DealerCity': result.get('DealerCity'),
+                'DealerState': result.get('DealerState'),
+                'DealerZip': result.get('DealerZip'),
+                'DealerCountry': result.get('DealerCountry')
+            }
+        return None
+        
+    except Exception as e:
+        log(f"⚠️  Could not fetch dealer info from MSSQL: {e}", "WARNING")
+        return None
+
 def get_table_name_from_hull(hull_number: str) -> str:
     """
     Determine the BoatOptions table name from the hull number.
@@ -444,7 +490,7 @@ def check_if_exists(cursor, hull_number: str) -> tuple:
 
     return in_master, in_status
 
-def insert_serial_number_master(cursor, boat_info: dict) -> bool:
+def insert_serial_number_master(cursor, boat_info: dict, dealer_info: dict) -> bool:
     """
     Insert boat into SerialNumberMaster.
     Returns True on success, False on failure.
@@ -489,12 +535,12 @@ def insert_serial_number_master(cursor, boat_info: dict) -> bool:
         boat_info['erp_order'],            # ERP_OrderNo
         boat_info['invoice_no'],           # InvoiceNo
         boat_info['invoice_date'],         # InvoiceDateYYYYMMDD
-        TEST_DEALER['DealerNumber'],       # DealerNumber
-        TEST_DEALER['DealerName'],         # DealerName
-        TEST_DEALER['DealerCity'],         # DealerCity
-        TEST_DEALER['DealerState'],        # DealerState
-        TEST_DEALER['DealerZip'],          # DealerZip
-        TEST_DEALER['DealerCountry'],      # DealerCountry
+        dealer_info['DealerNumber'],       # DealerNumber
+        dealer_info['DealerName'],         # DealerName
+        dealer_info['DealerCity'],         # DealerCity
+        dealer_info['DealerState'],        # DealerState
+        dealer_info['DealerZip'],          # DealerZip
+        dealer_info['DealerCountry'],      # DealerCountry
         boat_info['web_order_no'],         # WebOrderNo
         0,                                  # Active (0 = unregistered)
         boat_info.get('ProdNo'),           # ProdNo
@@ -552,20 +598,21 @@ def insert_serial_number_registration_status(cursor, boat_info: dict) -> bool:
 
 def main():
     """Main execution"""
-    if len(sys.argv) != 3:
-        print("Usage: python3 add_boat_to_serial_master.py <hull_number> <erp_order>")
-        print("Example: python3 add_boat_to_serial_master.py ETWINVTEST0126 SO00936076")
-        sys.exit(1)
-
-    hull_number = sys.argv[1]
-    erp_order = sys.argv[2]
+    hull_number = args.hull_number
+    erp_order = args.erp_order
 
     print("=" * 80)
     print("ADD BOAT TO SERIALNUMBERMASTER")
     print("=" * 80)
     print(f"Hull Number:  {hull_number}")
     print(f"ERP Order:    {erp_order}")
-    print(f"Test Dealer:  {TEST_DEALER['DealerNumber']} ({TEST_DEALER['DealerName']})")
+    
+    # Determine which dealer to use based on --prd flag
+    if USE_PRODUCTION:
+        print(f"Mode:         PRODUCTION - Will use real dealer from ERP")
+    else:
+        print(f"Test Dealer:  {TEST_DEALER['DealerNumber']} ({TEST_DEALER['DealerName']})")
+    
     print(f"Started:      {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 80)
 
@@ -605,6 +652,19 @@ def main():
             log(f"   AccentPanel: {color_fields['AccentPanel']}")
         if color_fields['BaseVinyl']:
             log(f"   BaseVinyl: {color_fields['BaseVinyl']}")
+        
+        # Get dealer info based on --prd flag
+        if USE_PRODUCTION:
+            log("Fetching dealer information from MSSQL (Production mode)...")
+            dealer_info = get_dealer_info_from_mssql(erp_order)
+            if not dealer_info:
+                log("⚠️  Could not fetch dealer info from MSSQL, falling back to test dealer", "WARNING")
+                dealer_info = TEST_DEALER
+            else:
+                log(f"   Dealer: {dealer_info['DealerNumber']} ({dealer_info['DealerName']})")
+        else:
+            # Staging mode - use test dealer 50
+            dealer_info = TEST_DEALER
 
         # Check if boat already exists
         log("Checking if boat already exists...")
@@ -622,7 +682,7 @@ def main():
         # Insert into SerialNumberMaster
         if not in_master:
             log("Adding boat to SerialNumberMaster...")
-            if insert_serial_number_master(cursor, boat_info):
+            if insert_serial_number_master(cursor, boat_info, dealer_info):
                 log("✅ Added to SerialNumberMaster")
             else:
                 log("❌ Failed to add to SerialNumberMaster", "ERROR")
@@ -667,7 +727,7 @@ def main():
         print(f"Model:             {boat_info['model']} ({boat_info['description']})")
         print(f"Series:            {boat_info['series']}")
         print(f"Invoice:           {boat_info['invoice_no']}")
-        print(f"Dealer:            {TEST_DEALER['DealerNumber']} ({TEST_DEALER['DealerName']})")
+        print(f"Dealer:            {dealer_info['DealerNumber']} ({dealer_info['DealerName']})")
         print(f"Active:            {master_row[0] if master_row else 'N/A'} (0 = unregistered)")
         print(f"Registered:        {status_row[0] if status_row else 'N/A'} (0 = not sold)")
         if boat_info.get('PanelColor') or boat_info.get('AccentPanel') or boat_info.get('BaseVinyl'):
