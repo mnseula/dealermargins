@@ -11,6 +11,18 @@ DOWNLOAD DATE: 2025-10-06T19:09:37.354Z
 
 window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     console.log('Generate');
+
+    // HTML escape function to prevent quote characters from breaking HTML
+    function escapeHtml(text) {
+        if (!text) return text;
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     if (hasAnswer('RMV_ENG', 'YES')) {
         var removeeng = '1';
     } else {
@@ -62,22 +74,22 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         var inc = boattable[i].Increment;
 
         if (mct === 'BOATPKG') {
-            pkgrow = '<tr>' + '<td>' + desc + '</td><td>' + itemno + '</td><td align="center">1</td><td type = "DC" align="right">' + dc + '</td><td type= "MS" align="right">' + msrp + '</td><td type = "SP" align="right">' + sp + '</td></tr>';
+            pkgrow = '<tr>' + '<td>' + escapeHtml(desc) + '</td><td>' + escapeHtml(itemno) + '</td><td align="center">1</td><td type = "DC" align="right">' + dc + '</td><td type= "MS" align="right">' + msrp + '</td><td type = "SP" align="right">' + sp + '</td></tr>';
             pkgrowtotal_SP = pkgrowtotal_SP + Number(sp);
             pkgrowtotal_MS = pkgrowtotal_MS + Number(msrp);
         } else if (mct === 'BOA' || mct === 'PONTOONS' || mct === 'Pontoon Boats OB') {
             // Base boat items - BOA for legacy boats, PONTOONS for CPQ boats
             console.log('DEBUG: Found base boat item:', itemno, desc, 'MCT:', mct, 'MSRP:', msrp);
-            baseboatrow += '<tr>' + '<td>' + desc + '</td><td>' + itemno + '</td><td align="center">' + qty + '</td><td type="DC" align="right">' + dc + '</td><td type="MS" align="right">' + msrp + '</td><td type="SP" align="right">' + sp + '</td></tr>';
+            baseboatrow += '<tr>' + '<td>' + escapeHtml(desc) + '</td><td>' + escapeHtml(itemno) + '</td><td align="center">' + qty + '</td><td type="DC" align="right">' + dc + '</td><td type="MS" align="right">' + msrp + '</td><td type="SP" align="right">' + sp + '</td></tr>';
             baseboatrowtotal_SP = baseboatrowtotal_SP + Number(sp);
             baseboatrowtotal_MS = baseboatrowtotal_MS + Number(msrp);
         } else if (mct === 'ENGINES' && inc === '1') { //never gonna show the full price of an engine.
-            enginerow += '<tr>' + '<td>' + desc + '</td><td>' + itemno + '</td><td align="center">' + qty + '</td><td type="DC" align="right">' + dc + '</td><td type="MS" align="right">' + msrp + '</td><td type="SP" align="right">' + sp + '</td></tr>';
+            enginerow += '<tr>' + '<td>' + escapeHtml(desc) + '</td><td>' + escapeHtml(itemno) + '</td><td align="center">' + qty + '</td><td type="DC" align="right">' + dc + '</td><td type="MS" align="right">' + msrp + '</td><td type="SP" align="right">' + sp + '</td></tr>';
             enginerowtotal_SP = enginerowtotal_SP + Number(sp);
             enginerowtotal_MS = enginerowtotal_MS + Number(msrp);
         } else if (mct === 'PRE-RIG' && inc === '1' && dc > 0) {
             window.hasupgradedprerig = '1';
-            prerigrow += '<tr>' + '<td>' + desc + '</td><td>' + itemno + '</td><td align="center">' + qty + '</td><td type="DC" align="right">' + dc + '</td><td type="MS" align="right">' + msrp + '</td><td type="SP" align="right">' + sp + '</td></tr>';
+            prerigrow += '<tr>' + '<td>' + escapeHtml(desc) + '</td><td>' + escapeHtml(itemno) + '</td><td align="center">' + qty + '</td><td type="DC" align="right">' + dc + '</td><td type="MS" align="right">' + msrp + '</td><td type="SP" align="right">' + sp + '</td></tr>';
             //if (prodCategory != 'PL1' && prodCategory != 'PL2' && prodCategory != 'PL3' && prodCategory != 'PL4' && prodCategory != 'PL5' && prodCategory != 'PL6') {
             prerigrowtotal_SP = prerigrowtotal_SP + Number(sp);
             prerigrowtotal_MS = prerigrowtotal_MS + Number(msrp);
@@ -86,14 +98,14 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         } else if (mct === 'PRE-RIG' && inc !== '1' && dc > 0) {
             window.hasupgradedprerig = '0'
             //nsole.log('Has Upgraded Prerig ', hasupgradedprerig);
-            prerigrow += '<tr>' + '<td>' + desc + '</td><td>' + itemno + '</td><td align="center">' + qty + '</td><td type="DC" align="right">' + dc + '</td><td type="MS" align="right">' + msrp + '</td><td type="SP" align="right">' + sp + '</td></tr>';
+            prerigrow += '<tr>' + '<td>' + escapeHtml(desc) + '</td><td>' + escapeHtml(itemno) + '</td><td align="center">' + qty + '</td><td type="DC" align="right">' + dc + '</td><td type="MS" align="right">' + msrp + '</td><td type="SP" align="right">' + sp + '</td></tr>';
             //if (prodCategory != 'PL1' && prodCategory != 'PL2' && prodCategory != 'PL3' && prodCategory != 'PL4' && prodCategory != 'PL5' && prodCategory != 'PL6') {
             prerigrowtotal_SP = prerigrowtotal_SP + Number(sp);
             prerigrowtotal_MS = prerigrowtotal_MS + Number(msrp);
             //}
             //At the end here is where we should do the skips
         } else if (mct !== 'ENGINES' && inc !== '1' && mct !== 'PRE-RIG' && mct !== 'Disc - Selling') {
-            rows = rows + '<tr>' + '<td>' + desc + '</td><td>' + itemno + '</td><td align="center">' + qty + '</td><td type="DC" align="right">' + dc + '</td><td type="MS" align="right">' + msrp + '</td><td type="SP" align="right">' + sp + '</td></tr>';
+            rows = rows + '<tr>' + '<td>' + escapeHtml(desc) + '</td><td>' + escapeHtml(itemno) + '</td><td align="center">' + qty + '</td><td type="DC" align="right">' + dc + '</td><td type="MS" align="right">' + msrp + '</td><td type="SP" align="right">' + sp + '</td></tr>';
             rowstotal_SP = rowstotal_SP + Number(sp);
             rowstotal_MS = rowstotal_MS + Number(msrp);
         } else {
