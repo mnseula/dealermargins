@@ -95,7 +95,7 @@ $('#sortable li').each(function(index) {
 
     //console.log("Zach's Test");
     //console.log(descTB);
-    if (desc.includes(accentHelp)) {
+    if (desc && desc.includes(accentHelp)) {
         accentCol = desc.slice(8);
     }
 });
