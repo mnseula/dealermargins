@@ -179,9 +179,12 @@ else{
 
     // Build lookup map by truncated description
     var descLookupMap = {};
+    // Build lookup map from description to item number (for fixing corrupted saved data)
+    var descToItemNoMap = {};
     if (window.originalBoatTable && window.originalBoatTable.length > 0) {
         for (var m = 0; m < window.originalBoatTable.length; m++) {
             var origDesc = window.originalBoatTable[m].ItemDesc1;
+            var origItemNo = window.originalBoatTable[m].ItemNo;
             if (origDesc) {
                 // Store mapping from truncated to full description
                 var upperDesc = origDesc.toUpperCase();
@@ -190,10 +193,13 @@ else{
                 if (upperDesc.length > 30) {
                     descLookupMap[upperDesc.substring(0, 30)] = origDesc;
                 }
+                // Store mapping from description to item number (for corruption recovery)
+                descToItemNoMap[upperDesc] = origItemNo;
             }
         }
     }
     console.log('DEBUG descLookupMap keys (first 10):', Object.keys(descLookupMap).slice(0, 10));
+    console.log('DEBUG descToItemNoMap keys (first 10):', Object.keys(descToItemNoMap).slice(0, 10));
 
     $.each(boattable2, function(j) {
         var itemdesc = boattable2[j].itemdesc;
@@ -206,6 +212,14 @@ else{
         if (descLookupMap[upperItemDesc] && descLookupMap[upperItemDesc].length > itemdesc.length) {
             console.log('Found full description for:', itemdesc, '->', descLookupMap[upperItemDesc]);
             itemdesc = descLookupMap[upperItemDesc];
+        }
+        
+        // FIX: Recover corrupted item numbers (when description was saved instead of item number)
+        // Detect corruption: itemno contains spaces, is >30 chars, or doesn't look like typical item number
+        var isItemNoCorrupted = (itemno.indexOf(' ') > -1 || itemno.length > 30);
+        if (isItemNoCorrupted && descToItemNoMap[upperItemDesc]) {
+            console.log('CORRUPTION DETECTED: itemno was "' + itemno + '", fixing to "' + descToItemNoMap[upperItemDesc] + '"');
+            itemno = descToItemNoMap[upperItemDesc];
         }
 
         //if(mct !== 'BOAT' && mct !== 'BOATPKG'){
