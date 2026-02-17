@@ -183,6 +183,8 @@ else{
     var descToItemNoMap = {};
     // Build set of valid item numbers from original boat table
     var validItemNos = {};
+    // Store original boat table for partial matching (for CPQ boats where ItemNo is description)
+    var originalBoatTableCopy = window.originalBoatTable || [];
     if (window.originalBoatTable && window.originalBoatTable.length > 0) {
         for (var m = 0; m < window.originalBoatTable.length; m++) {
             var origDesc = window.originalBoatTable[m].ItemDesc1;
@@ -225,9 +227,31 @@ else{
         // Detect corruption: itemno is not in valid set, contains spaces, is >30 chars, or is numeric-only (likely truncated)
         var isItemNoInValidSet = validItemNos[itemno];
         var isItemNoCorrupted = (!isItemNoInValidSet || itemno.indexOf(' ') > -1 || itemno.length > 30 || /^\d+$/.test(itemno));
-        if (isItemNoCorrupted && descToItemNoMap[upperItemDesc]) {
-            console.log('CORRUPTION DETECTED: itemno was "' + itemno + '" (valid=' + isItemNoInValidSet + '), fixing to "' + descToItemNoMap[upperItemDesc] + '"');
-            itemno = descToItemNoMap[upperItemDesc];
+        
+        if (isItemNoCorrupted) {
+            // Try exact match first
+            if (descToItemNoMap[upperItemDesc]) {
+                console.log('CORRUPTION DETECTED: itemno was "' + itemno + '" (valid=' + isItemNoInValidSet + '), fixing to "' + descToItemNoMap[upperItemDesc] + '"');
+                itemno = descToItemNoMap[upperItemDesc];
+            } else {
+                // Try partial matching for CPQ boats where both itemno and description are truncated
+                // Find an item where the saved description is a prefix of the original, or vice versa
+                for (var k = 0; k < originalBoatTableCopy.length; k++) {
+                    var origItem = originalBoatTableCopy[k];
+                    var origDescUpper = origItem.ItemDesc1.toUpperCase();
+                    // Check if saved desc is prefix of original, or original is prefix of saved
+                    if (origDescUpper.indexOf(upperItemDesc) === 0 || upperItemDesc.indexOf(origDescUpper) === 0) {
+                        // Also check if the corrupted itemno matches the original ItemNo (or its start)
+                        var origItemNo = origItem.ItemNo;
+                        if (itemno === origItemNo || origItemNo.indexOf(itemno) === 0 || itemno.indexOf(origItemNo) === 0) {
+                            console.log('PARTIAL MATCH FOUND: saved="' + itemdesc + '"/"' + itemno + '", original="' + origItem.ItemDesc1 + '"/"' + origItemNo + '"');
+                            itemdesc = origItem.ItemDesc1;
+                            itemno = origItemNo;
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
         //if(mct !== 'BOAT' && mct !== 'BOATPKG'){
