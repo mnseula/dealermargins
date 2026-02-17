@@ -236,8 +236,8 @@ if (hasAnswer('LAYOUT', 'PORTRAIT')) {
 
     $('#sortable li').each(function(index) {
         var part = $(this).attr('data-itemno') || '';
-        var descTB = 'tb' + part;
-        var desc = $('input:text[name="' + descTB + '"]').val() || '';
+        // Find the input directly within this li element to avoid selector issues with special characters
+        var desc = $(this).find('input[type="text"]').val() || '';
         var state = $(this).attr('class') || '';
 
         // Use full description from boattable if available
@@ -717,8 +717,8 @@ if (hasAnswer('LAYOUT', 'LANDSCAPE')) {
 
     $('#sortable li').each(function(index) {
         var part = $(this).attr('data-itemno') || '';
-        var descTB = 'tb' + part;
-        var desc = $('input:text[name="' + descTB + '"]').val() || '';
+        // Find the input directly within this li element to avoid selector issues with special characters
+        var desc = $(this).find('input[type="text"]').val() || '';
         var state = $(this).attr('class') || '';
 
         // Use full description from boattable if available
