@@ -758,14 +758,6 @@ window.Calculate2021 = window.Calculate2021 || function () {
                 // Now display pre-rig separately when there's no engine
                 console.log("Standalone PRE-RIG detected (no engine): $" + dealercost);
 
-                // CRITICAL FIX: Subtract prerig from package totals to prevent double-counting
-                // Prerig was already added to package in first loop, but we're displaying it separately
-                // So we must subtract it from package totals (same as packaged prerig path does)
-                if (prodCategory != 'PL1' && prodCategory != 'PL2' && prodCategory != 'PL3' && prodCategory != 'PL4' && prodCategory != 'PL5' && prodCategory != 'PL6') {
-                    boatpackageprice = Number(boatpackageprice) - Number(dealercost);
-                    console.log("Standalone PRE-RIG: Subtracted $" + dealercost + " from boatpackageprice, now: $" + boatpackageprice);
-                }
-
                 // Calculate MSRP first - needed for 0% margin check
                 var prerigHasRealMSRP = (boatoptions[i].MSRP !== undefined && boatoptions[i].MSRP !== null && Number(boatoptions[i].MSRP) > 0);
                 if (prerigHasRealMSRP) {
@@ -775,13 +767,6 @@ window.Calculate2021 = window.Calculate2021 || function () {
                     msrp = Math.round(Number((dealercost * msrpVolume * msrpLoyalty )/ msrpMargin)).toFixed(2);
                 } else {
                     msrp = Math.round(Number((dealercost * msrpVolume)/ msrpMargin)).toFixed(2);
-                }
-
-                // Subtract MSRP equivalent from package MSRP totals
-                var msrpToSubtract = prerigHasRealMSRP ? Number(msrp) : Number(dealercost / msrpMargin);
-                if (prodCategory != 'PL1' && prodCategory != 'PL2' && prodCategory != 'PL3' && prodCategory != 'PL4' && prodCategory != 'PL5' && prodCategory != 'PL6') {
-                    msrpboatpackageprice = Number(msrpboatpackageprice) - msrpToSubtract;
-                    console.log("Standalone PRE-RIG: Subtracted $" + msrpToSubtract + " from msrpboatpackageprice, now: $" + msrpboatpackageprice);
                 }
 
                 // Calculate sale price - special case for 0% margin
@@ -828,10 +813,15 @@ window.Calculate2021 = window.Calculate2021 || function () {
         }
     });
 
-    var boatpkgmsrptotal = Number(getValue('DLR2', 'BOAT_MS')) + Number(getValue('DLR2', 'PRERIG_FULL_W_MARGIN_MSRP')) + Number(getValue('DLR2', 'ENG_FULL_W_MARGIN_MSRP'));
+    // FIX: Only include prerig in package totals if it's packaged with engine (showpkgline == '1')
+    // For standalone prerig (no engine), prerig is displayed separately and shouldn't be in package
+    var prerigMSRP = (showpkgline == '1') ? Number(getValue('DLR2', 'PRERIG_FULL_W_MARGIN_MSRP')) : 0;
+    var prerigSale = (showpkgline == '1') ? Number(getValue('DLR2', 'PRERIG_FULL_W_MARGIN_SALE')) : 0;
+
+    var boatpkgmsrptotal = Number(getValue('DLR2', 'BOAT_MS')) + prerigMSRP + Number(getValue('DLR2', 'ENG_FULL_W_MARGIN_MSRP'));
     setValue('DLR2', 'PKG_MSRP', boatpkgmsrptotal);
 
-    var boatpkgsptotal = Number(getValue('DLR2', 'BOAT_SP')) + Number(getValue('DLR2', 'PRERIG_FULL_W_MARGIN_SALE')) + Number(getValue('DLR2', 'ENG_FULL_W_MARGIN_SALE'));
+    var boatpkgsptotal = Number(getValue('DLR2', 'BOAT_SP')) + prerigSale + Number(getValue('DLR2', 'ENG_FULL_W_MARGIN_SALE'));
     setValue('DLR2', 'PKG_SALE', boatpkgsptotal);
 
     console.log("BOAT MSRP TOTAL: "+boatpkgmsrptotal);
