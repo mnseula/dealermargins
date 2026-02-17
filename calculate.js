@@ -377,6 +377,22 @@ window.Calculate2021 = window.Calculate2021 || function () {
             if (prodCategory != 'PL1' && prodCategory != 'PL2' && prodCategory != 'PL3' && prodCategory != 'PL4' && prodCategory != 'PL5' && prodCategory != 'PL6') {
                 saleboatpackageprice = saleboatpackageprice + defaultprerigsp;
             }
+
+            // Add PRE-RIG items to boattable for display
+            var prerigSalePrice = Math.round(prerigonboatprice / optionmargin * vol_disc);
+            var prerigMSRP = hasRealMSRP ? Math.round(realMSRP) : Math.round(prerigonboatprice / msrpMargin * vol_disc);
+
+            boattable.push({
+                'ItemDesc1': itemdesc,
+                'ItemNo': displayItemNo,
+                'Qty': qty,
+                'MCT': mct,
+                'PC': pc,
+                'DealerCost': dealercost,
+                'SalePrice': prerigSalePrice.toFixed(2),
+                'MSRP': prerigMSRP.toFixed(2)
+            });
+            console.log('Added PRE-RIG to boattable:', itemdesc, 'Sale:', prerigSalePrice, 'MSRP:', prerigMSRP);
         }
     });
 
