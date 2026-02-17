@@ -215,10 +215,28 @@ if (isAnswered('DEALER_MSG', 'MESSAGE') === true) {
 if (hasAnswer('LAYOUT', 'PORTRAIT')) {
     var content = "<ul id = \"descList\">";
 
+    // Create lookup map from boattable to get full descriptions
+    var fullDescMap = {};
+    if (typeof boattable !== 'undefined' && boattable) {
+        $.each(boattable, function(i) {
+            var btItemNo = boattable[i].ItemNo;
+            var btItemDesc = boattable[i].ItemDesc1;
+            if (btItemNo && btItemDesc) {
+                fullDescMap[btItemNo] = btItemDesc;
+            }
+        });
+    }
+
     $('#sortable li').each(function(index) {
-        var descTB = 'tb' + $(this).context.lastChild.id;
+        var part = $(this).context.lastChild.id;
+        var descTB = 'tb' + part;
         var desc = $('input:text[name="' + descTB + '"]').val();
         var state = $(this).context.className;
+
+        // Use full description from boattable if available
+        if (fullDescMap[part] && fullDescMap[part].length > desc.length) {
+            desc = fullDescMap[part];
+        }
 
         if (state.substring(0, 14) == 'ui-state-focus') {
             hide = 0;
@@ -670,10 +688,28 @@ if (hasAnswer('LAYOUT', 'LANDSCAPE')) {
     var extra = false;
     colNum = 2;
 
+    // Create lookup map from boattable to get full descriptions
+    var fullDescMapLandscape = {};
+    if (typeof boattable !== 'undefined' && boattable) {
+        $.each(boattable, function(i) {
+            var btItemNo = boattable[i].ItemNo;
+            var btItemDesc = boattable[i].ItemDesc1;
+            if (btItemNo && btItemDesc) {
+                fullDescMapLandscape[btItemNo] = btItemDesc;
+            }
+        });
+    }
+
     $('#sortable li').each(function(index) {
-        var descTB = 'tb' + $(this).context.lastChild.id;
+        var part = $(this).context.lastChild.id;
+        var descTB = 'tb' + part;
         var desc = $('input:text[name="' + descTB + '"]').val();
         var state = $(this).context.className;
+
+        // Use full description from boattable if available
+        if (fullDescMapLandscape[part] && fullDescMapLandscape[part].length > desc.length) {
+            desc = fullDescMapLandscape[part];
+        }
 
         if (state.substring(0, 14) == 'ui-state-focus') {
             hide = 0;
