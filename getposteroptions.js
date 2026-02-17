@@ -164,6 +164,25 @@ else{
         var hidden = boattable2[j].hidden;
         //var mct = boattable2[j].MCT;
 
+        // Look up full description from originalBoatTable
+        var fullDesc = null;
+        if (window.originalBoatTable && window.originalBoatTable.length > 0) {
+            for (var k = 0; k < window.originalBoatTable.length; k++) {
+                if (window.originalBoatTable[k].ItemNo === itemno) {
+                    if (window.originalBoatTable[k].ItemDesc1 && window.originalBoatTable[k].ItemDesc1.length > itemdesc.length) {
+                        fullDesc = window.originalBoatTable[k].ItemDesc1;
+                    }
+                    break;
+                }
+            }
+        }
+        
+        // Use full description if found
+        if (fullDesc) {
+            console.log('Using full description for', itemno, ':', fullDesc);
+            itemdesc = fullDesc;
+        }
+
         //if(mct !== 'BOAT' && mct !== 'BOATPKG'){
         //optionsList += newOptionItem1 + itemdesc + newOptionItem2 + itemno + newOptionItem3 + itemno + newOptionItem4;
         console.log('DEBUG itemdesc before escape:', itemdesc);
