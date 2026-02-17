@@ -225,6 +225,7 @@ else{
         
         // FIX: Recover corrupted item numbers (when description was saved instead of item number)
         // Detect corruption: itemno is not in valid set, contains spaces, is >30 chars, or is numeric-only (likely truncated)
+        // LEGACY BOAT PROTECTION: Valid 90... item numbers are in validItemNos, so isItemNoCorrupted will be false for them
         var isItemNoInValidSet = validItemNos[itemno];
         var isItemNoCorrupted = (!isItemNoInValidSet || itemno.indexOf(' ') > -1 || itemno.length > 30 || /^\d+$/.test(itemno));
         
@@ -235,7 +236,7 @@ else{
                 itemno = descToItemNoMap[upperItemDesc];
             } else {
                 // Try partial matching for CPQ boats where both itemno and description are truncated
-                // Find an item where the saved description is a prefix of the original, or vice versa
+                // This code only runs for corrupted data, so legacy boats with valid 90... numbers are safe
                 for (var k = 0; k < originalBoatTableCopy.length; k++) {
                     var origItem = originalBoatTableCopy[k];
                     var origDescUpper = origItem.ItemDesc1.toUpperCase();
@@ -243,7 +244,9 @@ else{
                     if (origDescUpper.indexOf(upperItemDesc) === 0 || upperItemDesc.indexOf(origDescUpper) === 0) {
                         // Also check if the corrupted itemno matches the original ItemNo (or its start)
                         var origItemNo = origItem.ItemNo;
-                        if (itemno === origItemNo || origItemNo.indexOf(itemno) === 0 || itemno.indexOf(origItemNo) === 0) {
+                        // Extra safety: only match if both description AND itemno patterns align
+                        if ((itemno === origItemNo || origItemNo.indexOf(itemno) === 0 || itemno.indexOf(origItemNo) === 0) &&
+                            (itemdesc.length < origItem.ItemDesc1.length || itemno.length < origItemNo.length)) {
                             console.log('PARTIAL MATCH FOUND: saved="' + itemdesc + '"/"' + itemno + '", original="' + origItem.ItemDesc1 + '"/"' + origItemNo + '"');
                             itemdesc = origItem.ItemDesc1;
                             itemno = origItemNo;
