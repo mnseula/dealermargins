@@ -221,6 +221,9 @@ if (hasAnswer('LAYOUT', 'PORTRAIT')) {
         ? window.originalBoatTable 
         : ((typeof boattable !== 'undefined' && boattable) ? boattable : []);
     
+    console.log('DEBUG makeflyer - sourceTable type:', typeof sourceTable, 'length:', sourceTable ? sourceTable.length : 0);
+    console.log('DEBUG makeflyer - using originalBoatTable:', !!(typeof window.originalBoatTable !== 'undefined' && window.originalBoatTable));
+    
     $.each(sourceTable, function(i) {
         var btItemNo = sourceTable[i].ItemNo;
         var btItemDesc = sourceTable[i].ItemDesc1;
@@ -228,6 +231,8 @@ if (hasAnswer('LAYOUT', 'PORTRAIT')) {
             fullDescMap[btItemNo] = btItemDesc;
         }
     });
+    
+    console.log('DEBUG makeflyer - fullDescMap keys:', Object.keys(fullDescMap).slice(0, 10));
 
     $('#sortable li').each(function(index) {
         var part = $(this).context.lastChild.id;
@@ -236,7 +241,9 @@ if (hasAnswer('LAYOUT', 'PORTRAIT')) {
         var state = $(this).context.className;
 
         // Use full description from boattable if available
+        console.log('DEBUG makeflyer - part:', part, 'input desc:', desc, 'fullDescMap[part]:', fullDescMap[part]);
         if (fullDescMap[part] && fullDescMap[part].length > desc.length) {
+            console.log('DEBUG makeflyer - USING FULL DESC:', fullDescMap[part]);
             desc = fullDescMap[part];
         }
 
