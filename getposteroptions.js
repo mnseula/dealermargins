@@ -150,11 +150,28 @@ else{
     console.log('DEBUG boattable2 length:', boattable2.length);
     console.table(boattable2);
 
+    // Create a lookup map from boattable to get full descriptions
+    var fullDescMap = {};
+    $.each(boattable, function(i) {
+        var btItemNo = boattable[i].ItemNo;
+        var btItemDesc = boattable[i].ItemDesc1;
+        if (btItemNo && btItemDesc) {
+            fullDescMap[btItemNo] = btItemDesc;
+        }
+    });
+    console.log('DEBUG fullDescMap:', fullDescMap);
+
     $.each(boattable2, function(j) {
         var itemdesc = boattable2[j].itemdesc;
         var itemno = boattable2[j].part;
         var hidden = boattable2[j].hidden;
         //var mct = boattable2[j].MCT;
+
+        // Use full description from boattable if available
+        if (fullDescMap[itemno] && fullDescMap[itemno].length > itemdesc.length) {
+            console.log('DEBUG using full desc from boattable for', itemno, ':', fullDescMap[itemno]);
+            itemdesc = fullDescMap[itemno];
+        }
 
         //if(mct !== 'BOAT' && mct !== 'BOATPKG'){
         //optionsList += newOptionItem1 + itemdesc + newOptionItem2 + itemno + newOptionItem3 + itemno + newOptionItem4;
