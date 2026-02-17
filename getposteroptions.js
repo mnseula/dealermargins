@@ -151,11 +151,12 @@ endingHTML += "</html>";
 
 var optionsList = '<ul id="sortable">';
 // Use single quotes for value attribute to avoid issues with double quotes in descriptions
-var newOptionItem1 = '<li class="ui-state-focus"><span class="ui-icon ui-icon-arrowthick-2-n-s"></span><input type="text" value=\'';
-var newOptionItem1hidden = '<li class="ui-state-error indent"><span class="ui-icon ui-icon-arrowthick-2-n-s"></span><input type="text" value=\'';
-var newOptionItem2 = '\' name = "tb';
-var newOptionItem3 = '" size="75"><input onclick="xButtons()" class="opt-x" type="button" id="';
-var newOptionItem4 = '" value="X"></li>';
+// Store itemno in data-itemno attribute for reliable retrieval
+var newOptionItem1 = '<li class="ui-state-focus" data-itemno=\'';
+var newOptionItem1hidden = '<li class="ui-state-error indent" data-itemno=\'';
+var newOptionItem2 = '\'><span class="ui-icon ui-icon-arrowthick-2-n-s"></span><input type="text" value=\'';
+var newOptionItem3 = '\' name = \'tb';
+var newOptionItem4 = '\' size="75"><input onclick="xButtons()" class="opt-x" type="button" value="X"></li>';
 
 if(previouslySaved === 0){
     console.log('Not Previously Saved');
@@ -164,7 +165,8 @@ if(previouslySaved === 0){
         var itemno = boattable[i].ItemNo;
         var mct = boattable[i].MCT;
         if(mct !== 'BOAT' && mct !== 'BOATPKG' && mct !== 'Disc - Selling' && itemno !== 'NPPNPRICE16S' && itemno !== 'NPPNPRICE18S' && itemno !== 'NPPNPRICE19S' && itemno !== 'NPPNPRICE20S' && itemno !== 'NPPNPRICE21S' && itemno !== 'NPPNPRICE22S' && itemno !== 'NPPNPRICE23S' && itemno !== 'NPPNPRICE24S'&& itemno !== 'NPPNPRICE25S'&& itemno !== 'NPPNPRICELX/LT' && itemdesc !== 'true' && itemdesc !== 'TRUE' && !/^\d$/.test(itemdesc)){
-            optionsList += newOptionItem1 + escapeHtmlAttribute(itemdesc) + newOptionItem2 + itemno + newOptionItem3 + itemno + newOptionItem4;
+            // New template: data-itemno stores itemno, value stores description, name uses itemno
+            optionsList += newOptionItem1 + escapeHtmlAttribute(itemno) + newOptionItem2 + escapeHtmlAttribute(itemdesc) + newOptionItem3 + escapeHtmlAttribute(itemno) + newOptionItem4;
         }
     });
 }
@@ -212,10 +214,11 @@ else{
         console.log('DEBUG itemdesc after escape:', escapeHtml(itemdesc));
         console.log('hidden',hidden);
         if ((hidden === '0' || hidden === 0) && itemno !== 'NPPNPRICE16S' && itemno !== 'NPPNPRICE18S' && itemno !== 'NPPNPRICE19S' && itemno !== 'NPPNPRICE20S' && itemno !== 'NPPNPRICE21S' && itemno !== 'NPPNPRICE22S' && itemno !== 'NPPNPRICE23S' && itemno !== 'NPPNPRICE24S'&& itemno !== 'NPPNPRICE25S'&& itemno !== 'NPPNPRICELX/LT' && itemdesc !== 'true' && itemdesc !== 'TRUE' && !/^\d$/.test(itemdesc)){
-            optionsList += newOptionItem1 + escapeHtmlAttribute(itemdesc) + newOptionItem2 + itemno + newOptionItem3 + itemno + newOptionItem4;
+            // New template: data-itemno stores itemno, value stores description, name uses itemno
+            optionsList += newOptionItem1 + escapeHtmlAttribute(itemno) + newOptionItem2 + escapeHtmlAttribute(itemdesc) + newOptionItem3 + escapeHtmlAttribute(itemno) + newOptionItem4;
         }
         else{
-            optionsList += newOptionItem1hidden + escapeHtmlAttribute(itemdesc) + newOptionItem2 + itemno + newOptionItem3 + itemno + newOptionItem4;
+            optionsList += newOptionItem1hidden + escapeHtmlAttribute(itemno) + newOptionItem2 + escapeHtmlAttribute(itemdesc) + newOptionItem3 + escapeHtmlAttribute(itemno) + newOptionItem4;
         }
 
         //}

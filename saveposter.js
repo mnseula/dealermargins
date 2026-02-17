@@ -8,9 +8,10 @@ var data = [];
 var i = 1; //order
 
 $('#sortable li').each(function (index) {
-    var part = $(this).context.lastChild.id;
-    var descTB = 'tb' + $(this).context.lastChild.id;
-    var desc = $('input:text[name="' + descTB  + '"]').val();
+    // Get item number from data-itemno attribute (more reliable than button id)
+    var part = $(this).attr('data-itemno');
+    // Get description from the text input field
+    var desc = $(this).find('input:text').first().val();
     var state = $(this).context.className;
     var hide = 0;
 
