@@ -53,52 +53,60 @@ var i = 1; //order
 //var content = '<head><style>#features{font-family:Calibri;font-size:14;font-weight:bold;}</style></head>';
 //var content ="<ul id = \"descList\">";
 //content += '<div id="features"><h2 align="center">FEATURES</h2>';
-var contentSize = 0; //to track the size of the list in order to move to new row.
+    var contentSize = 0; //to track the size of the list in order to move to new row.
+    var itemsPerPagePortrait = 55; // Approximate items per page for portrait
+    var currentPagePortrait = 1;
+    
+    // Create lookup map from originalBoatTable to get full descriptions
+    var fullDescMap = {};
+    var sourceTable = (typeof window.originalBoatTable !== 'undefined' && window.originalBoatTable) 
+        ? window.originalBoatTable 
+        : ((typeof boattable !== 'undefined' && boattable) ? boattable : []);
+    
+    console.log('DEBUG makeflyer - sourceTable type:', typeof sourceTable, 'length:', sourceTable ? sourceTable.length : 0);
+    console.log('DEBUG makeflyer - using originalBoatTable:', !!(typeof window.originalBoatTable !== 'undefined' && window.originalBoatTable));
+    
+    $.each(sourceTable, function(i) {
+        var btItemNo = sourceTable[i].ItemNo;
+        var btItemDesc = sourceTable[i].ItemDesc1;
+        if (btItemNo && btItemDesc) {
+            fullDescMap[btItemNo] = btItemDesc;
+        }
+    });
+    
+    console.log('DEBUG makeflyer - fullDescMap keys:', Object.keys(fullDescMap).slice(0, 10));
 
-var selectedImg = getAnswer('POSTER_IMG');
+    $('#sortable li').each(function(index) {
+        var part = $(this).attr('data-itemno') || '';
+        // Find the input directly within this li element to avoid selector issues with special characters
+        var desc = $(this).find('input[type="text"]').val() || '';
+        var state = $(this).attr('class') || '';
 
-var imgSrc = $('[data-ref="' + selectedImg + '"]').find('img').attr('src');
-console.log('IMAGE SRC ='+ imgSrc);
+        // Use full description from boattable if available
+        if (part && fullDescMap[part] && fullDescMap[part].length > desc.length) {
+            desc = fullDescMap[part];
+        }
 
-var dlr_img_url = getValue('DLR_IMG', 'DLR_IMG_URL');
-console.log(dlr_img_url.length);
+        if (desc && state.indexOf('ui-state-focus') !== -1) {
+            hide = 0;
+            
+            // Check if we need a page break (every itemsPerPagePortrait items)
+            if (contentSize > 0 && contentSize % itemsPerPagePortrait === 0) {
+                content += '</ul>';
+                content += '<div class="page-break" style="page-break-before: always; margin-top: 20px;">';
+                content += '<div style="font-size: 20px; font-weight: bold; margin-bottom: 10px; font-family: Helvetica Neue, Helvetica, Arial, sans-serif;">KEY FEATURES AND OPTIONS</div>';
+                content += '<ul>';
+                currentPagePortrait++;
+            }
+            
+            content += '<li>' + escapeHtml(desc) + '</li>';
+            contentSize++;
+        } else {
+            hide = 1;
+        }
 
-if (dlr_img_url.length > 0) {
-    imgSrc = dlr_img_url;
-}
-
-var selectedPerfLogo = getAnswer('PERF_LOGOS');
-var logoSrc = $('[data-ref="' + selectedPerfLogo + '"]').find('img').attr('src');
-console.log('logoSrc', logoSrc);
-
-if (model_year === '17' || model_year === '18') {
-    var tenyear = true;
-} else {
-    var tenyear = false;
-}
-
-var fontsize = getValue('PRICING', 'FONT_SIZE');
-
-if (fontsize === undefined || fontsize === false || fontsize === true || fontsize === '0') {
-    fontsize = 15;
-}
-//console.log('font size is', fontsize);
-var accentCol = "DEFAULT COLOR";
-
-$('#sortable li').each(function(index) {
-    //var part = $(this).context.lastChild.id;
-    var descTB = 'tb' + $(this).context.lastChild.id;
-    var desc = $('input:text[name="' + descTB + '"]').val();
-    var state = $(this).context.className;
-
-    var accentHelp = "PANEL -"; //use this substring to test and grab accent panel
-
-    //console.log("Zach's Test");
-    //console.log(descTB);
-    if (desc && desc.includes(accentHelp)) {
-        accentCol = desc.slice(8);
-    }
-});
+        i++;
+    });
 
 console.log("Zach");
 //console.log("List Size: " + contentSize);
@@ -700,6 +708,8 @@ if (hasAnswer('LAYOUT', 'LANDSCAPE')) {
     var content = "<ul id = \"descList\">";
     var extra = false;
     colNum = 2;
+    var itemsPerPage = 45; // Approximate items per page
+    var currentPage = 1;
 
     // Create lookup map from originalBoatTable to get full descriptions
     var fullDescMapLandscape = {};
@@ -728,6 +738,16 @@ if (hasAnswer('LAYOUT', 'LANDSCAPE')) {
 
         if (desc && state.indexOf('ui-state-focus') !== -1) {
             hide = 0;
+            
+            // Check if we need a page break (every itemsPerPage items)
+            if (contentSize > 0 && contentSize % itemsPerPage === 0) {
+                content += '</ul>';
+                content += '<div class="page-break" style="page-break-before: always; margin-top: 20px;">';
+                content += '<div style="font-size: 20px; font-weight: bold; margin-bottom: 10px; font-family: Helvetica Neue, Helvetica, Arial, sans-serif;">KEY FEATURES AND OPTIONS</div>';
+                content += '<ul>';
+                currentPage++;
+            }
+            
             content += '<li>' + escapeHtml(desc) + '</li>';
             contentSize++;
             if (contentSize > 21) {
