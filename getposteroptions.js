@@ -11,6 +11,11 @@ if (typeof boattable !== 'undefined' && boattable) {
         });
     }
     console.log('DEBUG: Created originalBoatTable copy with', window.originalBoatTable.length, 'items');
+    // Log first few items to verify content
+    console.log('DEBUG: Sample originalBoatTable items:');
+    for (var debugIdx = 0; debugIdx < Math.min(5, window.originalBoatTable.length); debugIdx++) {
+        console.log('  -', window.originalBoatTable[debugIdx].ItemNo, ':', window.originalBoatTable[debugIdx].ItemDesc1);
+    }
 }
 
 // HTML escape function to prevent quote characters from breaking HTML
