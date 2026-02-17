@@ -235,17 +235,17 @@ if (hasAnswer('LAYOUT', 'PORTRAIT')) {
     console.log('DEBUG makeflyer - fullDescMap keys:', Object.keys(fullDescMap).slice(0, 10));
 
     $('#sortable li').each(function(index) {
-        var part = $(this).context.lastChild ? $(this).context.lastChild.id : '';
+        var part = $(this).attr('data-itemno') || '';
         var descTB = 'tb' + part;
         var desc = $('input:text[name="' + descTB + '"]').val() || '';
-        var state = $(this).context.className || '';
+        var state = $(this).attr('class') || '';
 
         // Use full description from boattable if available
         if (part && fullDescMap[part] && fullDescMap[part].length > desc.length) {
             desc = fullDescMap[part];
         }
 
-        if (desc && state.substring(0, 14) == 'ui-state-focus') {
+        if (desc && state.indexOf('ui-state-focus') !== -1) {
             hide = 0;
             content += '<li>' + escapeHtml(desc) + '</li>';
             contentSize++;
@@ -716,17 +716,17 @@ if (hasAnswer('LAYOUT', 'LANDSCAPE')) {
     });
 
     $('#sortable li').each(function(index) {
-        var part = $(this).context.lastChild ? $(this).context.lastChild.id : '';
+        var part = $(this).attr('data-itemno') || '';
         var descTB = 'tb' + part;
         var desc = $('input:text[name="' + descTB + '"]').val() || '';
-        var state = $(this).context.className || '';
+        var state = $(this).attr('class') || '';
 
         // Use full description from boattable if available
         if (part && fullDescMapLandscape[part] && fullDescMapLandscape[part].length > desc.length) {
             desc = fullDescMapLandscape[part];
         }
 
-        if (desc && state.substring(0, 14) == 'ui-state-focus') {
+        if (desc && state.indexOf('ui-state-focus') !== -1) {
             hide = 0;
             content += '<li>' + escapeHtml(desc) + '</li>';
             contentSize++;
