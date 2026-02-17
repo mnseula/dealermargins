@@ -131,6 +131,8 @@ var newOptionItem4 = '" value="X"></li>';
 
 if(previouslySaved === 0){
     console.log('Not Previously Saved');
+    console.log('DEBUG boattable length:', boattable.length);
+    console.table(boattable);
     $.each(boattable, function(i) {
         var itemdesc = boattable[i].ItemDesc1;
         var itemno = boattable[i].ItemNo;
@@ -145,7 +147,8 @@ else{
     console.log('Previously Saved');
     boattable2 = sStatement('SEL_ONE_BOAT_FLYER',[serial]);
     pricingtable = sStatement('SEL_ONE_BOAT_FLYER_PRICING',[serial]);
-    //console.table(pricingtable);
+    console.log('DEBUG boattable2 length:', boattable2.length);
+    console.table(boattable2);
 
     $.each(boattable2, function(j) {
         var itemdesc = boattable2[j].itemdesc;
