@@ -56,6 +56,7 @@ var i = 1; //order
     var contentSize = 0; //to track the size of the list in order to move to new row.
     var itemsPerPagePortrait = 55; // Approximate items per page for portrait
     var currentPagePortrait = 1;
+    var accentCol = "DEFAULT COLOR";
     
     // Create lookup map from originalBoatTable to get full descriptions
     var fullDescMap = {};
@@ -76,6 +77,18 @@ var i = 1; //order
     
     console.log('DEBUG makeflyer - fullDescMap keys:', Object.keys(fullDescMap).slice(0, 10));
 
+    // First loop to get accent color
+    $('#sortable li').each(function(index) {
+        var desc = $(this).find('input[type="text"]').val() || '';
+        var accentHelp = "PANEL -";
+        if (desc && desc.includes(accentHelp)) {
+            accentCol = desc.slice(8);
+        }
+    });
+
+    // Build content list
+    var content = "<ul id = \"descList\">";
+    
     $('#sortable li').each(function(index) {
         var part = $(this).attr('data-itemno') || '';
         // Find the input directly within this li element to avoid selector issues with special characters
