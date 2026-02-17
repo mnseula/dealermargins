@@ -181,6 +181,8 @@ else{
     var descLookupMap = {};
     // Build lookup map from description to item number (for fixing corrupted saved data)
     var descToItemNoMap = {};
+    // Build set of valid item numbers from original boat table
+    var validItemNos = {};
     if (window.originalBoatTable && window.originalBoatTable.length > 0) {
         for (var m = 0; m < window.originalBoatTable.length; m++) {
             var origDesc = window.originalBoatTable[m].ItemDesc1;
@@ -196,10 +198,15 @@ else{
                 // Store mapping from description to item number (for corruption recovery)
                 descToItemNoMap[upperDesc] = origItemNo;
             }
+            // Track valid item numbers
+            if (origItemNo) {
+                validItemNos[origItemNo] = true;
+            }
         }
     }
     console.log('DEBUG descLookupMap keys (first 10):', Object.keys(descLookupMap).slice(0, 10));
     console.log('DEBUG descToItemNoMap keys (first 10):', Object.keys(descToItemNoMap).slice(0, 10));
+    console.log('DEBUG validItemNos count:', Object.keys(validItemNos).length);
 
     $.each(boattable2, function(j) {
         var itemdesc = boattable2[j].itemdesc;
@@ -215,10 +222,11 @@ else{
         }
         
         // FIX: Recover corrupted item numbers (when description was saved instead of item number)
-        // Detect corruption: itemno contains spaces, is >30 chars, or doesn't look like typical item number
-        var isItemNoCorrupted = (itemno.indexOf(' ') > -1 || itemno.length > 30);
+        // Detect corruption: itemno is not in valid set, contains spaces, is >30 chars, or is numeric-only (likely truncated)
+        var isItemNoInValidSet = validItemNos[itemno];
+        var isItemNoCorrupted = (!isItemNoInValidSet || itemno.indexOf(' ') > -1 || itemno.length > 30 || /^\d+$/.test(itemno));
         if (isItemNoCorrupted && descToItemNoMap[upperItemDesc]) {
-            console.log('CORRUPTION DETECTED: itemno was "' + itemno + '", fixing to "' + descToItemNoMap[upperItemDesc] + '"');
+            console.log('CORRUPTION DETECTED: itemno was "' + itemno + '" (valid=' + isItemNoInValidSet + '), fixing to "' + descToItemNoMap[upperItemDesc] + '"');
             itemno = descToItemNoMap[upperItemDesc];
         }
 
