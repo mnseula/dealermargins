@@ -378,21 +378,8 @@ window.Calculate2021 = window.Calculate2021 || function () {
                 saleboatpackageprice = saleboatpackageprice + defaultprerigsp;
             }
 
-            // Add PRE-RIG items to boattable for display
-            var prerigSalePrice = Math.round(prerigonboatprice / optionmargin * vol_disc);
-            var prerigMSRP = hasRealMSRP ? Math.round(realMSRP) : Math.round(prerigonboatprice / msrpMargin * vol_disc);
-
-            boattable.push({
-                'ItemDesc1': macoladesc,
-                'ItemNo': displayItemNo,
-                'Qty': qty,
-                'MCT': mct,
-                'PC': prodCategory,
-                'DealerCost': dealercost,
-                'SalePrice': prerigSalePrice.toFixed(2),
-                'MSRP': prerigMSRP.toFixed(2)
-            });
-            console.log('Added PRE-RIG to boattable:', macoladesc, 'Sale:', prerigSalePrice, 'MSRP:', prerigMSRP);
+            // NOTE: PRE-RIG items are added to boattable in second loop (lines 730-808)
+            // which correctly handles MSRP from boatoptions[i].MSRP
         }
     });
 
