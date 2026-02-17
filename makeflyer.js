@@ -235,19 +235,17 @@ if (hasAnswer('LAYOUT', 'PORTRAIT')) {
     console.log('DEBUG makeflyer - fullDescMap keys:', Object.keys(fullDescMap).slice(0, 10));
 
     $('#sortable li').each(function(index) {
-        var part = $(this).context.lastChild.id;
+        var part = $(this).context.lastChild ? $(this).context.lastChild.id : '';
         var descTB = 'tb' + part;
-        var desc = $('input:text[name="' + descTB + '"]').val();
-        var state = $(this).context.className;
+        var desc = $('input:text[name="' + descTB + '"]').val() || '';
+        var state = $(this).context.className || '';
 
         // Use full description from boattable if available
-        console.log('DEBUG makeflyer - part:', part, 'input desc:', desc, 'fullDescMap[part]:', fullDescMap[part]);
-        if (fullDescMap[part] && fullDescMap[part].length > desc.length) {
-            console.log('DEBUG makeflyer - USING FULL DESC:', fullDescMap[part]);
+        if (part && fullDescMap[part] && fullDescMap[part].length > desc.length) {
             desc = fullDescMap[part];
         }
 
-        if (state.substring(0, 14) == 'ui-state-focus') {
+        if (desc && state.substring(0, 14) == 'ui-state-focus') {
             hide = 0;
             content += '<li>' + escapeHtml(desc) + '</li>';
             contentSize++;
@@ -718,17 +716,17 @@ if (hasAnswer('LAYOUT', 'LANDSCAPE')) {
     });
 
     $('#sortable li').each(function(index) {
-        var part = $(this).context.lastChild.id;
+        var part = $(this).context.lastChild ? $(this).context.lastChild.id : '';
         var descTB = 'tb' + part;
-        var desc = $('input:text[name="' + descTB + '"]').val();
-        var state = $(this).context.className;
+        var desc = $('input:text[name="' + descTB + '"]').val() || '';
+        var state = $(this).context.className || '';
 
         // Use full description from boattable if available
-        if (fullDescMapLandscape[part] && fullDescMapLandscape[part].length > desc.length) {
+        if (part && fullDescMapLandscape[part] && fullDescMapLandscape[part].length > desc.length) {
             desc = fullDescMapLandscape[part];
         }
 
-        if (state.substring(0, 14) == 'ui-state-focus') {
+        if (desc && state.substring(0, 14) == 'ui-state-focus') {
             hide = 0;
             content += '<li>' + escapeHtml(desc) + '</li>';
             contentSize++;
