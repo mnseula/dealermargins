@@ -1,5 +1,18 @@
 console.log('Get Poster Options');
 
+// Create a deep copy of boattable to preserve full descriptions
+window.originalBoatTable = [];
+if (typeof boattable !== 'undefined' && boattable) {
+    for (var i = 0; i < boattable.length; i++) {
+        window.originalBoatTable.push({
+            'ItemNo': boattable[i].ItemNo,
+            'ItemDesc1': boattable[i].ItemDesc1,
+            'MCT': boattable[i].MCT
+        });
+    }
+    console.log('DEBUG: Created originalBoatTable copy with', window.originalBoatTable.length, 'items');
+}
+
 // HTML escape function to prevent quote characters from breaking HTML
 function escapeHtml(text) {
     if (!text) return text;

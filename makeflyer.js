@@ -215,17 +215,19 @@ if (isAnswered('DEALER_MSG', 'MESSAGE') === true) {
 if (hasAnswer('LAYOUT', 'PORTRAIT')) {
     var content = "<ul id = \"descList\">";
 
-    // Create lookup map from boattable to get full descriptions
+    // Create lookup map from originalBoatTable to get full descriptions
     var fullDescMap = {};
-    if (typeof boattable !== 'undefined' && boattable) {
-        $.each(boattable, function(i) {
-            var btItemNo = boattable[i].ItemNo;
-            var btItemDesc = boattable[i].ItemDesc1;
-            if (btItemNo && btItemDesc) {
-                fullDescMap[btItemNo] = btItemDesc;
-            }
-        });
-    }
+    var sourceTable = (typeof window.originalBoatTable !== 'undefined' && window.originalBoatTable) 
+        ? window.originalBoatTable 
+        : ((typeof boattable !== 'undefined' && boattable) ? boattable : []);
+    
+    $.each(sourceTable, function(i) {
+        var btItemNo = sourceTable[i].ItemNo;
+        var btItemDesc = sourceTable[i].ItemDesc1;
+        if (btItemNo && btItemDesc) {
+            fullDescMap[btItemNo] = btItemDesc;
+        }
+    });
 
     $('#sortable li').each(function(index) {
         var part = $(this).context.lastChild.id;
@@ -694,17 +696,19 @@ if (hasAnswer('LAYOUT', 'LANDSCAPE')) {
     var extra = false;
     colNum = 2;
 
-    // Create lookup map from boattable to get full descriptions
+    // Create lookup map from originalBoatTable to get full descriptions
     var fullDescMapLandscape = {};
-    if (typeof boattable !== 'undefined' && boattable) {
-        $.each(boattable, function(i) {
-            var btItemNo = boattable[i].ItemNo;
-            var btItemDesc = boattable[i].ItemDesc1;
-            if (btItemNo && btItemDesc) {
-                fullDescMapLandscape[btItemNo] = btItemDesc;
-            }
-        });
-    }
+    var sourceTableLandscape = (typeof window.originalBoatTable !== 'undefined' && window.originalBoatTable) 
+        ? window.originalBoatTable 
+        : ((typeof boattable !== 'undefined' && boattable) ? boattable : []);
+    
+    $.each(sourceTableLandscape, function(i) {
+        var btItemNo = sourceTableLandscape[i].ItemNo;
+        var btItemDesc = sourceTableLandscape[i].ItemDesc1;
+        if (btItemNo && btItemDesc) {
+            fullDescMapLandscape[btItemNo] = btItemDesc;
+        }
+    });
 
     $('#sortable li').each(function(index) {
         var part = $(this).context.lastChild.id;
