@@ -3,14 +3,12 @@ console.log('Get Poster Options');
 // HTML escape function to prevent quote characters from breaking HTML
 function escapeHtml(text) {
     if (!text) return text;
-    var result = String(text)
+    return String(text)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
-    console.log('DEBUG escapeHtml input:', text, 'output:', result);
-    return result;
 }
 
 //$('div[data-ref="OPTIONS/OPTIONS"]').children('div').remove();
@@ -131,8 +129,6 @@ var newOptionItem4 = '" value="X"></li>';
 
 if(previouslySaved === 0){
     console.log('Not Previously Saved');
-    console.log('DEBUG boattable length:', boattable.length);
-    console.table(boattable);
     $.each(boattable, function(i) {
         var itemdesc = boattable[i].ItemDesc1;
         var itemno = boattable[i].ItemNo;
@@ -147,8 +143,7 @@ else{
     console.log('Previously Saved');
     boattable2 = sStatement('SEL_ONE_BOAT_FLYER',[serial]);
     pricingtable = sStatement('SEL_ONE_BOAT_FLYER_PRICING',[serial]);
-    console.log('DEBUG boattable2 length:', boattable2.length);
-    console.table(boattable2);
+    //console.table(pricingtable);
 
     $.each(boattable2, function(j) {
         var itemdesc = boattable2[j].itemdesc;

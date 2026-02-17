@@ -219,7 +219,6 @@ if (hasAnswer('LAYOUT', 'PORTRAIT')) {
         var descTB = 'tb' + $(this).context.lastChild.id;
         var desc = $('input:text[name="' + descTB + '"]').val();
         var state = $(this).context.className;
-        console.log('DEBUG makeflyer reading desc:', desc, 'length:', desc ? desc.length : 0);
 
         if (state.substring(0, 14) == 'ui-state-focus') {
             hide = 0;
