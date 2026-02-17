@@ -158,29 +158,35 @@ else{
     pricingtable = sStatement('SEL_ONE_BOAT_FLYER_PRICING',[serial]);
     //console.table(pricingtable);
 
+    // Build lookup map by truncated description
+    var descLookupMap = {};
+    if (window.originalBoatTable && window.originalBoatTable.length > 0) {
+        for (var m = 0; m < window.originalBoatTable.length; m++) {
+            var origDesc = window.originalBoatTable[m].ItemDesc1;
+            if (origDesc) {
+                // Store mapping from truncated to full description
+                var upperDesc = origDesc.toUpperCase();
+                descLookupMap[upperDesc] = origDesc;
+                // Also store 30-char truncated version
+                if (upperDesc.length > 30) {
+                    descLookupMap[upperDesc.substring(0, 30)] = origDesc;
+                }
+            }
+        }
+    }
+    console.log('DEBUG descLookupMap keys (first 10):', Object.keys(descLookupMap).slice(0, 10));
+
     $.each(boattable2, function(j) {
         var itemdesc = boattable2[j].itemdesc;
         var itemno = boattable2[j].part;
         var hidden = boattable2[j].hidden;
         //var mct = boattable2[j].MCT;
 
-        // Look up full description from originalBoatTable
-        var fullDesc = null;
-        if (window.originalBoatTable && window.originalBoatTable.length > 0) {
-            for (var k = 0; k < window.originalBoatTable.length; k++) {
-                if (window.originalBoatTable[k].ItemNo === itemno) {
-                    if (window.originalBoatTable[k].ItemDesc1 && window.originalBoatTable[k].ItemDesc1.length > itemdesc.length) {
-                        fullDesc = window.originalBoatTable[k].ItemDesc1;
-                    }
-                    break;
-                }
-            }
-        }
-        
-        // Use full description if found
-        if (fullDesc) {
-            console.log('Using full description for', itemno, ':', fullDesc);
-            itemdesc = fullDesc;
+        // Look up full description by matching truncated description
+        var upperItemDesc = itemdesc.toUpperCase();
+        if (descLookupMap[upperItemDesc] && descLookupMap[upperItemDesc].length > itemdesc.length) {
+            console.log('Found full description for:', itemdesc, '->', descLookupMap[upperItemDesc]);
+            itemdesc = descLookupMap[upperItemDesc];
         }
 
         //if(mct !== 'BOAT' && mct !== 'BOATPKG'){
