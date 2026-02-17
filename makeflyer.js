@@ -582,8 +582,11 @@ if (hasAnswer('LAYOUT', 'PORTRAIT')) {
         flyerbody += "        z-index: 10;";
         flyerbody += "        top: 230px;";
         flyerbody += "        left: 390px;";
+        flyerbody += "        width: 680px;";
         flyerbody += "        font-size:" + fontsize + ";";
         flyerbody += "        font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif;";
+        flyerbody += "        word-wrap: break-word;";
+        flyerbody += "        overflow-wrap: break-word;";
         flyerbody += "    }";
         flyerbody += "    ";
     } else {
@@ -603,8 +606,11 @@ if (hasAnswer('LAYOUT', 'PORTRAIT')) {
         flyerbody += "        z-index: 10;";
         flyerbody += "        top: 580px;";
         flyerbody += "        left: 390px;";
+        flyerbody += "        width: 680px;";
         flyerbody += "        font-size:" + fontsize + ";";
         flyerbody += "        font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif;";
+        flyerbody += "        word-wrap: break-word;";
+        flyerbody += "        overflow-wrap: break-word;";
         flyerbody += "    }";
         flyerbody += "    ";
     }
@@ -1079,6 +1085,8 @@ if (hasAnswer('LAYOUT', 'LANDSCAPE')) {
         flyerbody += "        left: 350px;";
         flyerbody += "        font-size:" + fontsize + ";";
         flyerbody += "        font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif;";
+        flyerbody += "        word-wrap: break-word;";
+        flyerbody += "        overflow-wrap: break-word;";
         flyerbody += "    }";
         flyerbody += "    ";
     } else {
@@ -1119,6 +1127,8 @@ if (hasAnswer('LAYOUT', 'LANDSCAPE')) {
         flyerbody += "        left: 350px;";
         flyerbody += "        font-size:" + fontsize + ";";
         flyerbody += "        font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif;";
+        flyerbody += "        word-wrap: break-word;";
+        flyerbody += "        overflow-wrap: break-word;";
         flyerbody += "    }";
         flyerbody += "    ";
     }
