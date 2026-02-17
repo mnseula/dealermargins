@@ -27,6 +27,7 @@ $('#sortable li').each(function (index) {
     }
 
     data = [serial, part, desc, i, hide];
+    console.log('DEBUG SAVING - desc length:', desc.length, 'desc:', desc);
 
     if(previouslySaved === 0){
          sStatement('INS_FLYER_OPTIONS',data);

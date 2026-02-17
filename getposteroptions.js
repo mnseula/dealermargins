@@ -3,12 +3,14 @@ console.log('Get Poster Options');
 // HTML escape function to prevent quote characters from breaking HTML
 function escapeHtml(text) {
     if (!text) return text;
-    return String(text)
+    var result = String(text)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+    console.log('DEBUG escapeHtml input:', text, 'output:', result);
+    return result;
 }
 
 //$('div[data-ref="OPTIONS/OPTIONS"]').children('div').remove();
