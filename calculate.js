@@ -758,6 +758,14 @@ window.Calculate2021 = window.Calculate2021 || function () {
                 // Now display pre-rig separately when there's no engine
                 console.log("Standalone PRE-RIG detected (no engine): $" + dealercost);
 
+                // CRITICAL FIX: Subtract prerig from package totals to prevent double-counting
+                // Prerig was already added to package in first loop, but we're displaying it separately
+                // So we must subtract it from package totals (same as packaged prerig path does)
+                if (prodCategory != 'PL1' && prodCategory != 'PL2' && prodCategory != 'PL3' && prodCategory != 'PL4' && prodCategory != 'PL5' && prodCategory != 'PL6') {
+                    boatpackageprice = Number(boatpackageprice) - Number(dealercost);
+                    console.log("Standalone PRE-RIG: Subtracted $" + dealercost + " from boatpackageprice, now: $" + boatpackageprice);
+                }
+
                 // Calculate MSRP first - needed for 0% margin check
                 var prerigHasRealMSRP = (boatoptions[i].MSRP !== undefined && boatoptions[i].MSRP !== null && Number(boatoptions[i].MSRP) > 0);
                 if (prerigHasRealMSRP) {
@@ -767,6 +775,13 @@ window.Calculate2021 = window.Calculate2021 || function () {
                     msrp = Math.round(Number((dealercost * msrpVolume * msrpLoyalty )/ msrpMargin)).toFixed(2);
                 } else {
                     msrp = Math.round(Number((dealercost * msrpVolume)/ msrpMargin)).toFixed(2);
+                }
+
+                // Subtract MSRP equivalent from package MSRP totals
+                var msrpToSubtract = prerigHasRealMSRP ? Number(msrp) : Number(dealercost / msrpMargin);
+                if (prodCategory != 'PL1' && prodCategory != 'PL2' && prodCategory != 'PL3' && prodCategory != 'PL4' && prodCategory != 'PL5' && prodCategory != 'PL6') {
+                    msrpboatpackageprice = Number(msrpboatpackageprice) - msrpToSubtract;
+                    console.log("Standalone PRE-RIG: Subtracted $" + msrpToSubtract + " from msrpboatpackageprice, now: $" + msrpboatpackageprice);
                 }
 
                 // Calculate sale price - special case for 0% margin
