@@ -1,5 +1,16 @@
 console.log('Generating Poster');
 
+// HTML escape function to prevent quote characters from breaking HTML
+function escapeHtml(text) {
+    if (!text) return text;
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 window.flyerDiscount = (getValue('PRICING', 'FLYER_DISCOUNT'));
 window.flyerFinal = (getValue('PRICING', 'FLYER_FINAL_PRICE'));
 window.flyerTitle = (getValue('PRICING', 'FLYER_TITLE'));
@@ -211,7 +222,7 @@ if (hasAnswer('LAYOUT', 'PORTRAIT')) {
 
         if (state.substring(0, 14) == 'ui-state-focus') {
             hide = 0;
-            content += '<li>' + desc + '</li>';
+            content += '<li>' + escapeHtml(desc) + '</li>';
             contentSize++;
         } else {
             hide = 1;
@@ -666,7 +677,7 @@ if (hasAnswer('LAYOUT', 'LANDSCAPE')) {
 
         if (state.substring(0, 14) == 'ui-state-focus') {
             hide = 0;
-            content += '<li>' + desc + '</li>';
+            content += '<li>' + escapeHtml(desc) + '</li>';
             contentSize++;
             if (contentSize > 21) {
                 content += "</ul><div id = \"column" + colNum + "\"><ul>";
