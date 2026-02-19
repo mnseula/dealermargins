@@ -49,20 +49,10 @@ window.Calculate2021 = window.Calculate2021 || function () {
             console.log('Using CPQ dealer cost: $' + dealercost);
         }
 
-        // FIX: For CPQ config items, concatenate CfgName + CfgValue for better context in flyer display
-        var rawItemDesc = boatoptions[j].ItemDesc1;
-        if (rawItemDesc === 'True' && boatoptions[j].CfgValue) {
-            rawItemDesc = boatoptions[j].CfgValue;
-        }
-        // If both CfgName and CfgValue exist, combine them for context (e.g., "Accent Panel - Metallic White")
-        if (boatoptions[j].CfgName && boatoptions[j].CfgValue && boatoptions[j].CfgName !== 'Model') {
-            rawItemDesc = boatoptions[j].CfgName + ' - ' + (rawItemDesc || boatoptions[j].CfgValue);
-        }
-
-        var macoladesc = rawItemDesc;
+        var macoladesc = boatoptions[j].ItemDesc1;
         var prodCategory = boatoptions[j].ItemMasterProdCat;
         var itemNo = boatoptions[j].ItemNo; // Original numeric ItemNo
-        var displayItemNo = rawItemDesc || itemNo; // Use corrected ItemDesc1 for display, fallback to ItemNo
+        var displayItemNo = boatoptions[j].ItemDesc1 || itemNo; // Use ItemDesc1 for display, fallback to ItemNo
         var boatModel = boatoptions[j].BoatModelNo;
         var qty = 1;
         var shownDealerCost = getValue('DLR2','BOAT_DC');
@@ -463,24 +453,13 @@ window.Calculate2021 = window.Calculate2021 || function () {
     var discountsIncluded = 0;
     $.each(boatoptions, function (i) {
         var itemno = boatoptions[i].ItemNo; // Original numeric ItemNo
-
-        // FIX: For CPQ config items, concatenate CfgName + CfgValue for better context in flyer display
-        var rawItemDesc = boatoptions[i].ItemDesc1;
-        if (rawItemDesc === 'True' && boatoptions[i].CfgValue) {
-            rawItemDesc = boatoptions[i].CfgValue;
-        }
-        // If both CfgName and CfgValue exist, combine them for context (e.g., "Accent Panel - Metallic White")
-        if (boatoptions[i].CfgName && boatoptions[i].CfgValue && boatoptions[i].CfgName !== 'Model') {
-            rawItemDesc = boatoptions[i].CfgName + ' - ' + (rawItemDesc || boatoptions[i].CfgValue);
-        }
-
-        var displayItemNo = rawItemDesc || itemno; // Use corrected ItemDesc1 for display
+        var displayItemNo = boatoptions[i].ItemDesc1 || itemno; // Use ItemDesc1 for display
         var mct = boatoptions[i].MCTDesc;
         var mctType = boatoptions[i].ItemMasterMCT;
         var prodCategory = boatoptions[i].ItemMasterProdCat;
         var qty = boatoptions[i].QuantitySold;
         if (mct === 'BOA') {
-            var itemdesc = rawItemDesc.toUpperCase();
+            var itemdesc = boatoptions[i].ItemDesc1.toUpperCase();
         } else {
             if (optionsMatrix !== undefined && optionsMatrix.length > 0) {
                 itemOmmLine = $.grep(optionsMatrix, function (i) {
@@ -496,11 +475,11 @@ window.Calculate2021 = window.Calculate2021 || function () {
                     if (itemdescRec.length > 0 && itemdescRec[0].OPT_NAME != "") {
                         itemdesc = itemdescRec[0].OPT_NAME.toUpperCase();
                     } else {
-                        itemdesc = rawItemDesc.toUpperCase();
+                        itemdesc = boatoptions[i].ItemDesc1.toUpperCase();
                     }
                 }
             } else {
-                itemdesc = rawItemDesc.toUpperCase();
+                itemdesc = boatoptions[i].ItemDesc1.toUpperCase();
             }
         }
         var dealercost = boatoptions[i].ExtSalesAmount;

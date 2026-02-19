@@ -50,14 +50,9 @@ window.Calculate2021 = window.Calculate2021 || function () {
         }
 
         // FIX: For CPQ boolean config items, ItemDesc1 may be "True" - use CfgValue instead
-        // Also concatenate CfgName + CfgValue for better context in flyer display
         var rawItemDesc = boatoptions[j].ItemDesc1;
         if (rawItemDesc === 'True' && boatoptions[j].CfgValue) {
             rawItemDesc = boatoptions[j].CfgValue;
-        }
-        // If both CfgName and CfgValue exist, combine them for context (e.g., "Accent Panel - Metallic White")
-        if (boatoptions[j].CfgName && boatoptions[j].CfgValue && boatoptions[j].CfgName !== 'Model') {
-            rawItemDesc = boatoptions[j].CfgName + ' - ' + (rawItemDesc || boatoptions[j].CfgValue);
         }
 
         var macoladesc = rawItemDesc;
@@ -481,14 +476,9 @@ window.Calculate2021 = window.Calculate2021 || function () {
         var itemno = boatoptions[i].ItemNo; // Original numeric ItemNo
 
         // FIX: For CPQ boolean config items, ItemDesc1 may be "True" - use CfgValue instead
-        // Also concatenate CfgName + CfgValue for better context in flyer display
         var rawItemDesc = boatoptions[i].ItemDesc1;
         if (rawItemDesc === 'True' && boatoptions[i].CfgValue) {
             rawItemDesc = boatoptions[i].CfgValue;
-        }
-        // If both CfgName and CfgValue exist, combine them for context (e.g., "Accent Panel - Metallic White")
-        if (boatoptions[i].CfgName && boatoptions[i].CfgValue && boatoptions[i].CfgName !== 'Model') {
-            rawItemDesc = boatoptions[i].CfgName + ' - ' + (rawItemDesc || boatoptions[i].CfgValue);
         }
 
         var displayItemNo = rawItemDesc || itemno; // Use corrected ItemDesc1 for display
