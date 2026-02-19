@@ -260,7 +260,10 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     // CPQ BOAT ONLY: Add checkbox to hide unselected options (items starting with "No")
     var isCpqBoat = (pkgrowtotal_SP > 0);
     if (isCpqBoat) {
-        var checkboxHtml = '<div style="margin-top: 10px; margin-bottom: 10px;">' +
+        // Remove existing checkbox if present (prevents duplicates on DOM reload)
+        $('#hideUnselectedOptionsContainer').remove();
+        
+        var checkboxHtml = '<div id="hideUnselectedOptionsContainer" style="margin-top: 10px; margin-bottom: 10px;">' +
             '<label style="font-family: Calibri; font-size: 14px; cursor: pointer;">' +
             '<input type="checkbox" id="hideUnselectedOptions" style="margin-right: 5px;">' +
             'Hide unselected boat options' +
