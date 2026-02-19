@@ -765,10 +765,13 @@ window.Calculate2021 = window.Calculate2021 || function () {
         }
     });
 
-    var boatpkgmsrptotal = Number(getValue('DLR2', 'BOAT_MS')) + Number(getValue('DLR2', 'PRERIG_FULL_W_MARGIN_MSRP')) + Number(getValue('DLR2', 'ENG_FULL_W_MARGIN_MSRP'));
+    var prerigMSRP = (showpkgline == '1') ? Number(getValue('DLR2', 'PRERIG_FULL_W_MARGIN_MSRP')) : 0;
+    var prerigSale = (showpkgline == '1') ? Number(getValue('DLR2', 'PRERIG_FULL_W_MARGIN_SALE')) : 0;
+
+    var boatpkgmsrptotal = Number(getValue('DLR2', 'BOAT_MS')) + prerigMSRP + Number(getValue('DLR2', 'ENG_FULL_W_MARGIN_MSRP'));
     setValue('DLR2', 'PKG_MSRP', boatpkgmsrptotal);
 
-    var boatpkgsptotal = Number(getValue('DLR2', 'BOAT_SP')) + Number(getValue('DLR2', 'PRERIG_FULL_W_MARGIN_SALE')) + Number(getValue('DLR2', 'ENG_FULL_W_MARGIN_SALE'));
+    var boatpkgsptotal = Number(getValue('DLR2', 'BOAT_SP')) + prerigSale + Number(getValue('DLR2', 'ENG_FULL_W_MARGIN_SALE'));
     setValue('DLR2', 'PKG_SALE', boatpkgsptotal);
 
     console.log("BOAT MSRP TOTAL: "+boatpkgmsrptotal);
