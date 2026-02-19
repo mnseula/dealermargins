@@ -551,6 +551,11 @@ window.Calculate2021 = window.Calculate2021 || function () {
             if (itemHasRealMSRP) {
                 var msrpprice = Number(boatoptions[i].MSRP);
                 console.log("Using real MSRP from CPQ for option: $", msrpprice);
+            } else if (isCpqBoat && mctType === 'ENG') {
+                // CPQ FIX: Edwin's formula — CPQ engine MSRP does not derive from dealer margin.
+                // Formula: MSRP = (dealerCost * 0.9 * 0.99) / (1 - 0.37)
+                var msrpprice = Number((dealercost * 0.9 * 0.99) / (1 - 0.37));
+                console.log("CPQ engine MSRP (Edwin formula): $", msrpprice);
             } else {
                 var msrpprice = Number((dealercost * msrpVolume) / msrpMargin);
             }
