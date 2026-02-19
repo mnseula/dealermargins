@@ -309,7 +309,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
 
             setValue('DLR2', 'ENG_FULL_W_MARGIN_SALE', Math.round(defaultengineprice / enginemargin) * vol_disc);
 
-            if (serialYear < 20) {
+            if (serialYear < 20 || isCpqBoat) {
                 setValue('DLR2', 'ENG_FULL_W_MARGIN_MSRP', Math.round(defaultengineprice / msrpMargin));
             }
             else {
@@ -354,7 +354,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
                 setValue('DLR2', 'PRERIG_FULL_W_MARGIN_SALE', Math.round(prerigonboatprice / optionmargin) * vol_disc);
             }
 
-            if (serialYear < 20) {
+            if (serialYear < 20 || isCpqBoat) {
                 setValue('DLR2', 'PRERIG_FULL_W_MARGIN_MSRP', Math.round(prerigonboatprice / msrpMargin));
             }
             else {
