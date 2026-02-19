@@ -62,6 +62,23 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     }
     window.hasupgradedprerig = '0';
     prerigrow = '';
+
+    // Sort boattable by MSRP (descending) then by Item Description (alphabetically)
+    boattable.sort(function(a, b) {
+        var msrpA = Number(a.MSRP) || 0;
+        var msrpB = Number(b.MSRP) || 0;
+        // Sort by MSRP descending (highest first)
+        if (msrpB !== msrpA) {
+            return msrpB - msrpA;
+        }
+        // Then by description alphabetically
+        var descA = (a.ItemDesc1 || '').toUpperCase();
+        var descB = (b.ItemDesc1 || '').toUpperCase();
+        if (descA < descB) return -1;
+        if (descA > descB) return 1;
+        return 0;
+    });
+
     $.each(boattable, function (i) {
         var desc = boattable[i].ItemDesc1;
         var itemno = boattable[i].ItemNo;
