@@ -271,6 +271,7 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         // Add event handler to filter rows when checkbox is changed
         $('#hideUnselectedOptions').on('change', function() {
             var hideUnselected = $(this).prop('checked');
+            window.hideUnselectedBoatOptions = hideUnselected;
             $('#included tbody tr').each(function() {
                 var firstTd = $(this).find('td:first');
                 if (firstTd.length > 0) {

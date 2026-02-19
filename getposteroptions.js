@@ -165,6 +165,11 @@ if(previouslySaved === 0){
         var itemno = boattable[i].ItemNo;
         var mct = boattable[i].MCT;
         if(mct !== 'BOAT' && mct !== 'BOATPKG' && mct !== 'Disc - Selling' && itemno !== 'NPPNPRICE16S' && itemno !== 'NPPNPRICE18S' && itemno !== 'NPPNPRICE19S' && itemno !== 'NPPNPRICE20S' && itemno !== 'NPPNPRICE21S' && itemno !== 'NPPNPRICE22S' && itemno !== 'NPPNPRICE23S' && itemno !== 'NPPNPRICE24S'&& itemno !== 'NPPNPRICE25S'&& itemno !== 'NPPNPRICELX/LT' && itemdesc !== 'true' && itemdesc !== 'TRUE' && !/^\d$/.test(itemdesc)){
+            // Skip items starting with "No" if hideUnselectedBoatOptions is checked
+            var upperItemdesc = (itemdesc || '').toUpperCase();
+            if (window.hideUnselectedBoatOptions && (upperItemdesc.startsWith('NO ') || upperItemdesc.startsWith('NO-'))) {
+                return; // Skip this item
+            }
             // New template: data-itemno stores itemno, value stores description, name uses itemno
             optionsList += newOptionItem1 + escapeHtmlAttribute(itemno) + newOptionItem2 + escapeHtmlAttribute(itemdesc) + newOptionItem3 + escapeHtmlAttribute(itemno) + newOptionItem4;
         }
@@ -262,6 +267,13 @@ else{
         console.log('DEBUG itemdesc before escape:', itemdesc);
         console.log('DEBUG itemdesc after escape:', escapeHtml(itemdesc));
         console.log('hidden',hidden);
+
+        // Skip items starting with "No" if hideUnselectedBoatOptions is checked
+        var upperItemdescSaved = (itemdesc || '').toUpperCase();
+        if (window.hideUnselectedBoatOptions && (upperItemdescSaved.startsWith('NO ') || upperItemdescSaved.startsWith('NO-'))) {
+            return; // Skip this item
+        }
+
         if ((hidden === '0' || hidden === 0) && itemno !== 'NPPNPRICE16S' && itemno !== 'NPPNPRICE18S' && itemno !== 'NPPNPRICE19S' && itemno !== 'NPPNPRICE20S' && itemno !== 'NPPNPRICE21S' && itemno !== 'NPPNPRICE22S' && itemno !== 'NPPNPRICE23S' && itemno !== 'NPPNPRICE24S'&& itemno !== 'NPPNPRICE25S'&& itemno !== 'NPPNPRICELX/LT' && itemdesc !== 'true' && itemdesc !== 'TRUE' && !/^\d$/.test(itemdesc)){
             // New template: data-itemno stores itemno, value stores description, name uses itemno
             optionsList += newOptionItem1 + escapeHtmlAttribute(itemno) + newOptionItem2 + escapeHtmlAttribute(itemdesc) + newOptionItem3 + escapeHtmlAttribute(itemno) + newOptionItem4;
