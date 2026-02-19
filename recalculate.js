@@ -28,6 +28,15 @@ window.prep = getValue('FREIGHTPREP', 'PREP');
 
 // Also update MSRP-related variables for consistency
 window.msrpMargin = (100 - baseboat) / 100;  // Typically uses base boat margin
+
+// CPQ FIX: For CPQ boats, MSRP is a manufacturer price and must not collapse to dealer cost.
+// When a dealer sets 0% margin, msrpMargin becomes 1.0, which makes MSRP = dealerCost.
+// Protect against this by flooring msrpMargin at 0.78 (22%) for CPQ boats only.
+// Legacy boats are unaffected.
+if (window.isCPQBoat && window.msrpMargin >= 0.99) {
+    window.msrpMargin = 0.78;
+}
+
 window.msrpVolume = 1.0;  // MSRP doesn't use volume discount
 window.msrpLoyalty = 1.0; // Used for SV series special pricing
 
