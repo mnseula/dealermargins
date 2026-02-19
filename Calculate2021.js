@@ -305,7 +305,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
 
             setValue('DLR2', 'ENG_FULL_W_MARGIN_SALE', Math.round(defaultengineprice / enginemargin) * vol_disc);
 
-            if (serialYear < 20) {
+            if (serialYear < 20 || isCpqBoat) {
                 setValue('DLR2', 'ENG_FULL_W_MARGIN_MSRP', Math.round(defaultengineprice / msrpMargin));
             }
             else {
@@ -342,7 +342,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
             // Special case: If option margin is 0%, use MSRP pricing
             if (optionmargin >= 0.99 && optionmargin <= 1.01) {
                 // 0% margin: prerig sale price = prerig MSRP
-                var prerigMSRP = serialYear < 20 ?
+                var prerigMSRP = (serialYear < 20 || isCpqBoat) ?
                     Math.round(prerigonboatprice / msrpMargin) :
                     Math.round(prerigonboatprice / msrpMargin) * vol_disc;
                 setValue('DLR2', 'PRERIG_FULL_W_MARGIN_SALE', prerigMSRP);
@@ -350,7 +350,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
                 setValue('DLR2', 'PRERIG_FULL_W_MARGIN_SALE', Math.round(prerigonboatprice / optionmargin) * vol_disc);
             }
 
-            if (serialYear < 20) {
+            if (serialYear < 20 || isCpqBoat) {
                 setValue('DLR2', 'PRERIG_FULL_W_MARGIN_MSRP', Math.round(prerigonboatprice / msrpMargin));
             }
             else {
