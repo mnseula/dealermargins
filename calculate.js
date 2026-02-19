@@ -346,7 +346,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
             // Special case: If option margin is 0%, use MSRP pricing
             if (optionmargin >= 0.99 && optionmargin <= 1.01) {
                 // 0% margin: prerig sale price = prerig MSRP
-                var prerigMSRP = serialYear < 20 ?
+                var prerigMSRP = (serialYear < 20 || isCpqBoat) ?
                     Math.round(prerigonboatprice / msrpMargin) :
                     Math.round(prerigonboatprice / msrpMargin) * vol_disc;
                 setValue('DLR2', 'PRERIG_FULL_W_MARGIN_SALE', prerigMSRP);
