@@ -642,7 +642,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
 
                 boattable.push({
                     'ItemDesc1': 'Limited time value series discount',
-                    'ItemNo': displayItemNo, // Use ItemDesc1 for display
+                    'ItemNo': itemno,
                     'Qty': qty, 'MCT': mct, 'PC': pc,
                     'DealerCost': EngineDiscountAdditions,
                     'SalePrice': Math.round(saleprice).toFixed(2),
@@ -661,7 +661,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
                     console.log("CPQ BOAT - Adding base boat to boattable for display: " + itemdesc + " MSRP: $" + displayMSRP);
                     boattable.push({
                         'ItemDesc1': itemdesc,
-                        'ItemNo': displayItemNo,
+                        'ItemNo': itemno,
                         'Qty': qty,
                         'MCT': mct,
                         'PC': pc,
@@ -676,7 +676,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
                 // Add to boattable
                 boattable.push({
                     'ItemDesc1': itemdesc,
-                    'ItemNo': displayItemNo, // Use ItemDesc1 for display
+                    'ItemNo': itemno,
                     'Qty': qty,
                     'MCT': mct,
                     'PC': pc,
@@ -724,7 +724,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
 
                 boattable.push({
                     'ItemDesc1': itemdesc,
-                    'ItemNo': displayItemNo, // Use ItemDesc1 for display
+                    'ItemNo': itemno,
                     'Qty': qty,
                     'MCT': mct,
                     'PC': pc,
@@ -765,7 +765,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
 
                 boattable.push({
                     'ItemDesc1': itemdesc,
-                    'ItemNo': displayItemNo, // Use ItemDesc1 for display
+                    'ItemNo': itemno,
                     'Qty': qty,
                     'MCT': mct,
                     'PC': pc,
@@ -804,7 +804,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
 
                 boattable.push({
                     'ItemDesc1': itemdesc,
-                    'ItemNo': displayItemNo, // Use ItemDesc1 for display
+                    'ItemNo': itemno,
                     'Qty': qty,
                     'MCT': mct,
                     'PC': pc,
