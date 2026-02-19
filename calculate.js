@@ -709,6 +709,10 @@ window.Calculate2021 = window.Calculate2021 || function () {
                 } else if(series === 'SV') {
                     msrp = Math.round(Number((dealercost * msrpVolume * msrpLoyalty)/ msrpMargin)).toFixed(2);
                     saleprice = msrp;
+                } else if (isCpqBoat) {
+                    // CPQ FIX: Engine MSRP formula per Edwin — dealer price does not map to MSRP via margin.
+                    // Formula: MSRP = (dealerCost * 0.9 * 0.99) / (1 - 0.37)
+                    msrp = Math.round(Number((dealercost * 0.9 * 0.99) / (1 - 0.37))).toFixed(2);
                 } else {
                     msrp = Math.round(Number((dealercost * msrpVolume)/ msrpMargin)).toFixed(2);
                 }
