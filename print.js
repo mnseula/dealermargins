@@ -682,7 +682,30 @@ if(boatPricing =='SV'){
 wsContents += "    <div id=\"overheadimg\"> " + img + "<\/div>";
 
 wsContents += "    <div class=\"title\">INCLUDED OPTIONS <\/div>";
-wsContents += "    <div id=\"includedoptions\">" + document.getElementById('included').outerHTML + "<\/div>";
+
+// Clone the table and filter out "No" items if hideUnselectedBoatOptions is checked
+var includedTableHtml = document.getElementById('included').outerHTML;
+if (window.hideUnselectedBoatOptions) {
+    // Create a temporary container to manipulate the table
+    var tempDiv = document.createElement('div');
+    tempDiv.innerHTML = includedTableHtml;
+    var tableClone = tempDiv.querySelector('#included');
+    if (tableClone) {
+        var rows = tableClone.querySelectorAll('tbody tr');
+        rows.forEach(function(row) {
+            var firstTd = row.querySelector('td:first-child');
+            if (firstTd) {
+                var desc = firstTd.textContent.trim().toUpperCase();
+                if (desc.startsWith('NO ') || desc.startsWith('NO-')) {
+                    row.remove();
+                }
+            }
+        });
+        includedTableHtml = tableClone.outerHTML;
+    }
+}
+
+wsContents += "    <div id=\"includedoptions\">" + includedTableHtml + "<\/div>";
 
 if (!hasAnswer('HIDE_DIO', 'YES')) {  //allow the dios to be filled out, but not print.
     wsContents += "    <div id=\"diotitle\" class=\"title\">DEALER INSTALLED OPTIONS<\/div>";
