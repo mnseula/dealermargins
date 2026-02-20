@@ -11,19 +11,6 @@ function escapeHtml(text) {
         .replace(/'/g, '&#39;');
 }
 
-// Build flyer list item label.
-// CPQ attribute codes use underscores (e.g. "ACCENT_PANEL") — format them as a
-// readable prefix so the flyer reads "Accent Panel: Metallic Silver" instead of
-// just "Metallic Silver".  Legacy item numbers are numeric/hyphenated and have no
-// underscores, so they fall through and show only the description as before.
-function buildFlyerLabel(part, desc) {
-    if (part && part.indexOf('_') !== -1) {
-        var labelName = part.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, function(c) { return c.toUpperCase(); });
-        return escapeHtml(labelName) + ': ' + escapeHtml(desc);
-    }
-    return escapeHtml(desc);
-}
-
 window.flyerDiscount = (getValue('PRICING', 'FLYER_DISCOUNT'));
 window.flyerFinal = (getValue('PRICING', 'FLYER_FINAL_PRICE'));
 window.flyerTitle = (getValue('PRICING', 'FLYER_TITLE'));
@@ -115,7 +102,7 @@ var i = 1; //order
 
         if (desc && state.indexOf('ui-state-focus') !== -1) {
             hide = 0;
-
+            
             // Check if we need a page break (every itemsPerPagePortrait items)
             if (contentSize > 0 && contentSize % itemsPerPagePortrait === 0) {
                 content += '</ul>';
@@ -124,8 +111,8 @@ var i = 1; //order
                 content += '<ul>';
                 currentPagePortrait++;
             }
-
-            content += '<li>' + buildFlyerLabel(part, desc) + '</li>';
+            
+            content += '<li>' + escapeHtml(desc) + '</li>';
             contentSize++;
         } else {
             hide = 1;
@@ -281,7 +268,7 @@ if (hasAnswer('LAYOUT', 'PORTRAIT')) {
 
         if (desc && state.indexOf('ui-state-focus') !== -1) {
             hide = 0;
-            content += '<li>' + buildFlyerLabel(part, desc) + '</li>';
+            content += '<li>' + escapeHtml(desc) + '</li>';
             contentSize++;
         } else {
             hide = 1;
@@ -774,7 +761,7 @@ if (hasAnswer('LAYOUT', 'LANDSCAPE')) {
                 currentPage++;
             }
             
-            content += '<li>' + buildFlyerLabel(part, desc) + '</li>';
+            content += '<li>' + escapeHtml(desc) + '</li>';
             contentSize++;
             if (contentSize > 21) {
                 content += "</ul><div id = \"column" + colNum + "\"><ul>";
