@@ -221,6 +221,11 @@ else if(hasAnswer('PRICING_TYPE','BOTH')){
 if (diototal === ''){ diototal = 0}
 diototal = Number(diototal).toFixed(2);
 
+var hasActiveDio = [dio1, dio2, dio3, dio4, dio5, dio6, dio7, dio8, dio9, dio10].some(function(d) {
+    return d && d !== '' && d !== false && d !== true;
+});
+if (!hasActiveDio) { diototal = '0.00'; }
+
 var discount = getValue('EXTRAS','DISCOUNT');
 if (discount === "" || discount === true || discount === false){discount = 0;}
 console.log('discount is ', discount);

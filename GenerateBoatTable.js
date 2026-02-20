@@ -306,6 +306,15 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     if (dio === "") {
         dio = 0;
     }
+    var hasActiveDioItems = false;
+    for (var dioN = 1; dioN <= 10; dioN++) {
+        var dioDesc = getValue('DEALER_INSTALLED_OPTIONS', 'DIO_' + dioN);
+        if (dioDesc && dioDesc !== '' && dioDesc !== false && dioDesc !== true) {
+            hasActiveDioItems = true;
+            break;
+        }
+    }
+    if (!hasActiveDioItems) { dio = 0; }
     var discount = getValue('EXTRAS', 'DISCOUNT');
     if (discount === "") {
         discount = 0;
