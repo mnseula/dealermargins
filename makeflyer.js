@@ -1,9 +1,5 @@
 console.log('Generating Poster');
 
-var fontsize = (typeof fontsize !== 'undefined') ? fontsize : '14px';
-var model_year = (typeof model_year !== 'undefined') ? model_year : '25';
-var serial = (typeof serial !== 'undefined') ? serial : 'UNKNOWN';
-
 // HTML escape function to prevent quote characters from breaking HTML
 function escapeHtml(text) {
     if (!text) return text;
@@ -1300,15 +1296,6 @@ if (hasAnswer('LAYOUT', 'PORTRAIT')) {
     };
 }
 
-if (typeof flyerbody === 'undefined' || !flyerbody) {
-    console.error('ERROR: flyerbody is undefined - LAYOUT answer may not be set to PORTRAIT or LANDSCAPE');
-    throw new Error('Cannot generate flyer: flyerbody is undefined. Check that LAYOUT has a valid answer.');
-}
-
-if (typeof serial === 'undefined') {
-    console.error('ERROR: serial is undefined');
-    throw new Error('Cannot generate flyer: serial is undefined');
-}
 
 // This is for logged users
 // pdf = generatePDF('Flyer - ' + serial + ' - ' + (document.getElementById('model') ? document.getElementById('model').value : ''), flyerbody, false, opt);
@@ -1329,6 +1316,10 @@ var user = getValue('EOS', 'USER');
 //Save to local list so I can view some of the content they are creating.
 
 var updtRec = [user, serial, url];
-addByListName('Flyer_Links', updtRec);
+try {
+    addByListName('Flyer_Links', updtRec);
+} catch(e) {
+    console.log('Flyer_Links list save failed:', e);
+}
 
 window.open(url);
