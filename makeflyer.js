@@ -606,7 +606,7 @@ if (hasAnswer('LAYOUT', 'PORTRAIT')) {
     flyerbody += "        font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif;";
     flyerbody += "    }";
     flyerbody += "    ";
-    if(typeof imgSrc === 'undefined') { //if image is empty
+    if(imgSrc === undefined) { //if image is empty
         flyerbody += "    #key {";
         flyerbody += "        position: absolute;";
         flyerbody += "        z-index: 10;";
@@ -680,10 +680,10 @@ if (hasAnswer('LAYOUT', 'PORTRAIT')) {
     flyerbody += "<body>";
     flyerbody += "    <img id = \"top\" src = \"https://s3.amazonaws.com/eosstatic/images/0/62431aa5d4ecb32b35ab0aa8/vert_cut.png\" alt = \"top not loaded properly\">";
     flyerbody += "    <img id = \"ribbon\" src =  " + ribbonColor + "  alt = \"ribbon failed to load\">";
-    if(typeof imgSrc !== 'undefined') {
+    if(imgSrc !== undefined) {
        flyerbody += "    <img id = \"image\" src = " + imgSrc + " alt = \"image failed to load\">";
     }
-    if (typeof logoSrc !== 'undefined') {
+    if (logoSrc !== undefined) {
         flyerbody += "<img id = \"perf\" src = " + logoSrc + " alt = \"perf logo failed to load\">";
     }
     flyerbody += "    <div id = \"border\"><\/div>";
@@ -1119,7 +1119,7 @@ if (hasAnswer('LAYOUT', 'LANDSCAPE')) {
     flyerbody += "        margin: auto;";
     flyerbody += "    }";
     flyerbody += "    ";
-    if(typeof imgSrc === 'undefined') {
+    if(imgSrc === undefined) {
         flyerbody += "    #keyFeat {";
         flyerbody += "        position: absolute;";
         flyerbody += "        z-index: 10;";
@@ -1227,13 +1227,13 @@ if (hasAnswer('LAYOUT', 'LANDSCAPE')) {
     flyerbody += "";
     flyerbody += "<body>";
     flyerbody += "    <img id = \"ribbon\" src = " + ribbonColor + " alt = \"ribbon failed to load\">";
-    if(typeof imgSrc !== 'undefined') {
+    if(imgSrc !== undefined) {
         flyerbody += "    <div id = \"image\">";
         flyerbody += "    <img id = \"imageSrc\" src = " + imgSrc + " alt = \"image failed to load\">";
         flyerbody += "    </div>";
     }
     flyerbody += "    <img id = \"top\" src = \"https://s3.amazonaws.com/eosstatic/images/0/62431aa5d4ecb32b35ab0aa8/vert_cut.png\" alt = \"top not loaded properly\">";
-    if (typeof logoSrc !== 'undefined') {
+    if (logoSrc !== undefined) {
         flyerbody += "<img id = \"perf\" src = " + logoSrc + " alt = \"perf logo failed to load\">";
     }
     flyerbody += "    <div id = \"msrp\">MSRP<\/div>";
@@ -1278,7 +1278,7 @@ if (hasAnswer('LAYOUT', 'LANDSCAPE')) {
 
 }
 
-if(typeof imgSrc === 'undefined') {
+if(imgSrc === undefined) {
         console.log('AHBHABHDJWKBAKJWDhkAJHDW{AIHWfpoiujAJHNTgo');
     }
 
