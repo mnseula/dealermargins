@@ -1,0 +1,20 @@
+# CPQ Authorization Revert Instructions
+
+## Original Code (Admin Only)
+To revert back to admin-only CPQ access, change this line in all 5 files:
+
+var isCpqAuthorized = (user === 'WEB@BENNINGTONMARINE.COM' || user === 'web@benningtonmarine.com');
+
+## Files to Revert:
+1. Calculate2021.js (line 35)
+2. calculate.js (line 35)
+3. packagePricing.js (line 160)
+4. print.js (lines 41 and 448)
+5. getunregisteredboats.js (line 195)
+
+## New Code (Everyone)
+Current change being made:
+var isCpqAuthorized = true;
+
+---
+Created: 2026-02-23

@@ -192,7 +192,7 @@ function bindSelect() {
 
         // USER AUTHORIZATION: Check if user is authorized to see CPQ boats
         var user = getValue('EOS','USER');
-        var isCpqAuthorized = (user === 'WEB@BENNINGTONMARINE.COM' || user === 'web@benningtonmarine.com');
+        var isCpqAuthorized = true;
 
         // Apply dealer margins - CPQ boats use separate logic (if user is authorized)
         if(previoussticker.length === 0){

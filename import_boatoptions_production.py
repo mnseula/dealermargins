@@ -213,7 +213,7 @@ SELECT
     NULL AS [ItemMasterProdCatDesc],
     LEFT(im.Uf_BENN_ProductCategory, 3) AS [ItemMasterProdCat],
     LEFT(im.Uf_BENN_MaterialCostType, 10) AS [ItemMasterMCT],
-    LEFT(coi.description, 30) AS [ItemDesc1],
+    LEFT(coi.description, 100) AS [ItemDesc1],
     LEFT(LTRIM(RTRIM(iim.inv_num)), 30) AS [InvoiceNo],
     CASE
         WHEN ah.inv_date IS NOT NULL
@@ -307,7 +307,7 @@ SELECT
         WHEN attr_detail.Uf_BENN_Cfg_Price > 0 THEN 'ACC'
         ELSE 'STD'
     END AS [ItemMasterMCT],
-    LEFT(attr_detail.attr_value, 30) AS [ItemDesc1],
+    LEFT(attr_detail.attr_value, 100) AS [ItemDesc1],
     LEFT(LTRIM(RTRIM(iim.inv_num)), 30) AS [InvoiceNo],
     CASE
         WHEN ah.inv_date IS NOT NULL

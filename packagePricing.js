@@ -157,7 +157,7 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
 
     // USER AUTHORIZATION: Check if user is authorized to see CPQ boats
     var user = getValue('EOS','USER');
-    var isCpqAuthorized = (user === 'WEB@BENNINGTONMARINE.COM' || user === 'web@benningtonmarine.com');
+    var isCpqAuthorized = true;
 
     // SAFETY: Only process if multiple boat records exist (typical for CPQ boats)
     // Legacy boats with single BOA record skip this entire block
