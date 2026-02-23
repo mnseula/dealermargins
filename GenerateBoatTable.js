@@ -23,13 +23,6 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
             .replace(/'/g, '&#39;');
     }
 
-    // Format a number as $X,XXX.XX
-    function formatCurrency(value) {
-        var num = Number(value);
-        if (isNaN(num)) return '$0.00';
-        return '$' + num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    }
-
     if (hasAnswer('RMV_ENG', 'YES')) {
         var removeeng = '1';
     } else {
@@ -92,9 +85,9 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         var mct = boattable[i].MCT;
         var prodCategory = boattable[i].PC;
         var qty = boattable[i].Qty;
-        var dc = formatCurrency(boattable[i].DealerCost);
-        var sp = formatCurrency(boattable[i].SalePrice);
-        var msrp = formatCurrency(boattable[i].MSRP);
+        var dc = Number(boattable[i].DealerCost).toFixed(2);
+        var sp = Number(boattable[i].SalePrice).toFixed(2);
+        var msrp = Number(boattable[i].MSRP).toFixed(2);
         var inc = boattable[i].Increment;
 
         if (mct === 'BOATPKG') {
