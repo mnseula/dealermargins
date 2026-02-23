@@ -11,6 +11,29 @@ function escapeHtml(text) {
         .replace(/'/g, '&#39;');
 }
 
+function isUnselectedBoatOptionDescription(desc) {
+    var normalized = String(desc || '').trim().toUpperCase();
+    return normalized.indexOf('NO ') === 0 || normalized.indexOf('NO-') === 0;
+}
+
+function getOptionDedupKey(part, desc) {
+    var normalizedPart = String(part || '').trim().toUpperCase();
+    var normalizedDesc = String(desc || '').trim().toUpperCase();
+    if (normalizedPart) {
+        return normalizedPart + '||' + normalizedDesc;
+    }
+    return normalizedDesc;
+}
+
+function formatOptionDisplay(desc, part) {
+    var d = String(desc || '').trim();
+    var p = String(part || '').trim();
+    if (d && p && d.length < 20) {
+        return p + ' - ' + d;
+    }
+    return d || p || '';
+}
+
 window.flyerDiscount = (getValue('PRICING', 'FLYER_DISCOUNT'));
 window.flyerFinal = (getValue('PRICING', 'FLYER_FINAL_PRICE'));
 window.flyerTitle = (getValue('PRICING', 'FLYER_TITLE'));
@@ -104,20 +127,27 @@ var i = 1; //order
 
     // Build content list
     var content = "<ul id = \"descList\">";
+    var seenOptionKeys = {};
     
     $('#sortable li').each(function(index) {
         var part = $(this).attr('data-itemno') || '';
         // Find the input directly within this li element to avoid selector issues with special characters
         var desc = $(this).find('input[type="text"]').val() || '';
         var state = $(this).attr('class') || '';
+        var hideUnselected = (window.hideUnselectedBoatOptions === true);
+        var isUnselectedOption = isUnselectedBoatOptionDescription(desc);
+        var optionKey = getOptionDedupKey(part, desc);
 
         // Use full description from boattable if available
         if (part && fullDescMap[part] && fullDescMap[part].length > desc.length) {
             desc = fullDescMap[part];
+            isUnselectedOption = isUnselectedBoatOptionDescription(desc);
+            optionKey = getOptionDedupKey(part, desc);
         }
 
-        if (desc && state.indexOf('ui-state-focus') !== -1) {
+        if (desc && state.indexOf('ui-state-focus') !== -1 && !(hideUnselected && isUnselectedOption) && !seenOptionKeys[optionKey]) {
             hide = 0;
+            seenOptionKeys[optionKey] = true;
             
             // Check if we need a page break (every itemsPerPagePortrait items)
             if (contentSize > 0 && contentSize % itemsPerPagePortrait === 0) {
@@ -128,7 +158,7 @@ var i = 1; //order
                 currentPagePortrait++;
             }
             
-            content += '<li>' + escapeHtml(desc) + '</li>';
+            content += '<li>' + escapeHtml(formatOptionDisplay(desc, part)) + '</li>';
             contentSize++;
         } else {
             hide = 1;
@@ -248,6 +278,7 @@ if (isAnswered('DEALER_MSG', 'MESSAGE') === true) {
 
 if (hasAnswer('LAYOUT', 'PORTRAIT') || !hasAnswer('LAYOUT', 'LANDSCAPE')) {
     var contentParts = ["<ul id = \"descList\">"];
+    var seenOptionKeysPortrait = {};
 
     // Create lookup map from originalBoatTable to get full descriptions
     var fullDescMap = {};
@@ -273,15 +304,21 @@ if (hasAnswer('LAYOUT', 'PORTRAIT') || !hasAnswer('LAYOUT', 'LANDSCAPE')) {
         // Find the input directly within this li element to avoid selector issues with special characters
         var desc = $(this).find('input[type="text"]').val() || '';
         var state = $(this).attr('class') || '';
+        var hideUnselected = (window.hideUnselectedBoatOptions === true);
+        var isUnselectedOption = isUnselectedBoatOptionDescription(desc);
+        var optionKey = getOptionDedupKey(part, desc);
 
         // Use full description from boattable if available
         if (part && fullDescMap[part] && fullDescMap[part].length > desc.length) {
             desc = fullDescMap[part];
+            isUnselectedOption = isUnselectedBoatOptionDescription(desc);
+            optionKey = getOptionDedupKey(part, desc);
         }
 
-        if (desc && state.indexOf('ui-state-focus') !== -1) {
+        if (desc && state.indexOf('ui-state-focus') !== -1 && !(hideUnselected && isUnselectedOption) && !seenOptionKeysPortrait[optionKey]) {
             hide = 0;
-            contentParts.push('<li>' + escapeHtml(desc) + '</li>');
+            seenOptionKeysPortrait[optionKey] = true;
+            contentParts.push('<li>' + escapeHtml(formatOptionDisplay(desc, part)) + '</li>');
             contentSize++;
         } else {
             hide = 1;
@@ -730,6 +767,7 @@ if (hasAnswer('LAYOUT', 'LANDSCAPE')) {
 
     var content = "<ul id = \"descList\">";
     var extra = false;
+    var seenOptionKeysLandscape = {};
     colNum = 2;
     var itemsPerPage = 45; // Approximate items per page
     var currentPage = 1;
@@ -753,14 +791,20 @@ if (hasAnswer('LAYOUT', 'LANDSCAPE')) {
         // Find the input directly within this li element to avoid selector issues with special characters
         var desc = $(this).find('input[type="text"]').val() || '';
         var state = $(this).attr('class') || '';
+        var hideUnselected = (window.hideUnselectedBoatOptions === true);
+        var isUnselectedOption = isUnselectedBoatOptionDescription(desc);
+        var optionKey = getOptionDedupKey(part, desc);
 
         // Use full description from boattable if available
         if (part && fullDescMapLandscape[part] && fullDescMapLandscape[part].length > desc.length) {
             desc = fullDescMapLandscape[part];
+            isUnselectedOption = isUnselectedBoatOptionDescription(desc);
+            optionKey = getOptionDedupKey(part, desc);
         }
 
-        if (desc && state.indexOf('ui-state-focus') !== -1) {
+        if (desc && state.indexOf('ui-state-focus') !== -1 && !(hideUnselected && isUnselectedOption) && !seenOptionKeysLandscape[optionKey]) {
             hide = 0;
+            seenOptionKeysLandscape[optionKey] = true;
             
             // Check if we need a page break (every itemsPerPage items)
             if (contentSize > 0 && contentSize % itemsPerPage === 0) {
@@ -771,7 +815,7 @@ if (hasAnswer('LAYOUT', 'LANDSCAPE')) {
                 currentPage++;
             }
             
-            content += '<li>' + escapeHtml(desc) + '</li>';
+            content += '<li>' + escapeHtml(formatOptionDisplay(desc, part)) + '</li>';
             contentSize++;
             if (contentSize > 21) {
                 content += "</ul><div id = \"column" + colNum + "\"><ul>";
