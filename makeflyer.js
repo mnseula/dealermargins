@@ -33,6 +33,22 @@ if (flyerTitle === false || flyerTitle === true) {
     flyerTitle = '';
 }
 
+var fontsizeRaw = getValue('PRICING', 'FONT_SIZE');
+var fontsize = '14px';
+if (fontsizeRaw !== false && fontsizeRaw !== true && fontsizeRaw !== null && typeof fontsizeRaw !== 'undefined') {
+    var fontsizeText = String(fontsizeRaw).trim();
+    if (fontsizeText) {
+        if (/[a-z%]+$/i.test(fontsizeText)) {
+            fontsize = fontsizeText;
+        } else {
+            var fontsizeNum = Number(fontsizeText);
+            if (!isNaN(fontsizeNum) && fontsizeNum > 0) {
+                fontsize = fontsizeNum + 'px';
+            }
+        }
+    }
+}
+
 var optionalPricing = getValue('PRICING', 'ADDITIONAL_INFO');
 if(optionalPricing === false) {
     optionalPricing = '';
@@ -106,7 +122,7 @@ var i = 1; //order
             // Check if we need a page break (every itemsPerPagePortrait items)
             if (contentSize > 0 && contentSize % itemsPerPagePortrait === 0) {
                 content += '</ul>';
-                content += '<div class="page-break" style="page-break-before: always; margin-top: 20px;">';
+                content += '<div class="page-break" style="page-break-before: always; margin-top: 20px;"></div>';
                 content += '<div style="font-size: 20px; font-weight: bold; margin-bottom: 10px; font-family: Helvetica Neue, Helvetica, Arial, sans-serif;">KEY FEATURES AND OPTIONS</div>';
                 content += '<ul>';
                 currentPagePortrait++;
@@ -121,15 +137,12 @@ var i = 1; //order
         i++;
     });
 
-console.log("Zach");
 //console.log("List Size: " + contentSize);
-console.log(accentCol);
 //content += '</ul>';
 //console.log(content);
 
 var underImage = getAnswer('POSTER_IMG');
 var underVal = 0;
-console.log('awijuhfaoiuwhjtriajiowt    '+ underImage);
 
 switch(underImage) {
     case "POSTER_IMG/GENERIC_1" :
@@ -233,8 +246,8 @@ if (isAnswered('DEALER_MSG', 'MESSAGE') === true) {
     optionalMessage = getValue('DEALER_MSG', 'MESSAGE');
 }
 
-if (hasAnswer('LAYOUT', 'PORTRAIT')) {
-    var content = "<ul id = \"descList\">";
+if (hasAnswer('LAYOUT', 'PORTRAIT') || !hasAnswer('LAYOUT', 'LANDSCAPE')) {
+    var contentParts = ["<ul id = \"descList\">"];
 
     // Create lookup map from originalBoatTable to get full descriptions
     var fullDescMap = {};
@@ -268,7 +281,7 @@ if (hasAnswer('LAYOUT', 'PORTRAIT')) {
 
         if (desc && state.indexOf('ui-state-focus') !== -1) {
             hide = 0;
-            content += '<li>' + escapeHtml(desc) + '</li>';
+            contentParts.push('<li>' + escapeHtml(desc) + '</li>');
             contentSize++;
         } else {
             hide = 1;
@@ -277,7 +290,8 @@ if (hasAnswer('LAYOUT', 'PORTRAIT')) {
         i++;
     });
 
-    content += '</ul>';
+    contentParts.push('</ul>');
+    var content = contentParts.join('');
 
 
     var flyerbody = "";
@@ -666,12 +680,12 @@ if (hasAnswer('LAYOUT', 'PORTRAIT')) {
     flyerbody += "";
     flyerbody += "<body>";
     flyerbody += "    <img id = \"top\" src = \"https://s3.amazonaws.com/eosstatic/images/0/62431aa5d4ecb32b35ab0aa8/vert_cut.png\" alt = \"top not loaded properly\">";
-    flyerbody += "    <img id = \"ribbon\" src =  " + ribbonColor + "  alt = \"ribbon failed to load\">";
+    flyerbody += "    <img id = \"ribbon\" src = \"" + ribbonColor + "\"  alt = \"ribbon failed to load\">";
     if(typeof imgSrc !== 'undefined') {
-       flyerbody += "    <img id = \"image\" src = " + imgSrc + " alt = \"image failed to load\">";
+    flyerbody += "    <img id = \"image\" src = \"" + imgSrc + "\" alt = \"image failed to load\">";
     }
     if (typeof logoSrc !== 'undefined') {
-        flyerbody += "<img id = \"perf\" src = " + logoSrc + " alt = \"perf logo failed to load\">";
+        flyerbody += "<img id = \"perf\" src = \"" + logoSrc + "\" alt = \"perf logo failed to load\">";
     }
     flyerbody += "    <div id = \"border\"><\/div>";
     flyerbody += "    <div id = \"msrp\">MSRP<\/div>";
@@ -704,17 +718,13 @@ if (hasAnswer('LAYOUT', 'PORTRAIT')) {
     flyerbody += "    <div id = \"key\">KEY FEATURES AND OPTIONS<\/div>";
     flyerbody += "    <div id = \"content\">" + content + "<\/div>";
     if (dlrlogourl !== undefined) {
-        flyerbody += "<img src=" + dlrlogourl + " alt=\"\" id=\"dealer\"\/>";
+        flyerbody += "<img src=\"" + dlrlogourl + "\" alt=\"\" id=\"dealer\"\/>";
     }
     flyerbody += "    <div id = \"optionalMessage\">" + escapeHtml(optionalMessage) + "<\/div>";
     flyerbody += "    ";
     flyerbody += "<\/body>";
     flyerbody += "<\/html>";
     flyerbody += "";
-
-
-
-    console.log(flyerbody);
 }
 if (hasAnswer('LAYOUT', 'LANDSCAPE')) {
 
@@ -755,7 +765,7 @@ if (hasAnswer('LAYOUT', 'LANDSCAPE')) {
             // Check if we need a page break (every itemsPerPage items)
             if (contentSize > 0 && contentSize % itemsPerPage === 0) {
                 content += '</ul>';
-                content += '<div class="page-break" style="page-break-before: always; margin-top: 20px;">';
+                content += '<div class="page-break" style="page-break-before: always; margin-top: 20px;"></div>';
                 content += '<div style="font-size: 20px; font-weight: bold; margin-bottom: 10px; font-family: Helvetica Neue, Helvetica, Arial, sans-serif;">KEY FEATURES AND OPTIONS</div>';
                 content += '<ul>';
                 currentPage++;
@@ -811,7 +821,6 @@ if (hasAnswer('LAYOUT', 'LANDSCAPE')) {
     flyerbody += "    ";
     flyerbody += "    #top {";
     flyerbody += "        position: absolute;";
-    flyerbody += "        width: 1063px;";
     flyerbody += "        height: 160px;";
     flyerbody += "        width: 1070px;";
     flyerbody += "        z-index: 1;";
@@ -1213,15 +1222,15 @@ if (hasAnswer('LAYOUT', 'LANDSCAPE')) {
     flyerbody += "<\/style>";
     flyerbody += "";
     flyerbody += "<body>";
-    flyerbody += "    <img id = \"ribbon\" src = " + ribbonColor + " alt = \"ribbon failed to load\">";
+    flyerbody += "    <img id = \"ribbon\" src = \"" + ribbonColor + "\" alt = \"ribbon failed to load\">";
     if(typeof imgSrc !== 'undefined') {
         flyerbody += "    <div id = \"image\">";
-        flyerbody += "    <img id = \"imageSrc\" src = " + imgSrc + " alt = \"image failed to load\">";
+        flyerbody += "    <img id = \"imageSrc\" src = \"" + imgSrc + "\" alt = \"image failed to load\">";
         flyerbody += "    </div>";
     }
     flyerbody += "    <img id = \"top\" src = \"https://s3.amazonaws.com/eosstatic/images/0/62431aa5d4ecb32b35ab0aa8/vert_cut.png\" alt = \"top not loaded properly\">";
     if (typeof logoSrc !== 'undefined') {
-        flyerbody += "<img id = \"perf\" src = " + logoSrc + " alt = \"perf logo failed to load\">";
+        flyerbody += "<img id = \"perf\" src = \"" + logoSrc + "\" alt = \"perf logo failed to load\">";
     }
     flyerbody += "    <div id = \"msrp\">MSRP<\/div>";
     flyerbody += "    <div id = \"msrpContent\">$" + flyerMSRP + "<\/div>";
@@ -1252,25 +1261,20 @@ if (hasAnswer('LAYOUT', 'LANDSCAPE')) {
     flyerbody += "    <div id = \"content\">" + content + "<\/div>";
     flyerbody += "    <div id = \"optionalMessage\">" + escapeHtml(optionalMessage) + "<\/div>";
     if (dlrlogourl !== undefined) {
-        flyerbody += "<img src=" + dlrlogourl + " alt=\"\" id=\"dealer\"\/>";
+        flyerbody += "<img src=\"" + dlrlogourl + "\" alt=\"\" id=\"dealer\"\/>";
     }
     flyerbody += "    ";
     flyerbody += "<\/body>";
     flyerbody += "<\/html>";
     flyerbody += "";
-    console.log(flyerbody);
 
 
 
 
 }
 
-if(typeof imgSrc === 'undefined') {
-        console.log('AHBHABHDJWKBAKJWDhkAJHDW{AIHWfpoiujAJHNTgo');
-    }
 
-
-if (hasAnswer('LAYOUT', 'PORTRAIT')) {
+if (hasAnswer('LAYOUT', 'PORTRAIT') || !hasAnswer('LAYOUT', 'LANDSCAPE')) {
     opt = {
         orientation: 'portrait', //try 'landscape'??
         pagesize: 'letter',
@@ -1301,25 +1305,34 @@ if (hasAnswer('LAYOUT', 'PORTRAIT')) {
 // pdf = generatePDF('Flyer - ' + serial + ' - ' + (document.getElementById('model') ? document.getElementById('model').value : ''), flyerbody, false, opt);
 console.log("CONTENT SIZE: " + contentSize);
 // This one for all users, guests too
-pdf = generatePDFGuest('Flyer - ' + serial + ' - ' + (document.getElementById('model') ? document.getElementById('model').value : ''), flyerbody, opt);
-var url = pdf.url.replace(/\s/g, "%20");
+var flyerName = 'Flyer - ' + serial + ' - ' + (document.getElementById('model') ? document.getElementById('model').value : '');
+if (!flyerbody || typeof flyerbody !== 'string' || !flyerbody.trim()) {
+    console.log('Poster generation aborted: no flyer HTML was built. Check LAYOUT answer state.');
+} else {
+    var pdf = generatePDFGuest(flyerName, flyerbody, opt);
+    if (!pdf || !pdf.url) {
+        console.log('Poster generation failed: generatePDFGuest did not return a valid pdf url.', pdf);
+    } else {
+        var url = pdf.url.replace(/\s/g, "%20");
 
-//email keri the results for a while.
-var user = getValue('EOS', 'USER');
-// sendEmail(
-//    'krimbaugh@benningtonmarine.com',
-//    'Your flyer is here: '+
-//    url,
-//    'Flyer Generated by: ' + user
-//);
+        //email keri the results for a while.
+        var user = getValue('EOS', 'USER');
+        // sendEmail(
+        //    'krimbaugh@benningtonmarine.com',
+        //    'Your flyer is here: '+
+        //    url,
+        //    'Flyer Generated by: ' + user
+        //);
 
-//Save to local list so I can view some of the content they are creating.
+        //Save to local list so I can view some of the content they are creating.
 
-var updtRec = [user, serial, url];
-try {
-    addByListName('Flyer_Links', updtRec);
-} catch(e) {
-    console.log('Flyer_Links list save failed:', e);
+        var updtRec = [user, serial, url];
+        try {
+            addByListName('Flyer_Links', updtRec);
+        } catch(e) {
+            console.log('Flyer_Links list save failed:', e);
+        }
+
+        window.open(url);
+    }
 }
-
-window.open(url);
