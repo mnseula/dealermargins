@@ -54,29 +54,17 @@ def get_env_int(key: str, default: int) -> int:
 
 load_env_file()
 
-# ==================== CONFIGURATION ====================
+# ==================== CONFIGURATION - HARDCODED TO PRODUCTION ====================
 
-MSSQL_CONFIG_STG = {
-    'server': os.getenv('MSSQL_STG_SERVER', 'MPL1STGSQL086.POLARISSTAGE.COM'),
-    'database': os.getenv('MSSQL_STG_DATABASE', 'CSISTG'),
-    'user': os.getenv('MSSQL_STG_USER', 'svccsimarine'),
-    'password': os.getenv('MSSQL_STG_PASSWORD'),
-    'timeout': get_env_int('MSSQL_TIMEOUT', 300),
-    'login_timeout': get_env_int('MSSQL_LOGIN_TIMEOUT', 60)
-}
-
-MSSQL_CONFIG_PRD = {
+MSSQL_CONFIG = {
     'server': os.getenv('MSSQL_PRD_SERVER', 'MPL1ITSSQL086.POLARISIND.COM'),
-    'database': os.getenv('MSSQL_PRD_DATABASE', 'CSIPRD'),
+    'database': 'CSIPRD',  # Hardcoded to production database
     'user': os.getenv('MSSQL_PRD_USER', 'svcSpecs01'),
     'password': os.getenv('MSSQL_PRD_PASSWORD'),
     'timeout': get_env_int('MSSQL_TIMEOUT', 300),
     'login_timeout': get_env_int('MSSQL_LOGIN_TIMEOUT', 60)
 }
 
-USE_PRD_MSSQL = any(arg.upper() == '--PRD' for arg in sys.argv[1:])
-MSSQL_ENV = 'PRD' if USE_PRD_MSSQL else 'STG'
-MSSQL_CONFIG = MSSQL_CONFIG_PRD if USE_PRD_MSSQL else MSSQL_CONFIG_STG
 MSSQL_DATABASE = MSSQL_CONFIG['database']
 
 MYSQL_CONFIG = {
@@ -185,7 +173,7 @@ def extract_boats_from_mssql() -> List[Dict]:
     ORDER BY BoatSerialNo
     """
 
-    log(f"Connecting to MSSQL ({MSSQL_ENV}: {MSSQL_CONFIG['server']} / {MSSQL_DATABASE})...")
+    log(f"Connecting to MSSQL (PRD: {MSSQL_CONFIG['server']} / {MSSQL_DATABASE})...")
 
     conn = pymssql.connect(
         server=MSSQL_CONFIG['server'],
@@ -479,7 +467,7 @@ def print_summary(total_boats: int, master_inserted: int, master_skipped: int,
     print(f"Total boats from MSSQL:           {total_boats}")
     print(f"SerialNumberMaster inserted:      {master_inserted} ({master_skipped} skipped/duplicates)")
     print(f"RegistrationStatus inserted:      {status_inserted} ({status_skipped} skipped/duplicates)")
-    print(f"MSSQL Source:                     {MSSQL_ENV} ({MSSQL_CONFIG['server']})")
+    print(f"MSSQL Source:                     PRD ({MSSQL_CONFIG['server']})")
     print(f"MySQL Target:                     {MYSQL_CONFIG['database']}")
     print(f"Completed:                        {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 80)
@@ -489,7 +477,7 @@ def main():
     print("=" * 80)
     print("BULK IMPORT BOATS TO SERIALNUMBERMASTER")
     print("=" * 80)
-    print(f"MSSQL Source: {MSSQL_ENV} ({MSSQL_CONFIG['server']} / {MSSQL_DATABASE})")
+    print(f"MSSQL Source: PRD ({MSSQL_CONFIG['server']} / {MSSQL_DATABASE})")
     print(f"MySQL Target: {MYSQL_CONFIG['database']} ({MYSQL_CONFIG['host']})")
     print(f"Order Date Cutoff: {ORDER_DATE_CUTOFF}")
     print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
