@@ -66,7 +66,7 @@ Examples:
     """
 )
 parser.add_argument(
-    '--prd', '--production',
+    '--prd', '--PRD', '--production', '--PRODUCTION',
     action='store_true',
     dest='use_production',
     default=False,
