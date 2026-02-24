@@ -87,7 +87,7 @@ function bindSelect() {
         window.model_year = serial.substring(serial.length - 2);
 
         var snmRec = sStatement('SEL_ONE_SER_NO_MST', ([serial]));
-        var snmInvoiceNo = snmRec[0].InvoiceNo;
+        var snmInvoiceNo = snmRec[0].InvoiceNo.trim();
         var boatinvoiceno = snmInvoiceNo; //boatmodel[0].InvoiceNo;
         var engineRec = sStatement('SEL_ONE_ENG_SER_NO_MST', ([serial]));
 
