@@ -201,10 +201,7 @@ LEFT JOIN [{db}].[dbo].[serial_mst] ser
     AND coi.co_release = ser.ref_release AND coi.item = ser.item
     AND coi.site_ref = ser.site_ref AND ser.ref_type = 'O'
 WHERE coi.site_ref = 'BENN'
-    AND (
-        co.external_confirmation_ref LIKE 'SO%'
-        OR TRY_CAST(co.external_confirmation_ref AS BIGINT) IS NOT NULL
-    )
+    AND TRY_CAST(co.external_confirmation_ref AS BIGINT) IS NOT NULL
     AND iim.inv_num IS NOT NULL
     AND coi.qty_invoiced > 0
     AND CAST(ah.inv_date AS DATE) = CAST(GETDATE() AS DATE)
@@ -282,10 +279,7 @@ LEFT JOIN [{db}].[dbo].[serial_mst] ser
     AND coi.site_ref = ser.site_ref AND ser.ref_type = 'O'
 WHERE coi.config_id IS NOT NULL
     AND coi.site_ref = 'BENN'
-    AND (
-        co.external_confirmation_ref LIKE 'SO%'
-        OR TRY_CAST(co.external_confirmation_ref AS BIGINT) IS NOT NULL
-    )
+    AND co.external_confirmation_ref LIKE 'SO%'
     AND coi.qty_invoiced > 0
     AND CAST(ah.inv_date AS DATE) = CAST(GETDATE() AS DATE)
 
