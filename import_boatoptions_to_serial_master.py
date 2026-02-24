@@ -123,7 +123,7 @@ def extract_boats_from_mssql() -> List[Dict]:
             WHEN iim.inv_num IS NOT NULL THEN NULL  -- Has invoice but no AR record yet
             ELSE NULL 
         END AS InvoiceDate,
-        co.cust_num AS DealerNumber,
+        LTRIM(RTRIM(co.cust_num)) AS DealerNumber,
         cust.name AS DealerName,
         cust.city AS DealerCity,
         cust.state AS DealerState,
@@ -554,7 +554,7 @@ def main():
                 'ERP_OrderNo': boat.get('ERP_OrderNo') or '',
                 'InvoiceNo': boat.get('InvoiceNo') or '',
                 'InvoiceDate': boat.get('InvoiceDate') or '',
-                'DealerNumber': boat.get('DealerNumber', '').lstrip('0') or '',
+                'DealerNumber': boat.get('DealerNumber', '').strip().lstrip('0') or '',
                 'DealerName': boat.get('DealerName') or '',
                 'DealerCity': boat.get('DealerCity') or '',
                 'DealerState': boat.get('DealerState') or '',
