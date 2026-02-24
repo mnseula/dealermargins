@@ -87,7 +87,6 @@ MYSQL_CONFIG = {
     'password': os.getenv('MYSQL_PASSWORD')
 }
 
-ORDER_DATE_CUTOFF = '2021-01-01'
 
 
 def log(message: str, level: str = "INFO"):
@@ -181,7 +180,7 @@ def extract_boats_from_mssql() -> List[Dict]:
         )
         AND iim.inv_num IS NOT NULL
         AND coi.qty_invoiced > 0
-        AND co.order_date >= '{ORDER_DATE_CUTOFF}'
+        AND CAST(ah.inv_date AS DATE) = CAST(GETDATE() AS DATE)
     ORDER BY BoatSerialNo
     """
 
@@ -491,7 +490,7 @@ def main():
     print("=" * 80)
     print(f"MSSQL Source: {MSSQL_ENV} ({MSSQL_CONFIG['server']} / {MSSQL_DATABASE})")
     print(f"MySQL Target: {MYSQL_CONFIG['database']} ({MYSQL_CONFIG['host']})")
-    print(f"Order Date Cutoff: {ORDER_DATE_CUTOFF}")
+    print(f"Invoice Filter:    Today only ({datetime.now().strftime('%Y-%m-%d')})")
     print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 80)
     print()
