@@ -35,7 +35,7 @@ MSSQL_DATABASE = MSSQL_CONFIG['database']
 MYSQL_CONFIG = {
     'host': 'ben.c0fnidwvz1hv.us-east-1.rds.amazonaws.com',
     'port': 3306,
-    'database': 'warrantyparts',
+    'database': 'warrantyparts_test',
     'user': 'awsmaster',
     'password': 'VWvHG9vfG23g7gD'
 }
@@ -321,7 +321,7 @@ def group_by_table(rows: List[Dict]) -> Dict[str, List[Dict]]:
 
     for row in rows:
         year = get_target_year(row)
-        table_name = f'warrantyparts.{get_table_for_year(year)}'
+        table_name = f'warrantyparts_test.{get_table_for_year(year)}'
 
         if table_name not in groups:
             groups[table_name] = []
