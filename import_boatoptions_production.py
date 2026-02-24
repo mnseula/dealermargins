@@ -276,8 +276,11 @@ def log(message: str, level: str = "INFO"):
 
 
 def detect_model_year_from_serial(serial_number: str) -> int:
-    """Detect model year from last 2 digits of serial number."""
-    if not serial_number or len(serial_number) < 2:
+    """
+    Detect model year from last 2 digits of a Bennington HIN (ETW...).
+    Non-ETW serials (engine serials, etc.) default to current year.
+    """
+    if not serial_number or not str(serial_number).upper().startswith('ETW') or len(serial_number) < 12:
         return datetime.now().year
     try:
         year_2digit = int(serial_number[-2:])
@@ -531,7 +534,7 @@ def main():
     print("BOATOPTIONS IMPORT - PRODUCTION")
     print("=" * 80)
     print(f"MSSQL Source:  {MSSQL_DATABASE} on {MSSQL_CONFIG['server']}")
-    print(f"MySQL Target:  warrantyparts")
+    print(f"MySQL Target:  {MYSQL_CONFIG['database']}")
     print(f"Invoice Filter: Today only ({datetime.now().strftime('%Y-%m-%d')})")
     print(f"Started:       {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 80)
