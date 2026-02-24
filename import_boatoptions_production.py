@@ -84,8 +84,14 @@ WITH BoatOrders AS (
         AND coi.item = ser.item
         AND coi.site_ref = ser.site_ref
         AND ser.ref_type = 'O'
+    LEFT JOIN [{db}].[dbo].[co_mst] co_bo
+        ON coi.co_num = co_bo.co_num
+        AND coi.site_ref = co_bo.site_ref
     WHERE coi.site_ref = 'BENN'
-        AND coi.co_num LIKE 'SO%'
+        AND (
+            co_bo.external_confirmation_ref LIKE 'SO%'
+            OR TRY_CAST(co_bo.external_confirmation_ref AS BIGINT) IS NOT NULL
+        )
         AND (
             (coi.Uf_BENN_BoatSerialNumber IS NOT NULL AND coi.Uf_BENN_BoatSerialNumber != '')
             OR (coi.config_id IS NOT NULL AND coi.config_id != '')
@@ -159,7 +165,10 @@ LEFT JOIN [{db}].[dbo].[serial_mst] ser
     AND coi.site_ref = ser.site_ref
     AND ser.ref_type = 'O'
 WHERE coi.site_ref = 'BENN'
-    AND coi.co_num LIKE 'SO%'
+    AND (
+        co.external_confirmation_ref LIKE 'SO%'
+        OR TRY_CAST(co.external_confirmation_ref AS BIGINT) IS NOT NULL
+    )
     AND iim.inv_num IS NOT NULL
     AND coi.qty_invoiced > 0
     AND CAST(ah.inv_date AS DATE) = CAST(GETDATE() AS DATE)
@@ -249,7 +258,10 @@ LEFT JOIN [{db}].[dbo].[serial_mst] ser
     AND ser.ref_type = 'O'
 WHERE coi.config_id IS NOT NULL
     AND coi.site_ref = 'BENN'
-    AND coi.co_num LIKE 'SO%'
+    AND (
+        co.external_confirmation_ref LIKE 'SO%'
+        OR TRY_CAST(co.external_confirmation_ref AS BIGINT) IS NOT NULL
+    )
     AND coi.qty_invoiced > 0
     AND CAST(ah.inv_date AS DATE) = CAST(GETDATE() AS DATE)
 
