@@ -103,14 +103,11 @@ MSSQL_CONFIG_PRODUCTION = {
     'login_timeout': 60
 }
 
-# Select configuration based on command line argument
-MSSQL_CONFIG = MSSQL_CONFIG_PRODUCTION if USE_PRODUCTION else MSSQL_CONFIG_STAGING
+# HARDCODED: Always use production database
+MSSQL_CONFIG = MSSQL_CONFIG_PRODUCTION
 
 # Log which database we're using (for JAMS logs)
-if USE_PRODUCTION:
-    print(f"⚠️  USING PRODUCTION DATABASE: {MSSQL_CONFIG['database']} on {MSSQL_CONFIG['server']}")
-else:
-    print(f"ℹ️  Using STAGING database: {MSSQL_CONFIG['database']} on {MSSQL_CONFIG['server']}")
+print(f"⚠️  USING PRODUCTION DATABASE: {MSSQL_CONFIG['database']} on {MSSQL_CONFIG['server']}")
 
 # MySQL (Destination - PRODUCTION DATABASE)
 # Note: Database is specified in table names (cpq.BoatOptions or warrantyparts.BoatOptions15)
