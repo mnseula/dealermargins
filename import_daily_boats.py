@@ -22,6 +22,7 @@ from typing import List, Dict, Set, Tuple
 
 import pymssql
 import mysql.connector
+import load_cpq_data
 
 # ============================================================================
 # CONFIGURATION - ALWAYS PRODUCTION
@@ -696,6 +697,13 @@ def main():
     snm_inserted = snm_skipped = reg_inserted = reg_skipped = 0
 
     try:
+        # ── STEP 0: CPQ Data ─────────────────────────────────────────────────
+        print()
+        log("=" * 60)
+        log("STEP 0: CPQ DATA IMPORT")
+        log("=" * 60)
+        load_cpq_data.main()
+
         # ── STEP 1: BoatOptions ─────────────────────────────────────────────
         print()
         log("=" * 60)
