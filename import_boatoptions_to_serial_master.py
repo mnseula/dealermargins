@@ -372,7 +372,7 @@ def bulk_insert_serial_master(mysql_cursor, boats: List[Dict]) -> Tuple[int, int
         mysql_cursor.execute("""
             INSERT IGNORE INTO SerialNumberMaster (
                 SN_MY, Boat_SerialNo, BoatItemNo, Series, BoatDesc1, SerialModelYear,
-                ERP_OrderNo, InvoiceNo, InvoiceDate, DealerNumber, DealerName,
+                ERP_OrderNo, InvoiceNo, InvoiceDateYYYYMMDD, DealerNumber, DealerName,
                 DealerCity, DealerState, DealerZip, DealerCountry, WebOrderNo, Active,
                 ProdNo, BenningtonOwned, PanelColor, AccentPanel, BaseVinyl, ColorPackage, TrimAccent
             )
