@@ -54,17 +54,29 @@ def get_env_int(key: str, default: int) -> int:
 
 load_env_file()
 
-# ==================== CONFIGURATION - HARDCODED TO PRODUCTION ====================
+# ==================== CONFIGURATION ====================
 
-MSSQL_CONFIG = {
+MSSQL_CONFIG_STG = {
+    'server': os.getenv('MSSQL_STG_SERVER', 'MPL1STGSQL086.POLARISSTAGE.COM'),
+    'database': os.getenv('MSSQL_STG_DATABASE', 'CSISTG'),
+    'user': os.getenv('MSSQL_STG_USER', 'svccsimarine'),
+    'password': os.getenv('MSSQL_STG_PASSWORD'),
+    'timeout': get_env_int('MSSQL_TIMEOUT', 300),
+    'login_timeout': get_env_int('MSSQL_LOGIN_TIMEOUT', 60)
+}
+
+MSSQL_CONFIG_PRD = {
     'server': os.getenv('MSSQL_PRD_SERVER', 'MPL1ITSSQL086.POLARISIND.COM'),
-    'database': 'CSIPRD',  # Hardcoded to production database
+    'database': os.getenv('MSSQL_PRD_DATABASE', 'CSIPRD'),
     'user': os.getenv('MSSQL_PRD_USER', 'svcSpecs01'),
     'password': os.getenv('MSSQL_PRD_PASSWORD'),
     'timeout': get_env_int('MSSQL_TIMEOUT', 300),
     'login_timeout': get_env_int('MSSQL_LOGIN_TIMEOUT', 60)
 }
 
+USE_PRD_MSSQL = any(arg.upper() == '--PRD' for arg in sys.argv[1:])
+MSSQL_ENV = 'PRD' if USE_PRD_MSSQL else 'STG'
+MSSQL_CONFIG = MSSQL_CONFIG_PRD if USE_PRD_MSSQL else MSSQL_CONFIG_STG
 MSSQL_DATABASE = MSSQL_CONFIG['database']
 
 MYSQL_CONFIG = {
@@ -118,12 +130,11 @@ def extract_boats_from_mssql() -> List[Dict]:
         coi.co_num AS ERP_OrderNo,
         LEFT(coi.Uf_BENN_BoatWebOrderNumber, 30) AS WebOrderNo,
         iim.inv_num AS InvoiceNo,
-        CASE 
-            WHEN ah.inv_date IS NOT NULL THEN CONVERT(INT, CONVERT(VARCHAR(8), ah.inv_date, 112))
-            WHEN iim.inv_num IS NOT NULL THEN NULL  -- Has invoice but no AR record yet
+        CASE WHEN ah.inv_date IS NOT NULL 
+            THEN CONVERT(INT, CONVERT(VARCHAR(8), ah.inv_date, 112)) 
             ELSE NULL 
         END AS InvoiceDate,
-        LTRIM(RTRIM(co.cust_num)) AS DealerNumber,
+        co.cust_num AS DealerNumber,
         cust.name AS DealerName,
         cust.city AS DealerCity,
         cust.state AS DealerState,
@@ -149,8 +160,8 @@ def extract_boats_from_mssql() -> List[Dict]:
         AND coi.co_line = iim.co_line
         AND coi.co_release = iim.co_release
         AND coi.site_ref = iim.site_ref
-    LEFT JOIN [{db}].[dbo].[arinv_mst] ah
-        ON RTRIM(LTRIM(iim.inv_num)) = RTRIM(LTRIM(ah.inv_num))
+    INNER JOIN [{db}].[dbo].[arinv_mst] ah
+        ON iim.inv_num = ah.inv_num
         AND iim.site_ref = ah.site_ref
     INNER JOIN [{db}].[dbo].[co_mst] co
         ON coi.co_num = co.co_num
@@ -174,7 +185,7 @@ def extract_boats_from_mssql() -> List[Dict]:
     ORDER BY BoatSerialNo
     """
 
-    log(f"Connecting to MSSQL (PRD: {MSSQL_CONFIG['server']} / {MSSQL_DATABASE})...")
+    log(f"Connecting to MSSQL ({MSSQL_ENV}: {MSSQL_CONFIG['server']} / {MSSQL_DATABASE})...")
 
     conn = pymssql.connect(
         server=MSSQL_CONFIG['server'],
@@ -468,7 +479,7 @@ def print_summary(total_boats: int, master_inserted: int, master_skipped: int,
     print(f"Total boats from MSSQL:           {total_boats}")
     print(f"SerialNumberMaster inserted:      {master_inserted} ({master_skipped} skipped/duplicates)")
     print(f"RegistrationStatus inserted:      {status_inserted} ({status_skipped} skipped/duplicates)")
-    print(f"MSSQL Source:                     PRD ({MSSQL_CONFIG['server']})")
+    print(f"MSSQL Source:                     {MSSQL_ENV} ({MSSQL_CONFIG['server']})")
     print(f"MySQL Target:                     {MYSQL_CONFIG['database']}")
     print(f"Completed:                        {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 80)
@@ -478,7 +489,7 @@ def main():
     print("=" * 80)
     print("BULK IMPORT BOATS TO SERIALNUMBERMASTER")
     print("=" * 80)
-    print(f"MSSQL Source: PRD ({MSSQL_CONFIG['server']} / {MSSQL_DATABASE})")
+    print(f"MSSQL Source: {MSSQL_ENV} ({MSSQL_CONFIG['server']} / {MSSQL_DATABASE})")
     print(f"MySQL Target: {MYSQL_CONFIG['database']} ({MYSQL_CONFIG['host']})")
     print(f"Order Date Cutoff: {ORDER_DATE_CUTOFF}")
     print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -554,7 +565,7 @@ def main():
                 'ERP_OrderNo': boat.get('ERP_OrderNo') or '',
                 'InvoiceNo': boat.get('InvoiceNo') or '',
                 'InvoiceDate': boat.get('InvoiceDate') or '',
-                'DealerNumber': boat.get('DealerNumber', '').strip().lstrip('0') or '',
+                'DealerNumber': boat.get('DealerNumber', '').lstrip('0') or '',
                 'DealerName': boat.get('DealerName') or '',
                 'DealerCity': boat.get('DealerCity') or '',
                 'DealerState': boat.get('DealerState') or '',
