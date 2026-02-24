@@ -542,7 +542,7 @@ def main():
             cfg_colors = config_colors.get(config_id, {}) if config_id else {}
 
             # PanelColor: prefer coitem field, fallback to config attribute
-            panel_color = boat.get('PanelColor') or cfg_colors.get('PanelColor_cfg') or ''
+            panel_color = (boat.get('PanelColor') or cfg_colors.get('PanelColor_cfg') or '').strip()
 
             prepared = {
                 'SN_MY': sn_my,
@@ -564,10 +564,10 @@ def main():
                 'ProdNo': boat.get('ProdNo') or '',
                 'BenningtonOwned': boat.get('BenningtonOwned') or '',
                 'PanelColor': panel_color,
-                'AccentPanel': cfg_colors.get('AccentPanel') or '',
-                'BaseVinyl': boat.get('BaseVinyl') or '',
-                'ColorPackage': cfg_colors.get('ColorPackage') or '',
-                'TrimAccent': cfg_colors.get('TrimAccent') or ''
+                'AccentPanel': (cfg_colors.get('AccentPanel') or '').strip(),
+                'BaseVinyl': (boat.get('BaseVinyl') or '').strip(),
+                'ColorPackage': (cfg_colors.get('ColorPackage') or '').strip(),
+                'TrimAccent': (cfg_colors.get('TrimAccent') or '').strip()
             }
 
             if serial not in existing_master:
