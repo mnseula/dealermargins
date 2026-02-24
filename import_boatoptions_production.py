@@ -187,11 +187,14 @@ WITH BoatOrders AS (
         AND ser.ref_type = 'O'
     WHERE coi.site_ref = 'BENN'
         AND (
-            -- Traditional boats: have BoatSerialNumber
+            -- Traditional boats: have BoatSerialNumber in coitem
             (coi.Uf_BENN_BoatSerialNumber IS NOT NULL AND coi.Uf_BENN_BoatSerialNumber != '')
             OR
-            -- CPQ boats: have config_id (boat line item)
+            -- CPQ boats: have config_id
             (coi.config_id IS NOT NULL AND coi.config_id != '')
+            OR
+            -- Serial-based boats: serial tracked in serial_mst (pre-CPQ)
+            (ser.ser_num IS NOT NULL AND ser.ser_num != '')
         )
 ),
 OrderedRows AS (
