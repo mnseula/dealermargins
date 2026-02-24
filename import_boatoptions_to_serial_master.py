@@ -118,8 +118,9 @@ def extract_boats_from_mssql() -> List[Dict]:
         coi.co_num AS ERP_OrderNo,
         LEFT(coi.Uf_BENN_BoatWebOrderNumber, 30) AS WebOrderNo,
         iim.inv_num AS InvoiceNo,
-        CASE WHEN ah.inv_date IS NOT NULL 
-            THEN CONVERT(INT, CONVERT(VARCHAR(8), ah.inv_date, 112)) 
+        CASE 
+            WHEN ah.inv_date IS NOT NULL THEN CONVERT(INT, CONVERT(VARCHAR(8), ah.inv_date, 112))
+            WHEN iim.inv_num IS NOT NULL THEN NULL  -- Has invoice but no AR record yet
             ELSE NULL 
         END AS InvoiceDate,
         co.cust_num AS DealerNumber,
@@ -148,8 +149,8 @@ def extract_boats_from_mssql() -> List[Dict]:
         AND coi.co_line = iim.co_line
         AND coi.co_release = iim.co_release
         AND coi.site_ref = iim.site_ref
-    INNER JOIN [{db}].[dbo].[arinv_mst] ah
-        ON iim.inv_num = ah.inv_num
+    LEFT JOIN [{db}].[dbo].[arinv_mst] ah
+        ON RTRIM(LTRIM(iim.inv_num)) = RTRIM(LTRIM(ah.inv_num))
         AND iim.site_ref = ah.site_ref
     INNER JOIN [{db}].[dbo].[co_mst] co
         ON coi.co_num = co.co_num
