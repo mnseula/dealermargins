@@ -39,7 +39,7 @@ MSSQL_CONFIG = {
 MYSQL_CONFIG = {
     'host': 'ben.c0fnidwvz1hv.us-east-1.rds.amazonaws.com',
     'port': 3306,
-    'database': 'warrantyparts_test',   # flip to 'warrantyparts' for production
+    'database': 'warrantyparts',
     'user': 'awsmaster',
     'password': 'VWvHG9vfG23g7gD'
 }
