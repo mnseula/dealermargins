@@ -506,7 +506,14 @@ def extract_from_mssql() -> List[Dict]:
         log("Extracting INVOICED orders from 12/14/2025 onwards...")
         log("This includes both regular items and CPQ configured items...")
 
-        cursor.execute(MSSQL_QUERY)
+        # Replace hardcoded database qualifiers with the active DB (STG/PRD)
+        selected_database = MSSQL_CONFIG.get('database', 'CSISTG')
+        query = MSSQL_QUERY
+        for db_token in ('[CSISTG]', '[CSIPRD]'):
+            query = query.replace(db_token, f'[{selected_database}]')
+        
+        log(f"Executing query against MSSQL database: [{selected_database}]")
+        cursor.execute(query)
         rows = cursor.fetchall()
 
         log(f"Extracted {len(rows):,} rows from MSSQL", "SUCCESS")
