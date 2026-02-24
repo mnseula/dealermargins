@@ -67,15 +67,23 @@ def get_table_for_year(year: int) -> str:
 def build_query(db: str) -> str:
     return f"""
 WITH BoatOrders AS (
-    SELECT DISTINCT
+    -- One row per order: prefer ETW boat HIN over engine serials
+    SELECT
         coi.co_num,
         coi.site_ref,
         COALESCE(
-            NULLIF(coi.Uf_BENN_BoatSerialNumber, ''),
-            ser.ser_num
+            MAX(CASE
+                WHEN NULLIF(coi.Uf_BENN_BoatSerialNumber, '') LIKE 'ETW%'
+                    THEN NULLIF(coi.Uf_BENN_BoatSerialNumber, '')
+                WHEN ser.ser_num LIKE 'ETW%'
+                    THEN ser.ser_num
+                ELSE NULL
+            END),
+            MAX(NULLIF(coi.Uf_BENN_BoatSerialNumber, '')),
+            MAX(ser.ser_num)
         ) AS Uf_BENN_BoatSerialNumber,
-        coi.Uf_BENN_BoatModel,
-        coi.config_id
+        MAX(NULLIF(coi.Uf_BENN_BoatModel, ''))  AS Uf_BENN_BoatModel,
+        MAX(NULLIF(coi.config_id, ''))           AS config_id
     FROM [{db}].[dbo].[coitem_mst] coi
     LEFT JOIN [{db}].[dbo].[serial_mst] ser
         ON coi.co_num = ser.ref_num
@@ -97,6 +105,7 @@ WITH BoatOrders AS (
             OR (coi.config_id IS NOT NULL AND coi.config_id != '')
             OR (ser.ser_num IS NOT NULL AND ser.ser_num != '')
         )
+    GROUP BY coi.co_num, coi.site_ref
 ),
 OrderedRows AS (
 
