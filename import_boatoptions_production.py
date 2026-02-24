@@ -4,11 +4,11 @@ BoatOptions Import Script - PRODUCTION VERSION
 
 ⚠️  WARNING: This modifies LIVE PRODUCTION data! ⚠️
 
-Imports INVOICED boat orders from 12/14/2025 onwards to PRODUCTION database.
+Imports INVOICED boat orders from 2025-01-01 onwards to PRODUCTION database.
 
 Features:
 - Only invoiced orders (has invoice number and qty_invoiced > 0)
-- Only orders from 2025-12-14 onwards (CPQ go-live date)
+- Only orders from 2025-01-01 onwards (all 2025+ model years)
 - Smart routing with fallback logic:
   1. FIRST: Detect model year from serial number
      - Year <= 2025 → Legacy boat → warrantyparts.BoatOptionsXX
@@ -118,8 +118,8 @@ MYSQL_CONFIG = {
     'password': 'VWvHG9vfG23g7gD'
 }
 
-# CPQ Go-Live Date
-CPQ_GO_LIVE_DATE = date(2025, 12, 14)
+# Import cutoff date - include all 2025+ orders
+IMPORT_CUTOFF_DATE = date(2025, 1, 1)
 
 # ============================================================================
 # TABLE MAPPING BY YEAR - PRODUCTION STRUCTURE
@@ -267,7 +267,7 @@ LEFT JOIN [CSISTG].[dbo].[serial_mst] ser
 WHERE coi.site_ref = 'BENN'
     AND iim.inv_num IS NOT NULL
     AND coi.qty_invoiced > 0
-    AND co.order_date >= '2025-12-14'
+    AND co.order_date >= '2025-01-01'
     -- Year filter removed to allow test boats like ETWINVTEST01
     -- AND TRY_CAST(RIGHT(COALESCE(coi.Uf_BENN_BoatSerialNumber, bo.Uf_BENN_BoatSerialNumber), 2) AS INT) >= 15
 
@@ -365,7 +365,7 @@ WHERE coi.config_id IS NOT NULL
     AND coi.qty_invoiced = coi.qty_ordered
     AND coi.qty_invoiced > 0
     AND coi.site_ref = 'BENN'
-    AND co.order_date >= '2025-12-14'
+    AND co.order_date >= '2025-01-01'
     -- Filter boats with serial suffix >= 15 to avoid broken table routing
     -- Serials ending in 00-14 or 99 get misrouted to old tables (BoatOptions99_04)
     AND TRY_CAST(RIGHT(ser.ser_num, 2) AS INT) >= 15
@@ -419,10 +419,10 @@ def log(message: str, level: str = "INFO"):
 def is_cpq_order(order_date, external_confirmation_ref, co_num):
     """
     Detect if order is a CPQ/EQ order.
-    CPQ orders go to cpq.BoatOptions.
+    All orders from 2025 onwards are now included (not just CPQ).
 
     Criteria:
-    - order_date >= 2025-12-14 (CPQ Go Live)
+    - order_date >= 2025-01-01 (all 2025+ model years)
     - co_num starts with 'SO'
     - external_confirmation_ref starts with 'SO' (optional - can be NULL)
     """
@@ -433,8 +433,8 @@ def is_cpq_order(order_date, external_confirmation_ref, co_num):
     if isinstance(order_date, datetime):
         order_date = order_date.date()
 
-    # Check date and order number (required)
-    if not (order_date >= CPQ_GO_LIVE_DATE and str(co_num).startswith('SO')):
+    # Check date (now includes all 2025+ orders, not just CPQ)
+    if not (order_date >= IMPORT_CUTOFF_DATE and str(co_num).startswith('SO')):
         return False
 
     # external_confirmation_ref is optional (can be NULL for some CPQ orders)
