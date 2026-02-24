@@ -85,6 +85,7 @@ WITH BoatOrders AS (
         AND coi.site_ref = ser.site_ref
         AND ser.ref_type = 'O'
     WHERE coi.site_ref = 'BENN'
+        AND coi.co_num LIKE 'SO%'
         AND (
             (coi.Uf_BENN_BoatSerialNumber IS NOT NULL AND coi.Uf_BENN_BoatSerialNumber != '')
             OR (coi.config_id IS NOT NULL AND coi.config_id != '')
@@ -158,6 +159,7 @@ LEFT JOIN [{db}].[dbo].[serial_mst] ser
     AND coi.site_ref = ser.site_ref
     AND ser.ref_type = 'O'
 WHERE coi.site_ref = 'BENN'
+    AND coi.co_num LIKE 'SO%'
     AND iim.inv_num IS NOT NULL
     AND coi.qty_invoiced > 0
     AND CAST(ah.inv_date AS DATE) = CAST(GETDATE() AS DATE)
@@ -247,6 +249,7 @@ LEFT JOIN [{db}].[dbo].[serial_mst] ser
     AND ser.ref_type = 'O'
 WHERE coi.config_id IS NOT NULL
     AND coi.site_ref = 'BENN'
+    AND coi.co_num LIKE 'SO%'
     AND coi.qty_invoiced > 0
     AND CAST(ah.inv_date AS DATE) = CAST(GETDATE() AS DATE)
 
