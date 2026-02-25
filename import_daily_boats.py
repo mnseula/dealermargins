@@ -189,9 +189,23 @@ SELECT
 FROM [{db}].[dbo].[coitem_mst] coi
 INNER JOIN BoatOrders bo
     ON coi.co_num = bo.co_num AND coi.site_ref = bo.site_ref
-LEFT JOIN [{db}].[dbo].[inv_item_mst] iim
-    ON coi.co_num = iim.co_num AND coi.co_line = iim.co_line
-    AND coi.co_release = iim.co_release AND coi.site_ref = iim.site_ref
+LEFT JOIN (
+    -- Get the most recent invoice per line regardless of co_release.
+    -- Joining on co_release causes stale data when orders are re-released
+    -- after modification: coitem_mst has the new release but inv_item_mst
+    -- still holds the original release, so descriptions/prices were wrong.
+    SELECT co_num, co_line, site_ref, inv_num, tax_date
+    FROM (
+        SELECT co_num, co_line, site_ref, inv_num, tax_date,
+               ROW_NUMBER() OVER (
+                   PARTITION BY co_num, co_line, site_ref
+                   ORDER BY tax_date DESC, inv_num DESC
+               ) AS rn
+        FROM [{db}].[dbo].[inv_item_mst]
+    ) ranked
+    WHERE rn = 1
+) iim ON coi.co_num = iim.co_num AND coi.co_line = iim.co_line
+     AND coi.site_ref = iim.site_ref
 LEFT JOIN [{db}].[dbo].[co_mst] co
     ON coi.co_num = co.co_num AND coi.site_ref = co.site_ref
 LEFT JOIN [{db}].[dbo].[item_mst] im
@@ -266,9 +280,19 @@ INNER JOIN [{db}].[dbo].[cfg_attr_mst] attr_detail
 LEFT JOIN [{db}].[dbo].[cfg_comp_mst] ccm
     ON attr_detail.config_id = ccm.config_id AND attr_detail.comp_id = ccm.comp_id
     AND attr_detail.site_ref = ccm.site_ref
-LEFT JOIN [{db}].[dbo].[inv_item_mst] iim
-    ON coi.co_num = iim.co_num AND coi.co_line = iim.co_line
-    AND coi.co_release = iim.co_release AND coi.site_ref = iim.site_ref
+LEFT JOIN (
+    SELECT co_num, co_line, site_ref, inv_num, tax_date
+    FROM (
+        SELECT co_num, co_line, site_ref, inv_num, tax_date,
+               ROW_NUMBER() OVER (
+                   PARTITION BY co_num, co_line, site_ref
+                   ORDER BY tax_date DESC, inv_num DESC
+               ) AS rn
+        FROM [{db}].[dbo].[inv_item_mst]
+    ) ranked
+    WHERE rn = 1
+) iim ON coi.co_num = iim.co_num AND coi.co_line = iim.co_line
+     AND coi.site_ref = iim.site_ref
 LEFT JOIN [{db}].[dbo].[co_mst] co
     ON coi.co_num = co.co_num AND coi.site_ref = co.site_ref
 LEFT JOIN [{db}].[dbo].[item_mst] im
@@ -576,6 +600,10 @@ def load_boatoptions_batch(rows: List[Dict], table_name: str, conn) -> int:
             mct      = row.get('ItemMasterMCT')
             if prod_cat == 'BS1' and mct == 'STD':
                 prod_cat = 'ACC'
+            # Items not in item_mst (NULL MCT) with a price are accessories
+            if not mct and (row.get('ExtSalesAmount') or 0) > 0:
+                mct      = 'ACC'
+                prod_cat = prod_cat or 'ACC'
             boat_model_no = row.get('BoatModelNo')
             if not boat_model_no and mct in ('BOA', 'BOI'):
                 boat_model_no = row.get('ItemNo')
