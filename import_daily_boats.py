@@ -820,7 +820,7 @@ def main():
         print()
         print(output)
 
-        with open(log_filename, 'w') as f:
+        with open(log_filename, 'w', encoding='utf-8') as f:
             f.write(output + "\n")
         log(f"Summary written to {log_filename}")
 
