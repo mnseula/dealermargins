@@ -163,15 +163,15 @@ SELECT
     LEFT(im.Uf_BENN_MaterialCostType, 10)               AS [ItemMasterMCT],
     LEFT(coi.description, 100)                          AS [ItemDesc1],
     LEFT(LTRIM(RTRIM(iim.inv_num)), 30)                 AS [InvoiceNo],
-    CASE WHEN ah.inv_date IS NOT NULL
-         THEN CONVERT(INT, CONVERT(VARCHAR(8), ah.inv_date, 112))
+    CASE WHEN iim.tax_date IS NOT NULL
+         THEN CONVERT(INT, CONVERT(VARCHAR(8), iim.tax_date, 112))
          ELSE NULL
     END                                                 AS [InvoiceDate],
     CAST((coi.price * coi.qty_invoiced) AS DECIMAL(10,2)) AS [ExtSalesAmount],
     LEFT(coi.co_num, 30)                                AS [ERP_OrderNo],
     LEFT(COALESCE(coi.Uf_BENN_BoatSerialNumber, bo.Uf_BENN_BoatSerialNumber), 15) AS [BoatSerialNo],
     LEFT(COALESCE(coi.Uf_BENN_BoatModel, bo.Uf_BENN_BoatModel), 14) AS [BoatModelNo],
-    ah.apply_to_inv_num                                 AS [ApplyToNo],
+    NULL                                                AS [ApplyToNo],
     ''                                                  AS [ConfigID],
     ''                                                  AS [ValueText],
     co.order_date                                       AS [order_date],
@@ -188,8 +188,6 @@ INNER JOIN BoatOrders bo
 LEFT JOIN [{db}].[dbo].[inv_item_mst] iim
     ON coi.co_num = iim.co_num AND coi.co_line = iim.co_line
     AND coi.co_release = iim.co_release AND coi.site_ref = iim.site_ref
-LEFT JOIN [{db}].[dbo].[arinv_mst] ah
-    ON iim.inv_num = ah.inv_num AND iim.site_ref = ah.site_ref
 LEFT JOIN [{db}].[dbo].[co_mst] co
     ON coi.co_num = co.co_num AND coi.site_ref = co.site_ref
 LEFT JOIN [{db}].[dbo].[item_mst] im
@@ -204,7 +202,7 @@ WHERE coi.site_ref = 'BENN'
     AND TRY_CAST(co.external_confirmation_ref AS BIGINT) IS NOT NULL
     AND iim.inv_num IS NOT NULL
     AND coi.qty_invoiced > 0
-    AND CAST(ah.inv_date AS DATE) = CAST(GETDATE() AS DATE)
+    AND CAST(iim.tax_date AS DATE) = CAST(GETDATE() AS DATE)
 
 UNION ALL
 
@@ -238,15 +236,15 @@ SELECT
     END                                                 AS [ItemMasterMCT],
     LEFT(attr_detail.attr_value, 100)                   AS [ItemDesc1],
     LEFT(LTRIM(RTRIM(iim.inv_num)), 30)                 AS [InvoiceNo],
-    CASE WHEN ah.inv_date IS NOT NULL
-         THEN CONVERT(INT, CONVERT(VARCHAR(8), ah.inv_date, 112))
+    CASE WHEN iim.tax_date IS NOT NULL
+         THEN CONVERT(INT, CONVERT(VARCHAR(8), iim.tax_date, 112))
          ELSE NULL
     END                                                 AS [InvoiceDate],
     CAST(ISNULL(attr_detail.Uf_BENN_Cfg_Price, 0) AS DECIMAL(10,2)) AS [ExtSalesAmount],
     LEFT(coi.co_num, 30)                                AS [ERP_OrderNo],
     LEFT(ser.ser_num, 15)                               AS [BoatSerialNo],
     LEFT(coi.Uf_BENN_BoatModel, 14)                     AS [BoatModelNo],
-    ah.apply_to_inv_num                                 AS [ApplyToNo],
+    NULL                                                AS [ApplyToNo],
     LEFT(coi.config_id, 30)                             AS [ConfigID],
     LEFT(attr_detail.attr_value, 100)                   AS [ValueText],
     co.order_date                                       AS [order_date],
@@ -267,8 +265,6 @@ LEFT JOIN [{db}].[dbo].[cfg_comp_mst] ccm
 LEFT JOIN [{db}].[dbo].[inv_item_mst] iim
     ON coi.co_num = iim.co_num AND coi.co_line = iim.co_line
     AND coi.co_release = iim.co_release AND coi.site_ref = iim.site_ref
-LEFT JOIN [{db}].[dbo].[arinv_mst] ah
-    ON iim.inv_num = ah.inv_num AND iim.site_ref = ah.site_ref
 LEFT JOIN [{db}].[dbo].[co_mst] co
     ON coi.co_num = co.co_num AND coi.site_ref = co.site_ref
 LEFT JOIN [{db}].[dbo].[item_mst] im
@@ -281,7 +277,7 @@ WHERE coi.config_id IS NOT NULL
     AND coi.site_ref = 'BENN'
     AND co.external_confirmation_ref LIKE 'SO%'
     AND coi.qty_invoiced > 0
-    AND CAST(ah.inv_date AS DATE) = CAST(GETDATE() AS DATE)
+    AND CAST(iim.tax_date AS DATE) = CAST(GETDATE() AS DATE)
 
 )
 SELECT
@@ -294,6 +290,11 @@ SELECT
     [order_date], [external_confirmation_ref],
     [MSRP], [CfgName], [CfgPage], [CfgScreen], [CfgValue], [CfgAttrType]
 FROM OrderedRows
+WHERE [ERP_OrderNo] IN (
+    SELECT DISTINCT [ERP_OrderNo]
+    FROM OrderedRows
+    WHERE [ItemMasterMCT] IN ('BOA', 'BOI')
+)
 ORDER BY [ERP_OrderNo], [LineSeqNo]
 """
 
@@ -308,8 +309,8 @@ def build_serial_master_query(db: str) -> str:
         coi.co_num                              AS ERP_OrderNo,
         LEFT(coi.Uf_BENN_BoatWebOrderNumber, 30) AS WebOrderNo,
         iim.inv_num                             AS InvoiceNo,
-        CASE WHEN ah.inv_date IS NOT NULL
-            THEN CONVERT(INT, CONVERT(VARCHAR(8), ah.inv_date, 112))
+        CASE WHEN iim.tax_date IS NOT NULL
+            THEN CONVERT(INT, CONVERT(VARCHAR(8), iim.tax_date, 112))
             ELSE NULL
         END                                     AS InvoiceDate,
         co.cust_num                             AS DealerNumber,
@@ -338,9 +339,6 @@ def build_serial_master_query(db: str) -> str:
         AND coi.co_line = iim.co_line
         AND coi.co_release = iim.co_release
         AND coi.site_ref = iim.site_ref
-    INNER JOIN [{db}].[dbo].[arinv_mst] ah
-        ON iim.inv_num = ah.inv_num
-        AND iim.site_ref = ah.site_ref
     INNER JOIN [{db}].[dbo].[co_mst] co
         ON coi.co_num = co.co_num
         AND coi.site_ref = co.site_ref
@@ -363,7 +361,7 @@ def build_serial_master_query(db: str) -> str:
         )
         AND iim.inv_num IS NOT NULL
         AND coi.qty_invoiced > 0
-        AND CAST(ah.inv_date AS DATE) = CAST(GETDATE() AS DATE)
+        AND CAST(iim.tax_date AS DATE) = CAST(GETDATE() AS DATE)
     ORDER BY BoatSerialNo
     """
 
@@ -681,7 +679,7 @@ def main():
     print("=" * 80)
     print(f"MSSQL Source:   {MSSQL_DB} on {MSSQL_CONFIG['server']}")
     print(f"MySQL Target:   {MYSQL_DB}")
-    print(f"Invoice Filter: Today only ({datetime.now().strftime('%Y-%m-%d')})")
+    print(f"Invoice Filter: {datetime.now().strftime('%Y-%m-%d')} (today)")
     print(f"Started:        {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 80)
     print()
