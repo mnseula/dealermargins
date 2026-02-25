@@ -104,28 +104,40 @@ if(hasAnswer('PRINT_PHOTO','PRINT_PHOTO')){
 }
 if (!hasAnswer('PRINT_PHOTO', 'PRINT_PHOTO')) {
 
-    //window.twoLetters = model.substring(model.length - 2);
-    //if (twoLetters === 'DR') { two = '14'; }
-    //else if (twoLetters === 'DE') { two = '15'; }
-    //else if (twoLetters === 'DF') { two = '16'; }
-    //else if (twoLetters === 'DL') { two = '17'; }
-    //else if (twoLetters === 'DI') { two = '18'; }
-    //else if (twoLetters === 'DN') { two = '19'; }
-    //else if (twoLetters === 'SG') { two = '20'; }
+    var imgUrl;
 
-    console.log(model, two);
-    modelImg = getModelImage('20' + two, model);
+    // CPQ boats: use Liquifire orthographic image from SerialNumberMaster
+    if (window.isCPQBoat) {
+        try {
+            var imageResult = sStatement('GET_BOAT_IMAGE_URL', [serial]);
+            if (imageResult && imageResult.length > 0 && imageResult[0].image_url) {
+                imgUrl = imageResult[0].image_url;
+                console.log('Using Liquifire image for CPQ boat:', imgUrl);
+            }
+        } catch(e) {
+            console.warn('GET_BOAT_IMAGE_URL failed:', e);
+        }
+    }
 
-    // Create Image
-    if (modelImg == undefined) { //set image to a white filler if it is missing.
-        var imgUrl = 'https://s3.amazonaws.com/eosstatic/images/0/552287f6f0f18aaf52d19f6d/window_sticker_missing_model_white_filler.png';
-        //sendEmail('krimbaugh@benningtonmarine.com','A Window Sticker for Boat Model ' + model + ' is missing the image from the model_images table.','Model Image Missing');
-    } else {
-        var imgUrl = modelImg.replace(/\s/g, "%20");
+    // Legacy boats (or CPQ fallback if no image stored): use model_images table
+    if (!imgUrl) {
+        console.log(model, two);
+        modelImg = getModelImage('20' + two, model);
+        if (modelImg == undefined) { //set image to a white filler if it is missing.
+            imgUrl = 'https://s3.amazonaws.com/eosstatic/images/0/552287f6f0f18aaf52d19f6d/window_sticker_missing_model_white_filler.png';
+        } else {
+            imgUrl = modelImg.replace(/\s/g, "%20");
+        }
     }
 }
 
-var img = '<img src="' + imgUrl + '" height="90px">';
+// CPQ Liquifire images are landscape boat renders — display wider than legacy overhead shots
+var img;
+if (window.isCPQBoat && imgUrl && imgUrl.indexOf('liquifire') !== -1) {
+    img = '<img src="' + imgUrl + '" style="max-width:400px; height:auto;">';
+} else {
+    img = '<img src="' + imgUrl + '" height="90px">';
+}
 console.log('perfpkgid', perfpkgid);
 
 // Initialize prfPkgs to prevent undefined error
