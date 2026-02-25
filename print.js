@@ -110,9 +110,17 @@ if (!hasAnswer('PRINT_PHOTO', 'PRINT_PHOTO')) {
     if (window.isCPQBoat) {
         try {
             var imageResult = sStatement('GET_BOAT_IMAGE_URL', [serial]);
-            if (imageResult && imageResult.length > 0 && imageResult[0].image_url) {
-                imgUrl = imageResult[0].image_url;
-                console.log('Using Liquifire image for CPQ boat:', imgUrl);
+            console.log('GET_BOAT_IMAGE_URL result:', imageResult);
+            if (imageResult && imageResult.length > 0) {
+                // EOS may return the raw column name instead of the AS alias
+                imgUrl = imageResult[0].image_url || imageResult[0].LiquifireImageUrl;
+                if (imgUrl) {
+                    console.log('Using Liquifire image for CPQ boat:', imgUrl);
+                } else {
+                    console.log('GET_BOAT_IMAGE_URL: row found but no URL stored for', serial);
+                }
+            } else {
+                console.log('GET_BOAT_IMAGE_URL: no row returned for', serial);
             }
         } catch(e) {
             console.warn('GET_BOAT_IMAGE_URL failed:', e);
