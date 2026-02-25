@@ -33,8 +33,11 @@ SELECT
             WHEN m.twin_engine = 1 THEN 'Twin Outboard'
             ELSE 'Single Outboard'
         END
-    ) AS engine_configuration
+    ) AS engine_configuration,
+    snm.LiquifireImageUrl AS image_url
 FROM warrantyparts_test.Models m
+LEFT JOIN warrantyparts.SerialNumberMaster snm
+    ON snm.Boat_SerialNo = @PARAM3
 LEFT JOIN (
     -- Get the performance package ID from the boat's configuration
     SELECT CfgValue AS perf_package_id

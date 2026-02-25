@@ -20,9 +20,13 @@ import tempfile
 from datetime import datetime
 from typing import List, Dict, Set, Tuple
 
+import requests
+import urllib3
 import pymssql
 import mysql.connector
 import load_cpq_data
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ============================================================================
 # CONFIGURATION - ALWAYS PRODUCTION
@@ -325,7 +329,8 @@ def build_serial_master_query(db: str) -> str:
         co.Uf_BENN_BenningtonOwned              AS BenningtonOwned,
         coi.Uf_BENN_PannelColor                 AS PanelColor,
         coi.Uf_BENN_BaseVnyl                    AS BaseVinyl,
-        coi.config_id                           AS ConfigId
+        coi.config_id                           AS ConfigId,
+        co.external_confirmation_ref            AS SoNumber
     FROM [{db}].[dbo].[coitem_mst] coi
     LEFT JOIN [{db}].[dbo].[serial_mst] ser
         ON coi.co_num = ser.ref_num
@@ -415,6 +420,79 @@ def fetch_color_attrs(config_ids: set, db: str) -> dict:
     conn.close()
     log(f"Fetched color attributes for {len(config_colors)} configured boats")
     return config_colors
+
+
+def fetch_cpq_image_urls(so_numbers: list) -> dict:
+    """
+    For each SO number (CPQ boats), fetch LastConfigurationImageLink from
+    CPQ CPQEQ OrderLine entity (PRD environment).
+    Returns dict: {so_number: image_url}
+    """
+    if not so_numbers:
+        return {}
+
+    try:
+        resp = requests.post(load_cpq_data.TOKEN_ENDPOINT_PRD, data={
+            'grant_type':    'password',
+            'client_id':     load_cpq_data.CLIENT_ID_PRD,
+            'client_secret': load_cpq_data.CLIENT_SECRET_PRD,
+            'username':      load_cpq_data.SERVICE_KEY_PRD,
+            'password':      load_cpq_data.SERVICE_SECRET_PRD,
+        }, verify=False, timeout=30)
+        token = resp.json()['access_token']
+    except Exception as e:
+        log(f"CPQ auth failed — skipping image URL fetch: {e}", "WARNING")
+        return {}
+
+    headers = {'Authorization': f'Bearer {token}', 'Accept': 'application/json'}
+    eq_base = ('https://mingle-ionapi.inforcloudsuite.com'
+               '/QA2FNBZCKUAUH7QB_PRD/CPQEQ/RuntimeApi/EnterpriseQuoting/Entities')
+
+    image_urls: dict = {}
+    for so in so_numbers:
+        try:
+            r = requests.get(f"{eq_base}/Order",
+                             params={'$filter': f"ExternalId eq '{so}'", '$top': 1},
+                             headers=headers, verify=False, timeout=30)
+            if r.status_code != 200:
+                continue
+            items = r.json().get('items', [])
+            if not items:
+                continue
+            order_id = items[0]['Id']
+
+            r2 = requests.get(f"{eq_base}/OrderLine",
+                              params={'$filter': f"Order eq '{order_id}'", '$top': 50},
+                              headers=headers, verify=False, timeout=30)
+            if r2.status_code != 200:
+                continue
+            for line in r2.json().get('items', []):
+                url = line.get('LastConfigurationImageLink')
+                if url:
+                    url = url.replace('view[side]', 'view[orthographic]')
+                    image_urls[so] = url
+                    break  # first line with image
+        except Exception as e:
+            log(f"CPQ image fetch failed for {so}: {e}", "WARNING")
+
+    log(f"Fetched CPQ image URLs for {len(image_urls)}/{len(so_numbers)} orders")
+    return image_urls
+
+
+def ensure_snm_image_column(conn) -> None:
+    """Add LiquifireImageUrl column to SerialNumberMaster in both databases."""
+    cursor = conn.cursor()
+    for db in ('warrantyparts_test', 'warrantyparts'):
+        try:
+            cursor.execute(
+                f"ALTER TABLE {db}.SerialNumberMaster "
+                "ADD COLUMN LiquifireImageUrl VARCHAR(2000) DEFAULT NULL"
+            )
+            conn.commit()
+            log(f"Added LiquifireImageUrl column to {db}.SerialNumberMaster")
+        except Exception:
+            pass  # column already exists — that's fine
+    cursor.close()
 
 
 # ============================================================================
@@ -562,7 +640,7 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
                 b.get('ProdNo', ''),         b.get('BenningtonOwned', ''),
                 b.get('PanelColor', ''),     b.get('AccentPanel', ''),
                 b.get('BaseVinyl', ''),      b.get('ColorPackage', ''),
-                b.get('TrimAccent', '')
+                b.get('TrimAccent', ''),     b.get('LiquifireImageUrl', ''),
             ])
         csv_file.close()
 
@@ -576,7 +654,8 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
                 WebOrderNo VARCHAR(30), Active INT, ProdNo VARCHAR(50),
                 BenningtonOwned VARCHAR(10), PanelColor VARCHAR(100),
                 AccentPanel VARCHAR(100), BaseVinyl VARCHAR(100),
-                ColorPackage VARCHAR(100), TrimAccent VARCHAR(100)
+                ColorPackage VARCHAR(100), TrimAccent VARCHAR(100),
+                LiquifireImageUrl VARCHAR(2000)
             )
         """)
 
@@ -594,14 +673,14 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
                 ERP_OrderNo, InvoiceNo, InvoiceDateYYYYMMDD, DealerNumber, DealerName,
                 DealerCity, DealerState, DealerZip, DealerCountry, WebOrderNo, Active,
                 ProdNo, BenningtonOwned, PanelColor, AccentPanel, BaseVinyl,
-                ColorPackage, TrimAccent
+                ColorPackage, TrimAccent, LiquifireImageUrl
             )
             SELECT
                 SN_MY, Boat_SerialNo, BoatItemNo, Series, BoatDesc1, SerialModelYear,
                 ERP_OrderNo, InvoiceNo, InvoiceDate, DealerNumber, DealerName,
                 DealerCity, DealerState, DealerZip, DealerCountry, WebOrderNo, Active,
                 ProdNo, BenningtonOwned, PanelColor, AccentPanel, BaseVinyl,
-                ColorPackage, TrimAccent
+                ColorPackage, TrimAccent, LiquifireImageUrl
             FROM temp_snm
         """)
         inserted = cursor.rowcount
@@ -741,6 +820,18 @@ def main():
             config_ids  = {b.get('ConfigId') for b in raw_boats if b.get('ConfigId')}
             color_attrs = fetch_color_attrs(config_ids, MSSQL_DB)
 
+            # Fetch Liquifire image URLs from CPQ for CPQ boats (have config_id + SO number)
+            cpq_so_numbers = list({
+                str(b.get('SoNumber', ''))
+                for b in raw_boats
+                if b.get('ConfigId') and str(b.get('SoNumber', '')).startswith('SO')
+            })
+            if cpq_so_numbers:
+                log(f"Fetching CPQ image URLs for {len(cpq_so_numbers)} CPQ order(s)...")
+                cpq_image_urls = fetch_cpq_image_urls(cpq_so_numbers)
+            else:
+                cpq_image_urls = {}
+
             prepared: list = []
             for boat in raw_boats:
                 serial = boat.get('BoatSerialNo')
@@ -773,9 +864,11 @@ def main():
                     'BaseVinyl':       (boat.get('BaseVinyl') or '').strip(),
                     'ColorPackage':    (cfg.get('ColorPackage') or '').strip(),
                     'TrimAccent':      (cfg.get('TrimAccent') or '').strip(),
+                    'LiquifireImageUrl': cpq_image_urls.get(str(boat.get('SoNumber', '')), ''),
                 })
 
             mysql_conn = mysql.connector.connect(**MYSQL_CONFIG, allow_local_infile=True)
+            ensure_snm_image_column(mysql_conn)
             snm_inserted, snm_skipped = load_serial_master(prepared, mysql_conn)
             reg_inserted, reg_skipped = load_registration_status(prepared, mysql_conn)
             mysql_conn.close()
