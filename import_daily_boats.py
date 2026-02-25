@@ -783,22 +783,46 @@ def main():
             log("No boats found for today.", "WARNING")
 
         # ── SUMMARY ─────────────────────────────────────────────────────────
-        print()
-        print("=" * 80)
-        print("PIPELINE SUMMARY")
-        print("=" * 80)
-        print(f"\nSTEP 1 — BoatOptions ({MYSQL_DB}):")
+        today_str    = datetime.now().strftime('%Y-%m-%d')
+        log_filename = f"import_{today_str}.log"
+
+        lines = []
+        lines.append("=" * 80)
+        lines.append("PIPELINE SUMMARY")
+        lines.append("=" * 80)
+        lines.append(f"\nSTEP 1 — BoatOptions ({MYSQL_DB}):")
         if bo_results:
             for table, count in sorted(bo_results.items()):
-                print(f"  {table}: {count:,} rows total")
+                lines.append(f"  {table}: {count:,} rows total")
         else:
-            print("  No data loaded")
-        print(f"\nSTEP 2 — SerialNumberMaster ({MYSQL_DB}):")
-        print(f"  Boats found today:        {len(raw_boats)}")
-        print(f"  SerialNumberMaster:       {snm_inserted} inserted, {snm_skipped} already existed")
-        print(f"  RegistrationStatus:       {reg_inserted} inserted, {reg_skipped} already existed")
-        print(f"\nCompleted: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        print("=" * 80)
+            lines.append("  No data loaded")
+        lines.append(f"\nSTEP 2 — SerialNumberMaster ({MYSQL_DB}):")
+        lines.append(f"  Boats found today:        {len(raw_boats)}")
+        lines.append(f"  SerialNumberMaster:       {snm_inserted} inserted, {snm_skipped} already existed")
+        lines.append(f"  RegistrationStatus:       {reg_inserted} inserted, {reg_skipped} already existed")
+
+        # ── DEALER TABLE ────────────────────────────────────────────────────
+        if prepared:
+            lines.append(f"\n{'─' * 100}")
+            lines.append(f"  {'Serial':<15} {'Dealer#':<10} {'Dealer Name':<42} {'City':<22} {'State'}")
+            lines.append(f"  {'─'*15} {'─'*10} {'─'*42} {'─'*22} {'─'*5}")
+            for b in sorted(prepared, key=lambda x: x['BoatSerialNo']):
+                lines.append(
+                    f"  {b['BoatSerialNo']:<15} {b['DealerNumber']:<10} "
+                    f"{b['DealerName']:<42} {b['DealerCity']:<22} {b['DealerState']}"
+                )
+            lines.append(f"{'─' * 100}")
+
+        lines.append(f"\nCompleted: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        lines.append("=" * 80)
+
+        output = "\n".join(lines)
+        print()
+        print(output)
+
+        with open(log_filename, 'w') as f:
+            f.write(output + "\n")
+        log(f"Summary written to {log_filename}")
 
     except KeyboardInterrupt:
         log("Cancelled by user.", "WARNING")
