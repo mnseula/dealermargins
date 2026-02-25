@@ -899,6 +899,25 @@ def main():
             ensure_snm_image_column(mysql_conn)
             snm_inserted, snm_skipped = load_serial_master(prepared, mysql_conn)
             reg_inserted, reg_skipped = load_registration_status(prepared, mysql_conn)
+
+            # Update warrantyparts.SerialNumberMaster with Liquifire URLs for CPQ boats.
+            # The production import populates warrantyparts.SerialNumberMaster but doesn't
+            # know about LiquifireImageUrl — so we patch it here for any CPQ boat invoiced today.
+            cpq_with_image = [b for b in prepared if b.get('LiquifireImageUrl')]
+            if cpq_with_image:
+                cursor = mysql_conn.cursor()
+                updated = 0
+                for boat in cpq_with_image:
+                    cursor.execute(
+                        "UPDATE warrantyparts.SerialNumberMaster "
+                        "SET LiquifireImageUrl = %s WHERE Boat_SerialNo = %s",
+                        (boat['LiquifireImageUrl'], boat['BoatSerialNo'])
+                    )
+                    updated += cursor.rowcount
+                mysql_conn.commit()
+                cursor.close()
+                log(f"Updated warrantyparts.SerialNumberMaster with image URLs for {updated} CPQ boat(s)", "SUCCESS")
+
             mysql_conn.close()
         else:
             log("No boats found for today.", "WARNING")
