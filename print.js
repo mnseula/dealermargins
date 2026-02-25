@@ -106,24 +106,13 @@ if (!hasAnswer('PRINT_PHOTO', 'PRINT_PHOTO')) {
 
     var imgUrl;
 
-    // CPQ boats: use Liquifire orthographic image from SerialNumberMaster
+    // CPQ boats: use Liquifire image — already loaded in window.cpqLhsData by getunregisteredboats.js
     if (window.isCPQBoat) {
-        try {
-            var imageResult = sStatement('GET_BOAT_IMAGE_URL', [serial]);
-            console.log('GET_BOAT_IMAGE_URL result:', imageResult);
-            if (imageResult && imageResult.length > 0) {
-                // EOS may return the raw column name instead of the AS alias
-                imgUrl = imageResult[0].image_url || imageResult[0].LiquifireImageUrl;
-                if (imgUrl) {
-                    console.log('Using Liquifire image for CPQ boat:', imgUrl);
-                } else {
-                    console.log('GET_BOAT_IMAGE_URL: row found but no URL stored for', serial);
-                }
-            } else {
-                console.log('GET_BOAT_IMAGE_URL: no row returned for', serial);
-            }
-        } catch(e) {
-            console.warn('GET_BOAT_IMAGE_URL failed:', e);
+        if (window.cpqLhsData && window.cpqLhsData.image_url) {
+            imgUrl = window.cpqLhsData.image_url;
+            console.log('Using Liquifire image from cpqLhsData:', imgUrl);
+        } else {
+            console.log('No Liquifire image in cpqLhsData for', serial);
         }
     }
 
