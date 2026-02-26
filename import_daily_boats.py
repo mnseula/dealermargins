@@ -737,6 +737,16 @@ def load_boatoptions_batch(rows: List[Dict], table_name: str, conn) -> int:
             boat_model_no = row.get('BoatModelNo')
             if not boat_model_no and mct in ('BOA', 'BOI'):
                 boat_model_no = row.get('ItemNo')
+            
+            # SF to SE transformation for legacy boats (non-CPQ)
+            # Legacy boats ending in 'SF' should behave like 'SE' models
+            config_id = row.get('ConfigID')
+            if boat_model_no and boat_model_no.endswith('SF') and not config_id:
+                # Legacy boat: transform SF to SE (e.g., 188SSSF -> 188SSSE)
+                original_model = boat_model_no
+                boat_model_no = boat_model_no[:-2] + 'SE'
+                log(f"Legacy SF boat transformed in BoatOptions: {original_model} -> {boat_model_no}")
+            
             data.append((
                 row.get('ERP_OrderNo'), row.get('BoatSerialNo'), boat_model_no,
                 row.get('LineNo'), row.get('ItemNo'), row.get('ItemDesc1'),
