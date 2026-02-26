@@ -91,10 +91,10 @@ function bindSelect() {
         var boatinvoiceno = snmInvoiceNo; //boatmodel[0].InvoiceNo;
         var engineRec = sStatement('SEL_ONE_ENG_SER_NO_MST', ([serial]));
 
-        // LEGACY SF BOAT OVERRIDE: Check if this is a legacy SF boat that should use BoatOptions25
-        // Even if serial ends in '26', legacy SF boats (no ConfigID) should behave like 2025 boats
+        // LEGACY SF BOAT CHECK: Mark if this is a legacy SF boat for packagePricing.js to handle
+        // Boat data stays in BoatOptions26, but matrix/config will use 2025 (handled by packagePricing.js)
         // Examples: ETWS0869A626, ETWS0337L526
-        var isLegacySFBoat = false;
+        window.isLegacySFBoat = false;
         if (model_year === '26') {
             // Quick check: query BoatOptions26 to see if this boat has an SF model without ConfigID
             try {
@@ -103,9 +103,9 @@ function bindSelect() {
                     var boatModelCheck = sfCheck[0].BoatModelNo || '';
                     var configIdCheck = sfCheck[0].ConfigID || '';
                     if (boatModelCheck.endsWith('SF') && !configIdCheck) {
-                        isLegacySFBoat = true;
-                        console.log('LEGACY SF BOAT DETECTED: ' + serial + ' (' + boatModelCheck + ') - overriding to use 2025 pricing');
-                        model_year = '25';  // Override to behave like 2025 boat
+                        window.isLegacySFBoat = true;
+                        console.log('LEGACY SF BOAT DETECTED: ' + serial + ' (' + boatModelCheck + ') - will use 2025 config matrix');
+                        // DO NOT override model_year - keep loading from BoatOptions26
                     }
                 }
             } catch (e) {
