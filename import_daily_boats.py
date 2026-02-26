@@ -446,14 +446,18 @@ def fetch_color_attrs(config_ids: set, db: str) -> dict:
     return config_colors
 
 
-def fetch_cpq_image_urls(so_numbers: list) -> dict:
+def fetch_cpq_image_urls(so_numbers: list, config_id_map: dict = None) -> dict:
     """
     For each SO number (CPQ boats), fetch LastConfigurationImageLink from
     CPQ CPQEQ OrderLine entity (PRD environment).
+    Falls back to querying by ConfigurationId when ExternalId lookup returns nothing
+    (e.g. orders with non-standard SO numbers like SOORE000001).
     Returns dict: {so_number: image_url}
     """
     if not so_numbers:
         return {}
+    if config_id_map is None:
+        config_id_map = {}
 
     try:
         resp = requests.post(load_cpq_data.TOKEN_ENDPOINT_PRD, data={
@@ -475,27 +479,43 @@ def fetch_cpq_image_urls(so_numbers: list) -> dict:
     image_urls: dict = {}
     for so in so_numbers:
         try:
+            # Primary: look up order by ExternalId (standard SO00xxxxxx format)
             r = requests.get(f"{eq_base}/Order",
                              params={'$filter': f"ExternalId eq '{so}'", '$top': 1},
                              headers=headers, verify=False, timeout=30)
-            if r.status_code != 200:
-                continue
-            items = r.json().get('items', [])
-            if not items:
-                continue
-            order_id = items[0]['Id']
+            if r.status_code == 200:
+                items = r.json().get('items', [])
+                if items:
+                    order_id = items[0]['Id']
+                    r2 = requests.get(f"{eq_base}/OrderLine",
+                                      params={'$filter': f"Order eq '{order_id}'", '$top': 50},
+                                      headers=headers, verify=False, timeout=30)
+                    if r2.status_code == 200:
+                        for line in r2.json().get('items', []):
+                            url = line.get('LastConfigurationImageLink')
+                            if url:
+                                image_urls[so] = url.replace('view[side]', 'view[orthographic]')
+                                break
+                    if so in image_urls:
+                        continue
 
-            r2 = requests.get(f"{eq_base}/OrderLine",
-                              params={'$filter': f"Order eq '{order_id}'", '$top': 50},
-                              headers=headers, verify=False, timeout=30)
-            if r2.status_code != 200:
-                continue
-            for line in r2.json().get('items', []):
-                url = line.get('LastConfigurationImageLink')
-                if url:
-                    url = url.replace('view[side]', 'view[orthographic]')
-                    image_urls[so] = url
-                    break  # first line with image
+            # Fallback: query OrderLine directly by ConfigurationId
+            # Handles orders with non-standard external refs (SOORE*, SONKF*, etc.)
+            config_id = config_id_map.get(so)
+            if config_id:
+                r3 = requests.get(f"{eq_base}/OrderLine",
+                                  params={'$filter': f"ConfigurationId eq '{config_id}'", '$top': 10},
+                                  headers=headers, verify=False, timeout=30)
+                if r3.status_code == 200:
+                    for line in r3.json().get('items', []):
+                        url = line.get('LastConfigurationImageLink')
+                        if url:
+                            image_urls[so] = url.replace('view[side]', 'view[orthographic]')
+                            log(f"Image found via ConfigurationId fallback for {so} ({config_id})")
+                            break
+                else:
+                    log(f"ConfigurationId fallback returned {r3.status_code} for {so}", "WARNING")
+
         except Exception as e:
             log(f"CPQ image fetch failed for {so}: {e}", "WARNING")
 
@@ -860,15 +880,18 @@ def main():
             config_ids  = {b.get('ConfigId') for b in raw_boats if b.get('ConfigId')}
             color_attrs = fetch_color_attrs(config_ids, MSSQL_DB)
 
-            # Fetch Liquifire image URLs from CPQ for CPQ boats (have config_id + SO number)
-            cpq_so_numbers = list({
-                str(b.get('SoNumber', ''))
+            # Fetch Liquifire image URLs from CPQ for CPQ boats.
+            # Use ERP_OrderNo (co_num = SO00936xxx) as the CPQ ExternalId — not
+            # external_confirmation_ref, which can be a CPQ-generated ref like SOORE000001.
+            so_to_config_id = {
+                str(b.get('ERP_OrderNo', '')): b.get('ConfigId')
                 for b in raw_boats
-                if b.get('ConfigId') and str(b.get('SoNumber', '')).startswith('SO')
-            })
+                if b.get('ConfigId') and str(b.get('ERP_OrderNo', '')).startswith('SO')
+            }
+            cpq_so_numbers = list(so_to_config_id.keys())
             if cpq_so_numbers:
                 log(f"Fetching CPQ image URLs for {len(cpq_so_numbers)} CPQ order(s)...")
-                cpq_image_urls = fetch_cpq_image_urls(cpq_so_numbers)
+                cpq_image_urls = fetch_cpq_image_urls(cpq_so_numbers, config_id_map=so_to_config_id)
             else:
                 cpq_image_urls = {}
 
@@ -904,7 +927,7 @@ def main():
                     'BaseVinyl':       (boat.get('BaseVinyl') or '').strip(),
                     'ColorPackage':    (cfg.get('ColorPackage') or '').strip(),
                     'TrimAccent':      (cfg.get('TrimAccent') or '').strip(),
-                    'LiquifireImageUrl': cpq_image_urls.get(str(boat.get('SoNumber', '')), ''),
+                    'LiquifireImageUrl': cpq_image_urls.get(str(boat.get('ERP_OrderNo', '')), ''),
                 })
 
             mysql_conn = mysql.connector.connect(**MYSQL_CONFIG, allow_local_infile=True)
