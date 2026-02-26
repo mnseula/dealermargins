@@ -494,7 +494,7 @@ def fetch_cpq_image_urls(so_numbers: list, config_id_map: dict = None) -> dict:
                         for line in r2.json().get('items', []):
                             url = line.get('LastConfigurationImageLink')
                             if url:
-                                image_urls[so] = url.replace('view[side]', 'view[orthographic]')
+                                image_urls[so] = url
                                 break
                     if so in image_urls:
                         continue
@@ -510,7 +510,7 @@ def fetch_cpq_image_urls(so_numbers: list, config_id_map: dict = None) -> dict:
                     for line in r3.json().get('items', []):
                         url = line.get('LastConfigurationImageLink')
                         if url:
-                            image_urls[so] = url.replace('view[side]', 'view[orthographic]')
+                            image_urls[so] = url
                             log(f"Image found via ConfigurationId fallback for {so} ({config_id})")
                             break
                 else:
