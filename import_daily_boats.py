@@ -449,8 +449,18 @@ def fetch_color_attrs(config_ids: set, db: str) -> dict:
 import re as _re
 
 def _normalize_liquifire_url(url: str) -> str:
-    """Standardize Liquifire cat[] to 3qtr for a consistent 3/4 angle on all CPQ boats."""
-    return _re.sub(r'cat\[[^\]]*\]', 'cat[3qtr]', url)
+    """
+    Use cat[orthographic] if available for this model, otherwise fall back to cat[pon].
+    Liquifire returns a tiny error GIF (~3-4KB) when a view doesn't exist.
+    """
+    orthographic_url = _re.sub(r'cat\[[^\]]*\]', 'cat[orthographic]', url)
+    try:
+        r = requests.get(orthographic_url, verify=False, timeout=10)
+        if r.status_code == 200 and len(r.content) > 10000:
+            return orthographic_url
+    except Exception:
+        pass
+    return _re.sub(r'cat\[[^\]]*\]', 'cat[pon]', url)
 
 
 def fetch_cpq_image_urls(so_numbers: list, config_id_map: dict = None) -> dict:
