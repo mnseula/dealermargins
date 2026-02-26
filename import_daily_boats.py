@@ -446,6 +446,13 @@ def fetch_color_attrs(config_ids: set, db: str) -> dict:
     return config_colors
 
 
+import re as _re
+
+def _normalize_liquifire_url(url: str) -> str:
+    """Standardize Liquifire cat[] to 3qtr for a consistent 3/4 angle on all CPQ boats."""
+    return _re.sub(r'cat\[[^\]]*\]', 'cat[3qtr]', url)
+
+
 def fetch_cpq_image_urls(so_numbers: list, config_id_map: dict = None) -> dict:
     """
     For each SO number (CPQ boats), fetch LastConfigurationImageLink from
@@ -494,7 +501,7 @@ def fetch_cpq_image_urls(so_numbers: list, config_id_map: dict = None) -> dict:
                         for line in r2.json().get('items', []):
                             url = line.get('LastConfigurationImageLink')
                             if url:
-                                image_urls[so] = url
+                                image_urls[so] = _normalize_liquifire_url(url)
                                 break
                     if so in image_urls:
                         continue
@@ -510,7 +517,7 @@ def fetch_cpq_image_urls(so_numbers: list, config_id_map: dict = None) -> dict:
                     for line in r3.json().get('items', []):
                         url = line.get('LastConfigurationImageLink')
                         if url:
-                            image_urls[so] = url
+                            image_urls[so] = _normalize_liquifire_url(url)
                             log(f"Image found via ConfigurationId fallback for {so} ({config_id})")
                             break
                 else:
