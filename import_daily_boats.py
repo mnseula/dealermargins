@@ -695,8 +695,8 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
             LINES TERMINATED BY '\\n'
         """)
 
-        cursor.execute("""
-            INSERT IGNORE INTO SerialNumberMaster (
+        insert_sql = """
+            INSERT IGNORE INTO {table} (
                 SN_MY, Boat_SerialNo, BoatItemNo, Series, BoatDesc1, SerialModelYear,
                 ERP_OrderNo, InvoiceNo, InvoiceDateYYYYMMDD, DealerNumber, DealerName,
                 DealerCity, DealerState, DealerZip, DealerCountry, WebOrderNo, Active,
@@ -710,11 +710,20 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
                 ProdNo, BenningtonOwned, PanelColor, AccentPanel, BaseVinyl,
                 ColorPackage, TrimAccent, LiquifireImageUrl
             FROM temp_snm
-        """)
+        """
+
+        # Insert into warrantyparts_test (dev/test tracking)
+        cursor.execute(insert_sql.format(table='SerialNumberMaster'))
         inserted = cursor.rowcount
+
+        # Also insert into warrantyparts (production — what the window sticker reads)
+        cursor.execute(insert_sql.format(table='warrantyparts.SerialNumberMaster'))
+        inserted_prod = cursor.rowcount
+
         cursor.execute("DROP TEMPORARY TABLE temp_snm")
         conn.commit()
-        log(f"Inserted {inserted} boats into SerialNumberMaster", "SUCCESS")
+        log(f"Inserted {inserted} boats into warrantyparts_test.SerialNumberMaster", "SUCCESS")
+        log(f"Inserted {inserted_prod} boats into warrantyparts.SerialNumberMaster", "SUCCESS")
         return inserted, skipped
 
     finally:
