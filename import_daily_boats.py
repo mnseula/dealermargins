@@ -671,6 +671,17 @@ def group_by_table(rows: List[Dict]) -> Dict[str, List[Dict]]:
     year_counts: Dict[int, int] = {}
     for row in rows:
         year  = detect_model_year(row.get('BoatSerialNo'))
+        
+        # OVERRIDE: Legacy SF boats should use BoatOptions25 (2025) even if serial ends in 26
+        # SF transforms to SE which is a 2025 model year code
+        boat_model_no = row.get('BoatModelNo', '')
+        config_id = row.get('ConfigID')
+        if boat_model_no and boat_model_no.endswith('SF') and not config_id:
+            # Legacy SF boat: force to 2025 table
+            original_year = year
+            year = 2025
+            log(f"Legacy SF boat override: routing to BoatOptions25 (was BoatOptions{original_year % 100:02d})", "INFO")
+        
         table = f'{MYSQL_DB}.{get_table_for_year(year)}'
         groups.setdefault(table, []).append(row)
         year_counts[year] = year_counts.get(year, 0) + 1
