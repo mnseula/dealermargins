@@ -262,11 +262,13 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
     if (lastTwoOfRealModel === 'SF' && !window.isCPQBoat) {
         console.log('LEGACY SF BOAT EARLY TRANSFORMATION: ' + realmodel + ' -> ' + realmodel.substring(0, realmodel.length - 2) + 'SE');
         realmodel = realmodel.substring(0, realmodel.length - 2) + 'SE';
+        window.realmodel = realmodel;  // Update global variable for other files
         window.cpqOriginalRealModel = realmodel;  // Update for CPQ LHS compatibility
         wasLegacySF = true;
         // Also transform model variable if it ends in SF
         if (model.substring(model.length - 2) === 'SF') {
             model = model.substring(0, model.length - 2) + 'SE';
+            window.model = model;  // Update global variable
             window.cpqOriginalModel = model;
             console.log('LEGACY SF BOAT: model also transformed to ' + model);
         }
