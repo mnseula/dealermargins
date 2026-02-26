@@ -258,10 +258,12 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
     // LEGACY SF BOAT EARLY TRANSFORMATION: Transform SF to SE before loading config data
     // This ensures options_matrix and other lookups use the correct model name
     var lastTwoOfRealModel = realmodel.substring(realmodel.length - 2);
+    var wasLegacySF = false;
     if (lastTwoOfRealModel === 'SF' && !window.isCPQBoat) {
         console.log('LEGACY SF BOAT EARLY TRANSFORMATION: ' + realmodel + ' -> ' + realmodel.substring(0, realmodel.length - 2) + 'SE');
         realmodel = realmodel.substring(0, realmodel.length - 2) + 'SE';
         window.cpqOriginalRealModel = realmodel;  // Update for CPQ LHS compatibility
+        wasLegacySF = true;
         // Also transform model variable if it ends in SF
         if (model.substring(model.length - 2) === 'SF') {
             model = model.substring(0, model.length - 2) + 'SE';
@@ -273,7 +275,7 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
     if (model_year > 14) {
         if (serialYear === 25) {
             window.optionsMatrix = loadByListName('options_matrix_2024', "WHERE MODEL ='" + realmodel + "'");       //TAKE THIS OUT FOR MODEL YEAR CUTOVER~!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        } else if (CleanserialYear === 26 || window.isLegacySFBoat) {
+        } else if (CleanserialYear === 26 || wasLegacySF) {
             // For 2026 serials OR legacy SF boats, use 2025 options matrix
             // Legacy SF boats have 2026 serials but need 2025 config (SF→SE)
             window.optionsMatrix = loadByListName('options_matrix_2025', "WHERE MODEL ='" + realmodel + "'");        // Added for fakies 6.17.2025 delete at cutover
