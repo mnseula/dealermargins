@@ -448,6 +448,97 @@ def fetch_color_attrs(config_ids: set, db: str) -> dict:
     return config_colors
 
 
+def fetch_color_attrs_from_boatoptions(serial_numbers: list, mysql_conn) -> dict:
+    """
+    Fetch color attributes from BoatOptions{YY} line items for legacy boats.
+    EOS stores color values in ItemDesc1 with category prefixes like:
+    - 'PANEL ACCENT GEMINI BLACK SMTH' -> AccentPanel
+    - 'TRIM ACCENT IRONWOOD SV S' -> TrimAccent
+    - 'BLACKOUT LUXE M' -> ColorPackage
+    
+    Returns dict: {serial_number: {'AccentPanel': '...', 'TrimAccent': '...', 'ColorPackage': '...'}}
+    """
+    if not serial_numbers:
+        return {}
+    
+    cursor = mysql_conn.cursor()
+    serial_colors = {}
+    
+    # Group serials by model year to query correct BoatOptions table
+    serials_by_year = {}
+    for serial in serial_numbers:
+        year = detect_model_year(serial)
+        table = get_table_for_year(year)
+        serials_by_year.setdefault(table, []).append(serial)
+    
+    for table, serials in serials_by_year.items():
+        try:
+            # Check if table exists
+            cursor.execute(f"""
+                SELECT 1 FROM information_schema.tables 
+                WHERE table_schema = '{MYSQL_DB}' AND table_name = '{table}'
+            """)
+            if not cursor.fetchone():
+                continue
+            
+            # Query for color line items
+            placeholders = ','.join(['%s'] * len(serials))
+            cursor.execute(f"""
+                SELECT BoatSerialNo, ItemMasterProdCat, ItemMasterMCT, ItemDesc1
+                FROM {MYSQL_DB}.{table}
+                WHERE BoatSerialNo IN ({placeholders})
+                    AND (
+                        ItemDesc1 LIKE 'PANEL ACCENT%'
+                        OR ItemDesc1 LIKE 'TRIM ACCENT%'
+                        OR ItemDesc1 LIKE 'COLOR PACKAGE%'
+                        OR ItemDesc1 LIKE 'BLACKOUT LUXE%'
+                        OR ItemMasterProdCat IN ('H3A', 'H3T', 'H3P')
+                        OR ItemMasterMCT IN ('H3A', 'H3T', 'H3P')
+                    )
+            """, tuple(serials))
+            
+            for row in cursor.fetchall():
+                serial = row[0]
+                desc = (row[3] or '').strip()
+                
+                if serial not in serial_colors:
+                    serial_colors[serial] = {
+                        'AccentPanel': None,
+                        'TrimAccent': None, 
+                        'ColorPackage': None
+                    }
+                
+                # Parse color values from ItemDesc1 (remove category prefix)
+                if 'PANEL ACCENT' in desc.upper():
+                    val = desc.replace('PANEL ACCENT', '').strip()
+                    serial_colors[serial]['AccentPanel'] = val
+                elif 'TRIM ACCENT' in desc.upper():
+                    val = desc.replace('TRIM ACCENT', '').strip()
+                    serial_colors[serial]['TrimAccent'] = val
+                elif 'COLOR PACKAGE' in desc.upper():
+                    val = desc.replace('COLOR PACKAGE', '').strip()
+                    serial_colors[serial]['ColorPackage'] = val
+                elif desc:  # For BLACKOUT LUXE or other package types
+                    # Check if it's a package by looking at category or MCT
+                    cat = (row[1] or '').upper()
+                    mct = (row[2] or '').upper()
+                    if cat == 'H3P' or mct == 'H3P' or 'LUXE' in desc.upper():
+                        serial_colors[serial]['ColorPackage'] = desc
+                    elif cat == 'H3A' or mct == 'H3A':
+                        serial_colors[serial]['AccentPanel'] = desc
+                    elif cat == 'H3T' or mct == 'H3T':
+                        serial_colors[serial]['TrimAccent'] = desc
+                        
+        except Exception as e:
+            log(f"Error querying {table} for colors: {e}", "WARNING")
+            continue
+    
+    cursor.close()
+    populated = sum(1 for v in serial_colors.values() if any(v.values()))
+    log(f"Fetched color attributes from BoatOptions for {populated} boats")
+    return serial_colors
+
+
 import re as _re
 
 def _normalize_liquifire_url(url: str) -> str:
@@ -902,6 +993,12 @@ def main():
             config_ids  = {b.get('ConfigId') for b in raw_boats if b.get('ConfigId')}
             color_attrs = fetch_color_attrs(config_ids, MSSQL_DB)
 
+            # Also fetch color attributes from BoatOptions for legacy boats (non-CPQ)
+            mysql_conn_bo = mysql.connector.connect(**MYSQL_CONFIG)
+            serials = [b.get('BoatSerialNo') for b in raw_boats if b.get('BoatSerialNo')]
+            boatoptions_colors = fetch_color_attrs_from_boatoptions(serials, mysql_conn_bo)
+            mysql_conn_bo.close()
+
             # Fetch Liquifire image URLs from CPQ for CPQ boats.
             # Use ERP_OrderNo (co_num = SO00936xxx) as the CPQ ExternalId — not
             # external_confirmation_ref, which can be a CPQ-generated ref like SOORE000001.
@@ -924,7 +1021,14 @@ def main():
                     continue
                 sn_my = get_model_year_2digit(serial)
                 cfg   = color_attrs.get(boat.get('ConfigId'), {}) if boat.get('ConfigId') else {}
+                bo_colors = boatoptions_colors.get(serial, {})  # Fallback for legacy boats
+                
+                # Use CPQ config attrs if available, otherwise fall back to BoatOptions
                 panel_color = (boat.get('PanelColor') or cfg.get('PanelColor_cfg') or '').strip()
+                accent_panel = (cfg.get('AccentPanel') or bo_colors.get('AccentPanel') or '').strip()
+                trim_accent = (cfg.get('TrimAccent') or bo_colors.get('TrimAccent') or '').strip()
+                color_package = (cfg.get('ColorPackage') or bo_colors.get('ColorPackage') or '').strip()
+                
                 prepared.append({
                     'SN_MY':           sn_my,
                     'BoatSerialNo':    serial,
@@ -945,10 +1049,10 @@ def main():
                     'ProdNo':          str(boat.get('ProdNo') or '').strip(),
                     'BenningtonOwned': boat.get('BenningtonOwned') or '',
                     'PanelColor':      panel_color,
-                    'AccentPanel':     (cfg.get('AccentPanel') or '').strip(),
+                    'AccentPanel':     accent_panel,
                     'BaseVinyl':       (boat.get('BaseVinyl') or '').strip(),
-                    'ColorPackage':    (cfg.get('ColorPackage') or '').strip(),
-                    'TrimAccent':      (cfg.get('TrimAccent') or '').strip(),
+                    'ColorPackage':    color_package,
+                    'TrimAccent':      trim_accent,
                     'Presold':         (boat.get('Presold') or 'N').strip(),
                     'Quantity':        int(boat.get('Quantity') or 1),
                     'LiquifireImageUrl': cpq_image_urls.get(str(boat.get('ERP_OrderNo', '')), ''),
