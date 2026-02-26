@@ -791,8 +791,9 @@ def load_registration_status(boats: List[Dict], conn) -> Tuple[int, int]:
     try:
         writer = csv.writer(csv_file)
         for b in new_boats:
+            snd = 1 if (b.get('Presold') or '').strip().upper() == 'Y' else 0
             writer.writerow([b.get('SN_MY', ''), b.get('BoatSerialNo', ''),
-                             0, 0, 0, 0, 0])
+                             0, 1, 0, snd, 0])  # Registered=0, FieldInventory=1, Unknown=0, SND=presold, BenningtonOwned=0
         csv_file.close()
 
         cursor.execute("""
