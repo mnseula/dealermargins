@@ -48,14 +48,14 @@ console.log('window.realmodel:', window.realmodel);
 console.log('BOAT_INFO/BOAT_REAL_MODEL:', model);
 console.log('User authorized for CPQ:', isCpqAuthorized);
 
-// CPQ FALLBACK - Use window.realmodel for CPQ boats (if user is authorized)
+// CPQ FALLBACK - Use cpqLhsData.model_id for CPQ boats (e.g. "22MSB", not "Base Boat")
 // window.isCPQBoat is set in packagePricing.js (true when year code detection fails)
-// This is more reliable than checking if model equals 'Base Boat'
 if (isCpqAuthorized && window.isCPQBoat) {
-    console.log('CPQ boat detected (isCPQBoat = true) - using window.realmodel instead of BOAT_INFO');
     console.log('BOAT_INFO/BOAT_REAL_MODEL was:', model);
-    model = window.realmodel;
-    console.log('Using model from window.realmodel:', model);
+    model = (window.cpqLhsData && window.cpqLhsData.model_id)
+        ? window.cpqLhsData.model_id
+        : window.realmodel;
+    console.log('Using model for CPQ boat:', model);
 }
 
 // CPQ boats: preserve full model name (e.g., 23ML stays 23ML)
