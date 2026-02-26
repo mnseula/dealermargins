@@ -833,6 +833,9 @@ def main():
             table_groups = group_by_table(boat_option_rows)
             for table_name, rows in table_groups.items():
                 bo_results[table_name] = load_boatoptions_batch(rows, table_name, mysql_conn)
+                # Also write to production database (warrantyparts_test is dev tracking only)
+                prod_table = table_name.replace(MYSQL_DB, 'warrantyparts', 1)
+                load_boatoptions_batch(rows, prod_table, mysql_conn)
             mysql_conn.close()
         else:
             log("No line items found for today.", "WARNING")
