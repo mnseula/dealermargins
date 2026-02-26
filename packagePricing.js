@@ -254,6 +254,22 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
     console.log(serialYear);
     console.log(model_year);
     CleanserialYear = Number(serialYear.toString().trim());
+    
+    // LEGACY SF BOAT EARLY TRANSFORMATION: Transform SF to SE before loading config data
+    // This ensures options_matrix and other lookups use the correct model name
+    var lastTwoOfRealModel = realmodel.substring(realmodel.length - 2);
+    if (lastTwoOfRealModel === 'SF' && !window.isCPQBoat) {
+        console.log('LEGACY SF BOAT EARLY TRANSFORMATION: ' + realmodel + ' -> ' + realmodel.substring(0, realmodel.length - 2) + 'SE');
+        realmodel = realmodel.substring(0, realmodel.length - 2) + 'SE';
+        window.cpqOriginalRealModel = realmodel;  // Update for CPQ LHS compatibility
+        // Also transform model variable if it ends in SF
+        if (model.substring(model.length - 2) === 'SF') {
+            model = model.substring(0, model.length - 2) + 'SE';
+            window.cpqOriginalModel = model;
+            console.log('LEGACY SF BOAT: model also transformed to ' + model);
+        }
+    }
+    
     if (model_year > 14) {
         if (serialYear === 25) {
             window.optionsMatrix = loadByListName('options_matrix_2024', "WHERE MODEL ='" + realmodel + "'");       //TAKE THIS OUT FOR MODEL YEAR CUTOVER~!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
