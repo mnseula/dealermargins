@@ -712,18 +712,18 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
             FROM temp_snm
         """
 
-        # Insert into warrantyparts_test (dev/test tracking)
+        # Insert into current database (warrantyparts_test for dev, warrantyparts for prod)
         cursor.execute(insert_sql.format(table='SerialNumberMaster'))
         inserted = cursor.rowcount
 
-        # Also insert into warrantyparts (production — what the window sticker reads)
+        # Also ensure warrantyparts (production) is populated
         cursor.execute(insert_sql.format(table='warrantyparts.SerialNumberMaster'))
         inserted_prod = cursor.rowcount
 
         cursor.execute("DROP TEMPORARY TABLE temp_snm")
         conn.commit()
-        log(f"Inserted {inserted} boats into warrantyparts_test.SerialNumberMaster", "SUCCESS")
-        log(f"Inserted {inserted_prod} boats into warrantyparts.SerialNumberMaster", "SUCCESS")
+        log(f"Inserted {inserted} boats into {MYSQL_DB}.SerialNumberMaster", "SUCCESS")
+        log(f"Inserted {inserted_prod} boats into warrantyparts.SerialNumberMaster (explicit)", "SUCCESS")
         return inserted, skipped
 
     finally:
