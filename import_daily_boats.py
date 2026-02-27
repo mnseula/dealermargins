@@ -1139,7 +1139,7 @@ def main():
                     'BaseVinyl':       (cfg.get('BaseVinyl') or boat.get('BaseVinyl') or bo_colors.get('BaseVinyl') or '').strip(),
                     'ColorPackage':    color_package,
                     'TrimAccent':      trim_accent,
-                    'Presold':         (boat.get('Presold') or 'N').strip(),
+                    'Presold':         'Y' if boat.get('Presold') in (1, True, 'Y', 'y') else 'N',
                     'Quantity':        int(boat.get('Quantity') or 1),
                     'LiquifireImageUrl': cpq_image_urls.get(str(boat.get('ERP_OrderNo', '')), ''),
                     'IsCPQ':           is_cpq,
