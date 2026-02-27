@@ -640,6 +640,78 @@ if (isCpqAuthorized && window.cpqLhsData && window.cpqLhsData.model_id) {
     wsContents += "    <\/div>";
 } else if (perfpkgid.length !== 0 && perfpkgid.length < 3 && perfpkgid !== undefined) {
     // Legacy boats: Use prfPkgs from EOS list
+    
+    // SF BOAT FIX: Match performance package to actual engine HP
+    // For SF boats (2026 model using 2025 matrix), find package matching actual engine
+    if (model && model.endsWith('SF') && window.boatoptions && window.boatoptions.length > 0) {
+        console.log('SF Boat detected - checking for correct performance package match');
+        
+        // Find engine in boatoptions
+        var engineItem = null;
+        for (var i = 0; i < window.boatoptions.length; i++) {
+            if (window.boatoptions[i].ItemMasterProdCat === 'EN7') {
+                engineItem = window.boatoptions[i];
+                break;
+            }
+        }
+        
+        if (engineItem && prfPkgs && prfPkgs.length > 0) {
+            // Extract HP from engine description
+            var engineHP = null;
+            var engineDesc = engineItem.ItemDesc1 || '';
+            console.log('SF Boat Fix: Engine description:', engineDesc);
+            
+            // Try "200HP" format first
+            var hpMatch = engineDesc.match(/(\d+)\s*HP/i);
+            if (hpMatch) {
+                engineHP = parseInt(hpMatch[1]);
+            } else {
+                // Fallback: look for standalone numbers (100-600)
+                var numMatch = engineDesc.match(/\b(1\d{2}|2\d{2}|3\d{2}|4\d{2}|5\d{2}|600)\b/);
+                if (numMatch) {
+                    engineHP = parseInt(numMatch[1]);
+                }
+            }
+            
+            // Find matching performance package
+            if (engineHP) {
+                console.log('SF Boat Fix: Looking for package with HP matching', engineHP);
+                var matchingIndex = -1;
+                for (var j = 0; j < prfPkgs.length; j++) {
+                    var pkgHP = prfPkgs[j].MAX_HP;
+                    if (pkgHP) {
+                        var hpNumMatch = String(pkgHP).match(/\d+/);
+                        if (hpNumMatch) {
+                            var pkgHPNum = parseInt(hpNumMatch[0]);
+                            if (pkgHPNum === engineHP) {
+                                console.log('SF Boat Fix: Found matching package', prfPkgs[j].PKG_NAME, 'with HP', pkgHP);
+                                matchingIndex = j;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                // If found, swap first package with matching one
+                if (matchingIndex > 0) {
+                    console.log('SF Boat Fix: Swapping package index 0 with index', matchingIndex);
+                    var temp = prfPkgs[0];
+                    prfPkgs[0] = prfPkgs[matchingIndex];
+                    prfPkgs[matchingIndex] = temp;
+                } else if (matchingIndex === 0) {
+                    console.log('SF Boat Fix: First package already matches - no swap needed');
+                } else {
+                    console.log('SF Boat Fix: No matching package found with HP', engineHP);
+                }
+            } else {
+                console.log('SF Boat Fix: Could not extract HP from engine description');
+            }
+        } else {
+            console.log('SF Boat Fix: No engine item found in boatoptions');
+        }
+    }
+    // END SF BOAT FIX
+    
     wsContents += "    <div class=\"title\">PERFORMANCE PACKAGE SPECS<\/div>";
     wsContents += "    <div id=\"perfpkgtbl\">";
     wsContents += "    <table width=\"355\" border=\"1\"><tbody><tr>";
