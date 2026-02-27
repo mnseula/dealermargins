@@ -154,8 +154,8 @@ if (perfpkgid.length !== 0 && perfpkgid.length < 3) {
     console.log('SF Boat Query Check: model=' + model + ', endsWithSE=' + modelEndsWithSE + ', serialYear=' + window.serialYear + ', serialYearIs26=' + serialYearIs26 + ', endsWithSF=' + modelEndsWithSF + ', isSFBoat=' + isSFBoatForQuery);
     
     if (isSFBoatForQuery) {
-        console.log('SF Boat: Loading ALL active performance packages for model', model);
-        prfPkgs = loadByListName('perf_pkg_spec', "WHERE (MODEL ='" + model + "') AND (STATUS ='Active')");
+        console.log('SF Boat: Loading ALL performance packages for model', model);
+        prfPkgs = loadByListName('perf_pkg_spec', "WHERE (MODEL ='" + model + "')");
         console.log('SF Boat: Loaded', prfPkgs.length, 'performance packages');
     } else {
         console.log('Non-SF Boat: Loading single package with PKG_ID=' + perfpkgid);
