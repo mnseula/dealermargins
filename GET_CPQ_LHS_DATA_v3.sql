@@ -1,5 +1,6 @@
 -- Updated sStatement: GET_CPQ_LHS_DATA_v3
 -- Gets LHS data with engine configuration and proper formatting
+-- Now includes fallback to Models table for deck_length when no performance package match
 -- Parameters:
 --   @PARAM1 = model_id (e.g., '23ML')
 --   @PARAM2 = year (e.g., 2025)
@@ -23,7 +24,7 @@ SELECT
     mp.pontoon_gauge,
     mp.fuel_capacity,
     mp.tube_length_str AS pontoon_length,
-    mp.deck_length_str AS deck_length,
+    COALESCE(mp.deck_length_str, m.deck_length_str) AS deck_length,
     mp.tube_height,
     mp.pontoon_gauge AS pontoon_diameter,
     -- Engine configuration: use field if available, otherwise derive from twin_engine flag
