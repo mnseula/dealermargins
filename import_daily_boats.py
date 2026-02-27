@@ -420,6 +420,7 @@ def fetch_color_attrs(config_ids: set, db: str) -> dict:
                     attr_name LIKE '%Accent Panel%'
                     OR attr_name LIKE '%Color Package%'
                     OR attr_name LIKE '%Trim Accent%'
+                    OR attr_name LIKE '%Vinyl%'
                     OR attr_name = 'PANEL COLOR'
                 )
         """, tuple(batch))
@@ -431,7 +432,8 @@ def fetch_color_attrs(config_ids: set, db: str) -> dict:
             if cid not in config_colors:
                 config_colors[cid] = {
                     'AccentPanel': None, 'ColorPackage': None,
-                    'TrimAccent': None, 'PanelColor_cfg': None
+                    'TrimAccent': None, 'PanelColor_cfg': None,
+                    'BaseVinyl': None
                 }
             if 'ACCENT PANEL' in attr:
                 config_colors[cid]['AccentPanel'] = val
@@ -439,6 +441,8 @@ def fetch_color_attrs(config_ids: set, db: str) -> dict:
                 config_colors[cid]['ColorPackage'] = val
             elif 'TRIM ACCENT' in attr:
                 config_colors[cid]['TrimAccent'] = val
+            elif 'VINYL' in attr:
+                config_colors[cid]['BaseVinyl'] = val
             elif attr == 'PANEL COLOR':
                 config_colors[cid]['PanelColor_cfg'] = val
 
@@ -1073,7 +1077,7 @@ def main():
                     'BenningtonOwned': boat.get('BenningtonOwned') or '',
                     'PanelColor':      panel_color,
                     'AccentPanel':     accent_panel,
-                    'BaseVinyl':       (boat.get('BaseVinyl') or '').strip(),
+                    'BaseVinyl':       (cfg.get('BaseVinyl') or boat.get('BaseVinyl') or '').strip(),
                     'ColorPackage':    color_package,
                     'TrimAccent':      trim_accent,
                     'Presold':         (boat.get('Presold') or 'N').strip(),
