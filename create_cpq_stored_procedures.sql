@@ -52,7 +52,8 @@ BEGIN
         mp.pontoon_gauge,
         mp.fuel_capacity,
         mp.tube_length_str AS pontoon_length,
-        mp.deck_length_str AS deck_length,
+        -- Use performance package deck_length if available, otherwise fall back to Models table
+        COALESCE(mp.deck_length_str, m.deck_length_str) AS deck_length,
         mp.tube_height,
         mp.pontoon_gauge AS pontoon_diameter,
         -- Engine configuration: use field if available, otherwise derive from twin_engine flag
