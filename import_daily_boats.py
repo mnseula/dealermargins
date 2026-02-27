@@ -792,6 +792,29 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
     log(f"{len(new_boats)} new boats for SerialNumberMaster ({skipped} already exist)")
 
     if not new_boats:
+        # Still update color fields for existing boats (same-day re-run scenario)
+        update_sql = """
+            UPDATE {table}
+            SET PanelColor   = CASE WHEN %s <> '' THEN %s ELSE PanelColor   END,
+                AccentPanel  = CASE WHEN %s <> '' THEN %s ELSE AccentPanel  END,
+                BaseVinyl    = CASE WHEN %s <> '' THEN %s ELSE BaseVinyl    END,
+                ColorPackage = CASE WHEN %s <> '' THEN %s ELSE ColorPackage END,
+                TrimAccent   = CASE WHEN %s <> '' THEN %s ELSE TrimAccent   END
+            WHERE Boat_SerialNo = %s
+        """
+        color_data = [
+            (b['PanelColor'],   b['PanelColor'],
+             b['AccentPanel'],  b['AccentPanel'],
+             b['BaseVinyl'],    b['BaseVinyl'],
+             b['ColorPackage'], b['ColorPackage'],
+             b['TrimAccent'],   b['TrimAccent'],
+             b['BoatSerialNo'])
+            for b in boats
+        ]
+        for table in ('SerialNumberMaster', 'warrantyparts.SerialNumberMaster'):
+            cursor.executemany(update_sql.format(table=table), color_data)
+        conn.commit()
+        log(f"Updated color fields for {len(boats)} existing boats (no new inserts)", "SUCCESS")
         cursor.close()
         return 0, skipped
 
