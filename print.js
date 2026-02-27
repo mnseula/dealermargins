@@ -756,6 +756,43 @@ if (isCpqAuthorized && window.cpqLhsData && window.cpqLhsData.model_id) {
                         console.log('SF Boat Fix: No suitable package found');
                     }
                 }
+                
+                // Check if selected package has valid capacity, if not find one with valid capacity
+                if (prfPkgs[0].CAP && (prfPkgs[0].CAP === '0' || prfPkgs[0].CAP === '0 People' || prfPkgs[0].CAP === 0 || String(prfPkgs[0].CAP).match(/^(0|\s*0\s*people?)$/i))) {
+                    console.log('SF Boat Fix: Selected package has 0 capacity, looking for package with valid capacity');
+                    var validCapIndex = -1;
+                    var bestDiff = Infinity;
+                    
+                    for (var m = 0; m < prfPkgs.length; m++) {
+                        var pkg = prfPkgs[m];
+                        var hasValidCap = pkg.CAP && 
+                                         pkg.CAP !== '0' && 
+                                         pkg.CAP !== '0 People' && 
+                                         pkg.CAP !== 0 &&
+                                         !String(pkg.CAP).match(/^(0|\s*0\s*people?)$/i);
+                        
+                        if (hasValidCap && pkg.MAX_HP) {
+                            var pkgHPNumValid = parseInt(String(pkg.MAX_HP).match(/\d+/)[0]);
+                            var diffValid = Math.abs(pkgHPNumValid - engineHP);
+                            
+                            if (diffValid < bestDiff) {
+                                bestDiff = diffValid;
+                                validCapIndex = m;
+                            }
+                        }
+                    }
+                    
+                    if (validCapIndex >= 0 && validCapIndex !== 0) {
+                        console.log('SF Boat Fix: Swapping to package with valid capacity - index', validCapIndex, 'HP:', prfPkgs[validCapIndex].MAX_HP, 'Cap:', prfPkgs[validCapIndex].CAP);
+                        var tempCap = prfPkgs[0];
+                        prfPkgs[0] = prfPkgs[validCapIndex];
+                        prfPkgs[validCapIndex] = tempCap;
+                    } else if (validCapIndex === 0) {
+                        console.log('SF Boat Fix: First package already has valid capacity');
+                    } else {
+                        console.log('SF Boat Fix: No package with valid capacity found');
+                    }
+                }
             } else {
                 console.log('SF Boat Fix: Could not extract HP from engine description');
             }
