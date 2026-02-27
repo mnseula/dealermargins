@@ -1015,6 +1015,16 @@ def main():
             else:
                 cpq_image_urls = {}
 
+            # Detect CPQ boats by checking for CfgName in boat_option_rows
+            def is_cpq_boat(serial_no):
+                """Check if boat has CPQ configuration (CfgName field populated)"""
+                for row in boat_option_rows:
+                    if row.get('BoatSerialNo') == serial_no:
+                        cfg_name = row.get('CfgName')
+                        if cfg_name and str(cfg_name).strip():
+                            return True
+                return False
+            
             prepared: list = []
             for boat in raw_boats:
                 serial = boat.get('BoatSerialNo')
@@ -1029,6 +1039,9 @@ def main():
                 accent_panel = (cfg.get('AccentPanel') or bo_colors.get('AccentPanel') or '').strip()
                 trim_accent = (cfg.get('TrimAccent') or bo_colors.get('TrimAccent') or '').strip()
                 color_package = (cfg.get('ColorPackage') or bo_colors.get('ColorPackage') or '').strip()
+                
+                # Detect if this is a CPQ boat
+                is_cpq = is_cpq_boat(serial)
                 
                 prepared.append({
                     'SN_MY':           sn_my,
@@ -1057,6 +1070,7 @@ def main():
                     'Presold':         (boat.get('Presold') or 'N').strip(),
                     'Quantity':        int(boat.get('Quantity') or 1),
                     'LiquifireImageUrl': cpq_image_urls.get(str(boat.get('ERP_OrderNo', '')), ''),
+                    'IsCPQ':           is_cpq,
                 })
 
             mysql_conn = mysql.connector.connect(**MYSQL_CONFIG, allow_local_infile=True)
