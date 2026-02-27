@@ -143,7 +143,19 @@ var prfPkgs = [];
 // Get Performance Packages
 if (perfpkgid.length !== 0 && perfpkgid.length < 3) {
     console.log('got here');
-    prfPkgs = loadByListName('perf_pkg_spec', "WHERE (MODEL ='" + model + "') /*AND (STATUS ='Active') */AND (PKG_ID ='" + perfpkgid + "')");
+    
+    // SF BOAT FIX: For SF boats (2026 model year), load ALL active packages so we can match to actual engine
+    // For non-SF boats, load only the package matching perfpkgid
+    var isSFBoatForQuery = (model && model.endsWith('SE') && window.serialYear == 26) || 
+                           (model && model.endsWith('SF'));
+    
+    if (isSFBoatForQuery) {
+        console.log('SF Boat: Loading ALL active performance packages for model', model);
+        prfPkgs = loadByListName('perf_pkg_spec', "WHERE (MODEL ='" + model + "') AND (STATUS ='Active')");
+        console.log('SF Boat: Loaded', prfPkgs.length, 'performance packages');
+    } else {
+        prfPkgs = loadByListName('perf_pkg_spec', "WHERE (MODEL ='" + model + "') /*AND (STATUS ='Active') */AND (PKG_ID ='" + perfpkgid + "')");
+    }
 }
 
 console.log(prfPkgs);
