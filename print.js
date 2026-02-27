@@ -644,8 +644,11 @@ if (isCpqAuthorized && window.cpqLhsData && window.cpqLhsData.model_id) {
     // SF BOAT FIX: Match performance package to actual engine HP
     // For SF boats (2026 model using 2025 matrix), find package matching actual engine
     // Note: SF models get transformed to SE in packagePricing.js, so we check for serial year 26 + SE suffix
-    var isSFBoat = (model && model.endsWith('SE') && window.serialYear === '26') || 
+    console.log('SF Boat Fix Debug: model=' + model + ', serialYear=' + window.serialYear + ', type=' + typeof window.serialYear);
+    var isSFBoat = (model && model.endsWith('SE') && window.serialYear == 26) || 
                    (model && model.endsWith('SF'));
+    
+    console.log('SF Boat Fix Debug: isSFBoat=' + isSFBoat);
     
     if (isSFBoat && window.boatoptions && window.boatoptions.length > 0) {
         console.log('SF Boat detected - checking for correct performance package match');
