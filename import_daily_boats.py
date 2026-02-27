@@ -488,45 +488,55 @@ def fetch_color_attrs_from_boatoptions(serial_numbers: list, mysql_conn) -> dict
             # Query for color line items
             placeholders = ','.join(['%s'] * len(serials))
             cursor.execute(f"""
-                SELECT BoatSerialNo, ItemMasterProdCat, ItemMasterMCT, ItemDesc1
+                SELECT BoatSerialNo, ItemMasterProdCat, ItemMasterMCT, ItemDesc1, CfgName
                 FROM {MYSQL_DB}.{table}
                 WHERE BoatSerialNo IN ({placeholders})
                     AND (
-                        ItemDesc1 LIKE 'PANEL ACCENT%'
+                        CfgName = 'baseVinyl'
+                        OR ItemDesc1 LIKE 'PANEL ACCENT%'
                         OR ItemDesc1 LIKE 'TRIM ACCENT%'
+                        OR ItemDesc1 LIKE 'BASE VINYL%'
+                        OR ItemDesc1 LIKE 'VINYL BASE%'
                         OR ItemDesc1 LIKE 'COLOR PACKAGE%'
                         OR ItemDesc1 LIKE 'BLACKOUT LUXE%'
                         OR ItemMasterProdCat IN ('H3A', 'H3T', 'H3P')
-                        OR ItemMasterMCT IN ('H3A', 'H3T', 'H3P')
+                        OR ItemMasterMCT IN ('H3A', 'H3T', 'H3P', 'A0V')
                     )
             """, tuple(serials))
-            
+
             for row in cursor.fetchall():
                 serial = row[0]
-                desc = (row[3] or '').strip()
-                
+                cat    = (row[1] or '').upper()
+                mct    = (row[2] or '').upper()
+                desc   = (row[3] or '').strip()
+                cfgname = (row[4] or '').lower()
+
                 if serial not in serial_colors:
                     serial_colors[serial] = {
-                        'AccentPanel': None,
-                        'TrimAccent': None, 
-                        'ColorPackage': None
+                        'AccentPanel': None, 'TrimAccent': None,
+                        'ColorPackage': None, 'BaseVinyl': None
                     }
-                
-                # Parse color values from ItemDesc1 (remove category prefix)
-                if 'PANEL ACCENT' in desc.upper():
-                    val = desc.replace('PANEL ACCENT', '').strip()
-                    serial_colors[serial]['AccentPanel'] = val
-                elif 'TRIM ACCENT' in desc.upper():
-                    val = desc.replace('TRIM ACCENT', '').strip()
-                    serial_colors[serial]['TrimAccent'] = val
-                elif 'COLOR PACKAGE' in desc.upper():
-                    val = desc.replace('COLOR PACKAGE', '').strip()
-                    serial_colors[serial]['ColorPackage'] = val
-                elif desc:  # For BLACKOUT LUXE or other package types
-                    # Check if it's a package by looking at category or MCT
-                    cat = (row[1] or '').upper()
-                    mct = (row[2] or '').upper()
-                    if cat == 'H3P' or mct == 'H3P' or 'LUXE' in desc.upper():
+
+                desc_upper = desc.upper()
+
+                # CPQ boats: CfgName='baseVinyl' → ItemDesc1 is already the clean value
+                if cfgname == 'basevinyl':
+                    serial_colors[serial]['BaseVinyl'] = desc
+                # Legacy boats: ItemDesc1 includes category prefix — strip it
+                elif 'BASE VINYL' in desc_upper or 'VINYL BASE' in desc_upper or mct == 'A0V':
+                    for prefix in ('BASE VINYL', 'VINYL BASE'):
+                        if desc_upper.startswith(prefix):
+                            desc = desc[len(prefix):].strip()
+                            break
+                    serial_colors[serial]['BaseVinyl'] = desc
+                elif 'PANEL ACCENT' in desc_upper:
+                    serial_colors[serial]['AccentPanel'] = desc.replace('PANEL ACCENT', '').strip()
+                elif 'TRIM ACCENT' in desc_upper:
+                    serial_colors[serial]['TrimAccent'] = desc.replace('TRIM ACCENT', '').strip()
+                elif 'COLOR PACKAGE' in desc_upper:
+                    serial_colors[serial]['ColorPackage'] = desc.replace('COLOR PACKAGE', '').strip()
+                elif desc:
+                    if cat == 'H3P' or mct == 'H3P' or 'LUXE' in desc_upper:
                         serial_colors[serial]['ColorPackage'] = desc
                     elif cat == 'H3A' or mct == 'H3A':
                         serial_colors[serial]['AccentPanel'] = desc
@@ -1077,7 +1087,7 @@ def main():
                     'BenningtonOwned': boat.get('BenningtonOwned') or '',
                     'PanelColor':      panel_color,
                     'AccentPanel':     accent_panel,
-                    'BaseVinyl':       (cfg.get('BaseVinyl') or boat.get('BaseVinyl') or '').strip(),
+                    'BaseVinyl':       (cfg.get('BaseVinyl') or boat.get('BaseVinyl') or bo_colors.get('BaseVinyl') or '').strip(),
                     'ColorPackage':    color_package,
                     'TrimAccent':      trim_accent,
                     'Presold':         (boat.get('Presold') or 'N').strip(),
