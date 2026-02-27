@@ -1067,7 +1067,17 @@ def main():
             # Update warrantyparts.SerialNumberMaster with Liquifire URLs for CPQ boats.
             # The production import populates warrantyparts.SerialNumberMaster but doesn't
             # know about LiquifireImageUrl — so we patch it here for any CPQ boat invoiced today.
-            cpq_with_image = [b for b in prepared if b.get('LiquifireImageUrl')]
+            cpq_boats = [b for b in prepared if b.get('IsCPQ')]
+            cpq_with_image = [b for b in cpq_boats if b.get('LiquifireImageUrl')]
+            cpq_without_image = [b for b in cpq_boats if not b.get('LiquifireImageUrl')]
+            
+            log(f"CPQ boats from today's import: {len(cpq_boats)} total")
+            log(f"  - With image URLs: {len(cpq_with_image)}")
+            log(f"  - Without image URLs: {len(cpq_without_image)}")
+            
+            if cpq_without_image:
+                log(f"CPQ boats missing image URLs: {[b['BoatSerialNo'] for b in cpq_without_image]}", "WARNING")
+            
             if cpq_with_image:
                 cursor = mysql_conn.cursor()
                 updated = 0
@@ -1077,7 +1087,11 @@ def main():
                         "SET LiquifireImageUrl = %s WHERE Boat_SerialNo = %s",
                         (boat['LiquifireImageUrl'], boat['BoatSerialNo'])
                     )
-                    updated += cursor.rowcount
+                    if cursor.rowcount > 0:
+                        updated += 1
+                        log(f"Updated {boat['BoatSerialNo']} with image URL")
+                    else:
+                        log(f"No update needed for {boat['BoatSerialNo']} (already has URL or not found)")
                 mysql_conn.commit()
                 cursor.close()
                 log(f"Updated warrantyparts.SerialNumberMaster with image URLs for {updated} CPQ boat(s)", "SUCCESS")
