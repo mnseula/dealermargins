@@ -1025,6 +1025,15 @@ def main():
                             return True
                 return False
             
+            # DEBUG: Check CPQ detection for the 3 known CPQ boats
+            debug_cpq_serials = ['ETWS9062J526', 'ETWS9254J526', 'ETWS9854K526']
+            for debug_serial in debug_cpq_serials:
+                is_cpq_debug = is_cpq_boat(debug_serial)
+                log(f"DEBUG CPQ Check: {debug_serial} -> IsCPQ={is_cpq_debug}")
+                # Also count how many rows have CfgName for this serial
+                cfg_count = sum(1 for row in boat_option_rows if row.get('BoatSerialNo') == debug_serial and row.get('CfgName'))
+                log(f"DEBUG: {debug_serial} has {cfg_count} rows with CfgName")
+            
             prepared: list = []
             for boat in raw_boats:
                 serial = boat.get('BoatSerialNo')
