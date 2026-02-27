@@ -868,9 +868,35 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
         inserted_prod = cursor.rowcount
 
         cursor.execute("DROP TEMPORARY TABLE temp_snm")
+
+        # UPDATE color fields for all boats in today's batch (INSERT IGNORE skips existing rows).
+        # Only overwrite a field if we have a non-empty value so we never blank out good data.
+        update_sql = """
+            UPDATE {table}
+            SET PanelColor   = CASE WHEN %s <> '' THEN %s ELSE PanelColor   END,
+                AccentPanel  = CASE WHEN %s <> '' THEN %s ELSE AccentPanel  END,
+                BaseVinyl    = CASE WHEN %s <> '' THEN %s ELSE BaseVinyl    END,
+                ColorPackage = CASE WHEN %s <> '' THEN %s ELSE ColorPackage END,
+                TrimAccent   = CASE WHEN %s <> '' THEN %s ELSE TrimAccent   END
+            WHERE Boat_SerialNo = %s
+        """
+        color_data = [
+            (b['PanelColor'],   b['PanelColor'],
+             b['AccentPanel'],  b['AccentPanel'],
+             b['BaseVinyl'],    b['BaseVinyl'],
+             b['ColorPackage'], b['ColorPackage'],
+             b['TrimAccent'],   b['TrimAccent'],
+             b['BoatSerialNo'])
+            for b in boats
+        ]
+        for table in ('SerialNumberMaster', 'warrantyparts.SerialNumberMaster'):
+            cursor.executemany(update_sql.format(table=table), color_data)
+        updated = cursor.rowcount
+
         conn.commit()
         log(f"Inserted {inserted} boats into {MYSQL_DB}.SerialNumberMaster", "SUCCESS")
         log(f"Inserted {inserted_prod} boats into warrantyparts.SerialNumberMaster (explicit)", "SUCCESS")
+        log(f"Updated color fields for {len(boats)} boats in both databases", "SUCCESS")
         return inserted, skipped
 
     finally:
