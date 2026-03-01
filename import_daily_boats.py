@@ -810,8 +810,7 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
              b['BoatSerialNo'])
             for b in boats
         ]
-        for table in ('SerialNumberMaster', 'warrantyparts.SerialNumberMaster'):
-            cursor.executemany(update_sql.format(table=table), color_data)
+        cursor.executemany(update_sql.format(table='SerialNumberMaster'), color_data)
         conn.commit()
         log(f"Updated color fields for {len(boats)} existing boats (no new inserts)", "SUCCESS")
         cursor.close()
@@ -907,8 +906,7 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
              b['BoatSerialNo'])
             for b in boats
         ]
-        for table in ('SerialNumberMaster', 'warrantyparts.SerialNumberMaster'):
-            cursor.executemany(update_sql.format(table=table), color_data)
+        cursor.executemany(update_sql.format(table='SerialNumberMaster'), color_data)
         updated = cursor.rowcount
 
         conn.commit()
