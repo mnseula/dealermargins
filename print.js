@@ -670,35 +670,32 @@ if (isCpqAuthorized && window.cpqLhsData && window.cpqLhsData.model_id) {
     if (isSFBoat && window.boatoptions && window.boatoptions.length > 0) {
         console.log('SF Boat detected - checking for correct performance package match');
         
-        // Find all engines in boatoptions (twin engine boats have two EN7 items)
-        var engineItems = [];
+        // Find engine in boatoptions
+        var engineItem = null;
         for (var i = 0; i < window.boatoptions.length; i++) {
             if (window.boatoptions[i].ItemMasterProdCat === 'EN7') {
-                engineItems.push(window.boatoptions[i]);
+                engineItem = window.boatoptions[i];
+                break;
             }
         }
 
-        if (engineItems.length > 0 && prfPkgs && prfPkgs.length > 0) {
-            // Extract HP from each engine and sum for twin engine boats
+        if (engineItem && prfPkgs && prfPkgs.length > 0) {
+            // Extract HP from engine description
             var engineHP = null;
-            var totalHP = 0;
-            for (var e = 0; e < engineItems.length; e++) {
-                var engineDesc = engineItems[e].ItemDesc1 || '';
-                console.log('SF Boat Fix: Engine description:', engineDesc);
-                var singleHP = null;
-                var hpMatch = engineDesc.match(/(\d+)\s*HP/i);
-                if (hpMatch) {
-                    singleHP = parseInt(hpMatch[1]);
-                } else {
-                    var numMatch = engineDesc.match(/\b(1\d{2}|2\d{2}|3\d{2}|4\d{2}|5\d{2}|[67]\d{2})\b/);
-                    if (numMatch) {
-                        singleHP = parseInt(numMatch[1]);
-                    }
+            var engineDesc = engineItem.ItemDesc1 || '';
+            console.log('SF Boat Fix: Engine description:', engineDesc);
+
+            // Try "200HP" format first
+            var hpMatch = engineDesc.match(/(\d+)\s*HP/i);
+            if (hpMatch) {
+                engineHP = parseInt(hpMatch[1]);
+            } else {
+                // Fallback: look for standalone numbers (100-600)
+                var numMatch = engineDesc.match(/\b(1\d{2}|2\d{2}|3\d{2}|4\d{2}|5\d{2}|600)\b/);
+                if (numMatch) {
+                    engineHP = parseInt(numMatch[1]);
                 }
-                if (singleHP) totalHP += singleHP;
             }
-            engineHP = totalHP > 0 ? totalHP : null;
-            console.log('SF Boat Fix: Total engine HP (' + engineItems.length + ' engine(s)):', engineHP);
 
             // Find matching performance package
             if (engineHP) {
@@ -792,7 +789,7 @@ if (isCpqAuthorized && window.cpqLhsData && window.cpqLhsData.model_id) {
                 console.log('SF Boat Fix: Could not extract HP from engine description');
             }
         } else {
-            console.log('SF Boat Fix: No engine items found in boatoptions');
+            console.log('SF Boat Fix: No engine item found in boatoptions');
         }
     }
     // END SF BOAT FIX
