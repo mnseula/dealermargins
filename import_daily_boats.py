@@ -1153,7 +1153,7 @@ def main():
                 updated = 0
                 for boat in cpq_with_image:
                     cursor.execute(
-                        "UPDATE warrantyparts.SerialNumberMaster "
+                        f"UPDATE {MYSQL_DB}.SerialNumberMaster "
                         "SET LiquifireImageUrl = %s WHERE Boat_SerialNo = %s",
                         (boat['LiquifireImageUrl'], boat['BoatSerialNo'])
                     )
@@ -1164,7 +1164,7 @@ def main():
                         log(f"No update needed for {boat['BoatSerialNo']} (already has URL or not found)")
                 mysql_conn.commit()
                 cursor.close()
-                log(f"Updated warrantyparts.SerialNumberMaster with image URLs for {updated} CPQ boat(s)", "SUCCESS")
+                log(f"Updated {MYSQL_DB}.SerialNumberMaster with image URLs for {updated} CPQ boat(s)", "SUCCESS")
 
             mysql_conn.close()
         else:
