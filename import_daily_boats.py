@@ -1053,6 +1053,7 @@ def main():
         cursor.close()
         mssql_conn.close()
 
+        prepared = []
         if raw_boats:
             config_ids  = {b.get('ConfigId') for b in raw_boats if b.get('ConfigId')}
             color_attrs = fetch_color_attrs(config_ids, MSSQL_DB)
