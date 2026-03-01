@@ -716,7 +716,28 @@ if (isCpqAuthorized && window.cpqLhsData && window.cpqLhsData.model_id) {
                     }
                 }
                 
-                // If found, swap first package with matching one
+                // Fallback: if no exact match, find lowest package whose MaxHP >= engineHP
+                // e.g. 350HP engine on 25QXSBA maps to ESP at 500HP (no 350HP package exists)
+                if (matchingIndex === -1) {
+                    var bestIndex = -1;
+                    var bestHP = Infinity;
+                    for (var k = 0; k < prfPkgs.length; k++) {
+                        var fbHP = prfPkgs[k].MAX_HP;
+                        if (fbHP) {
+                            var fbHPNum = parseInt(String(fbHP).match(/\d+/)[0]);
+                            if (fbHPNum >= engineHP && fbHPNum < bestHP) {
+                                bestHP = fbHPNum;
+                                bestIndex = k;
+                            }
+                        }
+                    }
+                    if (bestIndex !== -1) {
+                        console.log('SF Boat Fix: No exact match, using lowest capable package', prfPkgs[bestIndex].PKG_NAME, 'with HP', prfPkgs[bestIndex].MAX_HP);
+                        matchingIndex = bestIndex;
+                    }
+                }
+
+                // Swap first package with matching one
                 if (matchingIndex > 0) {
                     console.log('SF Boat Fix: Swapping package index 0 with index', matchingIndex);
                     var temp = prfPkgs[0];
@@ -725,36 +746,7 @@ if (isCpqAuthorized && window.cpqLhsData && window.cpqLhsData.model_id) {
                 } else if (matchingIndex === 0) {
                     console.log('SF Boat Fix: First package already matches - no swap needed');
                 } else {
-                    console.log('SF Boat Fix: No exact match found for HP', engineHP, '- looking for closest match');
-                    
-                    // Find closest HP match (nearest package HP to engine HP)
-                    var closestIndex = -1;
-                    var closestDiff = Infinity;
-                    for (var k = 0; k < prfPkgs.length; k++) {
-                        var pkgHPClosest = prfPkgs[k].MAX_HP;
-                        if (pkgHPClosest) {
-                            var hpNumMatchClosest = String(pkgHPClosest).match(/\d+/);
-                            if (hpNumMatchClosest) {
-                                var pkgHPNumClosest = parseInt(hpNumMatchClosest[0]);
-                                var diff = Math.abs(pkgHPNumClosest - engineHP);
-                                if (diff < closestDiff) {
-                                    closestDiff = diff;
-                                    closestIndex = k;
-                                }
-                            }
-                        }
-                    }
-                    
-                    if (closestIndex >= 0) {
-                        console.log('SF Boat Fix: Using closest match - package index', closestIndex, 'with HP', prfPkgs[closestIndex].MAX_HP, '(diff:', closestDiff, ')');
-                        if (closestIndex > 0) {
-                            var tempClosest = prfPkgs[0];
-                            prfPkgs[0] = prfPkgs[closestIndex];
-                            prfPkgs[closestIndex] = tempClosest;
-                        }
-                    } else {
-                        console.log('SF Boat Fix: No suitable package found');
-                    }
+                    console.log('SF Boat Fix: No suitable package found for HP', engineHP);
                 }
                 
                 // Check if selected package has valid capacity, if not find one with valid capacity
