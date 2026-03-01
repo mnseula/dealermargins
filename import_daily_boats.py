@@ -2,9 +2,9 @@
 """
 Daily Boat Import Pipeline
 
-Step 1: Import all invoiced line items  → warrantyparts.BoatOptions{YY}
-Step 2: Import boat serial records      → warrantyparts.SerialNumberMaster
-                                        → warrantyparts.SerialNumberRegistrationStatus
+Step 1: Import all invoiced line items  → {MYSQL_DB}.BoatOptions{YY}
+Step 2: Import boat serial records      → {MYSQL_DB}.SerialNumberMaster
+                                        → {MYSQL_DB}.SerialNumberRegistrationStatus
 
 Runs daily, today's invoices only, always against CSIPRD.
 Only processes boat orders (external_confirmation_ref LIKE 'SO%' or numeric).
@@ -1131,9 +1131,7 @@ def main():
             snm_inserted, snm_skipped = load_serial_master(prepared, mysql_conn)
             reg_inserted, reg_skipped = load_registration_status(prepared, mysql_conn)
 
-            # Update warrantyparts.SerialNumberMaster with Liquifire URLs for CPQ boats.
-            # The production import populates warrantyparts.SerialNumberMaster but doesn't
-            # know about LiquifireImageUrl — so we patch it here for any CPQ boat invoiced today.
+            # Update SerialNumberMaster with Liquifire URLs for CPQ boats invoiced today.
             cpq_boats = [b for b in prepared if b.get('IsCPQ')]
             cpq_with_image = [b for b in cpq_boats if b.get('LiquifireImageUrl')]
             cpq_without_image = [b for b in cpq_boats if not b.get('LiquifireImageUrl')]
