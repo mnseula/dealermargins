@@ -648,18 +648,17 @@ def fetch_cpq_image_urls(so_numbers: list, config_id_map: dict = None) -> dict:
 
 
 def ensure_snm_image_column(conn) -> None:
-    """Add LiquifireImageUrl column to SerialNumberMaster in both databases."""
+    """Add LiquifireImageUrl column to SerialNumberMaster if not already present."""
     cursor = conn.cursor()
-    for db in ('warrantyparts_test', 'warrantyparts'):
-        try:
-            cursor.execute(
-                f"ALTER TABLE {db}.SerialNumberMaster "
-                "ADD COLUMN LiquifireImageUrl VARCHAR(2000) DEFAULT NULL"
-            )
-            conn.commit()
-            log(f"Added LiquifireImageUrl column to {db}.SerialNumberMaster")
-        except Exception:
-            pass  # column already exists — that's fine
+    try:
+        cursor.execute(
+            f"ALTER TABLE {MYSQL_DB}.SerialNumberMaster "
+            "ADD COLUMN LiquifireImageUrl VARCHAR(2000) DEFAULT NULL"
+        )
+        conn.commit()
+        log(f"Added LiquifireImageUrl column to {MYSQL_DB}.SerialNumberMaster")
+    except Exception:
+        pass  # column already exists — that's fine
     cursor.close()
 
 
@@ -886,10 +885,6 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
         cursor.execute(insert_sql.format(table='SerialNumberMaster'))
         inserted = cursor.rowcount
 
-        # Also ensure warrantyparts (production) is populated
-        cursor.execute(insert_sql.format(table='warrantyparts.SerialNumberMaster'))
-        inserted_prod = cursor.rowcount
-
         cursor.execute("DROP TEMPORARY TABLE temp_snm")
 
         # UPDATE color fields for all boats in today's batch (INSERT IGNORE skips existing rows).
@@ -918,8 +913,7 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
 
         conn.commit()
         log(f"Inserted {inserted} boats into {MYSQL_DB}.SerialNumberMaster", "SUCCESS")
-        log(f"Inserted {inserted_prod} boats into warrantyparts.SerialNumberMaster (explicit)", "SUCCESS")
-        log(f"Updated color fields for {len(boats)} boats in both databases", "SUCCESS")
+        log(f"Updated color fields for {len(boats)} boats in {MYSQL_DB}.SerialNumberMaster", "SUCCESS")
         return inserted, skipped
 
     finally:
@@ -1088,15 +1082,6 @@ def main():
                         if cfg_name and str(cfg_name).strip():
                             return True
                 return False
-            
-            # DEBUG: Check CPQ detection for the 3 known CPQ boats
-            debug_cpq_serials = ['ETWS9062J526', 'ETWS9254J526', 'ETWS9854K526']
-            for debug_serial in debug_cpq_serials:
-                is_cpq_debug = is_cpq_boat(debug_serial)
-                log(f"DEBUG CPQ Check: {debug_serial} -> IsCPQ={is_cpq_debug}")
-                # Also count how many rows have CfgName for this serial
-                cfg_count = sum(1 for row in boat_option_rows if row.get('BoatSerialNo') == debug_serial and row.get('CfgName'))
-                log(f"DEBUG: {debug_serial} has {cfg_count} rows with CfgName")
             
             prepared: list = []
             for boat in raw_boats:
