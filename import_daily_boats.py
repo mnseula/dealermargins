@@ -357,7 +357,7 @@ def build_serial_master_query(db: str) -> str:
         coi.qty_invoiced                        AS Quantity,
         coi.config_id                           AS ConfigId,
         co.external_confirmation_ref            AS SoNumber,
-        rep.name                                AS ParentRepName
+        NULL                                    AS ParentRepName
     FROM [{db}].[dbo].[coitem_mst] coi
     LEFT JOIN [{db}].[dbo].[serial_mst] ser
         ON coi.co_num = ser.ref_num
@@ -381,9 +381,6 @@ def build_serial_master_query(db: str) -> str:
         ON co.cust_num = cust.cust_num
         AND co.site_ref = cust.site_ref
         AND cust.cust_seq = 0
-    LEFT JOIN [{db}].[dbo].[slsrep_mst] rep
-        ON co.slsrep = rep.slsrep
-        AND co.site_ref = rep.site_ref
     WHERE coi.site_ref = 'BENN'
         AND im.Uf_BENN_MaterialCostType IN ('BOA', 'BOI')
         AND (
