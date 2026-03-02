@@ -356,7 +356,8 @@ def build_serial_master_query(db: str) -> str:
         coi.Uf_BENN_PreSold                     AS Presold,
         coi.qty_invoiced                        AS Quantity,
         coi.config_id                           AS ConfigId,
-        co.external_confirmation_ref            AS SoNumber
+        co.external_confirmation_ref            AS SoNumber,
+        rep.name                                AS ParentRepName
     FROM [{db}].[dbo].[coitem_mst] coi
     LEFT JOIN [{db}].[dbo].[serial_mst] ser
         ON coi.co_num = ser.ref_num
@@ -380,6 +381,9 @@ def build_serial_master_query(db: str) -> str:
         ON co.cust_num = cust.cust_num
         AND co.site_ref = cust.site_ref
         AND cust.cust_seq = 0
+    LEFT JOIN [{db}].[dbo].[slsrep_mst] rep
+        ON co.slsrep = rep.slsrep
+        AND co.site_ref = rep.site_ref
     WHERE coi.site_ref = 'BENN'
         AND im.Uf_BENN_MaterialCostType IN ('BOA', 'BOI')
         AND (
@@ -812,19 +816,21 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
         # Still update color fields for existing boats (same-day re-run scenario)
         update_sql = """
             UPDATE {table}
-            SET PanelColor   = CASE WHEN %s <> '' THEN %s ELSE PanelColor   END,
-                AccentPanel  = CASE WHEN %s <> '' THEN %s ELSE AccentPanel  END,
-                BaseVinyl    = CASE WHEN %s <> '' THEN %s ELSE BaseVinyl    END,
-                ColorPackage = CASE WHEN %s <> '' THEN %s ELSE ColorPackage END,
-                TrimAccent   = CASE WHEN %s <> '' THEN %s ELSE TrimAccent   END
+            SET PanelColor    = CASE WHEN %s <> '' THEN %s ELSE PanelColor    END,
+                AccentPanel   = CASE WHEN %s <> '' THEN %s ELSE AccentPanel   END,
+                BaseVinyl     = CASE WHEN %s <> '' THEN %s ELSE BaseVinyl     END,
+                ColorPackage  = CASE WHEN %s <> '' THEN %s ELSE ColorPackage  END,
+                TrimAccent    = CASE WHEN %s <> '' THEN %s ELSE TrimAccent    END,
+                ParentRepName = CASE WHEN %s <> '' THEN %s ELSE ParentRepName END
             WHERE Boat_SerialNo = %s
         """
         color_data = [
-            (b['PanelColor'],   b['PanelColor'],
-             b['AccentPanel'],  b['AccentPanel'],
-             b['BaseVinyl'],    b['BaseVinyl'],
-             b['ColorPackage'], b['ColorPackage'],
-             b['TrimAccent'],   b['TrimAccent'],
+            (b['PanelColor'],    b['PanelColor'],
+             b['AccentPanel'],   b['AccentPanel'],
+             b['BaseVinyl'],     b['BaseVinyl'],
+             b['ColorPackage'],  b['ColorPackage'],
+             b['TrimAccent'],    b['TrimAccent'],
+             b['ParentRepName'], b['ParentRepName'],
              b['BoatSerialNo'])
             for b in boats
         ]
@@ -854,6 +860,7 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
                 b.get('BaseVinyl', ''),      b.get('ColorPackage', ''),
                 b.get('TrimAccent', ''),     b.get('Presold', 'N'),
                 b.get('Quantity', 1),        b.get('LiquifireImageUrl', ''),
+                b.get('ParentRepName', ''),
             ])
         csv_file.close()
 
@@ -869,7 +876,7 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
                 AccentPanel VARCHAR(100), BaseVinyl VARCHAR(100),
                 ColorPackage VARCHAR(100), TrimAccent VARCHAR(100),
                 Presold VARCHAR(1), Quantity INT,
-                LiquifireImageUrl VARCHAR(2000)
+                LiquifireImageUrl VARCHAR(2000), ParentRepName VARCHAR(255)
             )
         """)
 
@@ -887,14 +894,14 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
                 ERP_OrderNo, InvoiceNo, InvoiceDateYYYYMMDD, DealerNumber, DealerName,
                 DealerCity, DealerState, DealerZip, DealerCountry, WebOrderNo, Active,
                 ProdNo, BenningtonOwned, PanelColor, AccentPanel, BaseVinyl,
-                ColorPackage, TrimAccent, Presold, Quantity, LiquifireImageUrl
+                ColorPackage, TrimAccent, Presold, Quantity, LiquifireImageUrl, ParentRepName
             )
             SELECT
                 SN_MY, Boat_SerialNo, BoatItemNo, Series, BoatDesc1, SerialModelYear,
                 ERP_OrderNo, InvoiceNo, InvoiceDate, DealerNumber, DealerName,
                 DealerCity, DealerState, DealerZip, DealerCountry, WebOrderNo, Active,
                 ProdNo, BenningtonOwned, PanelColor, AccentPanel, BaseVinyl,
-                ColorPackage, TrimAccent, Presold, Quantity, LiquifireImageUrl
+                ColorPackage, TrimAccent, Presold, Quantity, LiquifireImageUrl, ParentRepName
             FROM temp_snm
         """
 
@@ -908,19 +915,21 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
         # Only overwrite a field if we have a non-empty value so we never blank out good data.
         update_sql = """
             UPDATE {table}
-            SET PanelColor   = CASE WHEN %s <> '' THEN %s ELSE PanelColor   END,
-                AccentPanel  = CASE WHEN %s <> '' THEN %s ELSE AccentPanel  END,
-                BaseVinyl    = CASE WHEN %s <> '' THEN %s ELSE BaseVinyl    END,
-                ColorPackage = CASE WHEN %s <> '' THEN %s ELSE ColorPackage END,
-                TrimAccent   = CASE WHEN %s <> '' THEN %s ELSE TrimAccent   END
+            SET PanelColor    = CASE WHEN %s <> '' THEN %s ELSE PanelColor    END,
+                AccentPanel   = CASE WHEN %s <> '' THEN %s ELSE AccentPanel   END,
+                BaseVinyl     = CASE WHEN %s <> '' THEN %s ELSE BaseVinyl     END,
+                ColorPackage  = CASE WHEN %s <> '' THEN %s ELSE ColorPackage  END,
+                TrimAccent    = CASE WHEN %s <> '' THEN %s ELSE TrimAccent    END,
+                ParentRepName = CASE WHEN %s <> '' THEN %s ELSE ParentRepName END
             WHERE Boat_SerialNo = %s
         """
         color_data = [
-            (b['PanelColor'],   b['PanelColor'],
-             b['AccentPanel'],  b['AccentPanel'],
-             b['BaseVinyl'],    b['BaseVinyl'],
-             b['ColorPackage'], b['ColorPackage'],
-             b['TrimAccent'],   b['TrimAccent'],
+            (b['PanelColor'],    b['PanelColor'],
+             b['AccentPanel'],   b['AccentPanel'],
+             b['BaseVinyl'],     b['BaseVinyl'],
+             b['ColorPackage'],  b['ColorPackage'],
+             b['TrimAccent'],    b['TrimAccent'],
+             b['ParentRepName'], b['ParentRepName'],
              b['BoatSerialNo'])
             for b in boats
         ]
@@ -1138,6 +1147,7 @@ def main():
                     'BaseVinyl':       (cfg.get('BaseVinyl') or boat.get('BaseVinyl') or bo_colors.get('BaseVinyl') or '').strip(),
                     'ColorPackage':    color_package,
                     'TrimAccent':      trim_accent,
+                    'ParentRepName':   (boat.get('ParentRepName') or '').strip(),
                     'Presold':         'Y' if boat.get('Presold') in (1, True, 'Y', 'y') else 'N',
                     'Quantity':        int(boat.get('Quantity') or 1),
                     'LiquifireImageUrl': cpq_image_urls.get(str(boat.get('ERP_OrderNo', '')), ''),
