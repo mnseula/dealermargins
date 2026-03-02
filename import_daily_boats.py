@@ -460,7 +460,7 @@ def fetch_color_attrs_from_boatoptions(serial_numbers: list, mysql_conn) -> dict
     - 'TRIM ACCENT IRONWOOD SV S' -> TrimAccent
     - 'BLACKOUT LUXE M' -> ColorPackage
     
-    Returns dict: {serial_number: {'AccentPanel': '...', 'TrimAccent': '...', 'ColorPackage': '...'}}
+    Returns dict: {serial_number: {'PanelColor': '...', 'AccentPanel': '...', 'TrimAccent': '...', 'ColorPackage': '...'}}
     """
     if not serial_numbers:
         return {}
@@ -488,7 +488,7 @@ def fetch_color_attrs_from_boatoptions(serial_numbers: list, mysql_conn) -> dict
             # Query for color line items
             placeholders = ','.join(['%s'] * len(serials))
             cursor.execute(f"""
-                SELECT BoatSerialNo, ItemMasterProdCat, ItemMasterMCT, ItemDesc1, CfgName
+                SELECT BoatSerialNo, ItemMasterProdCat, ItemMasterMCT, ItemDesc1, CfgName, ItemNo
                 FROM {MYSQL_DB}.{table}
                 WHERE BoatSerialNo IN ({placeholders})
                     AND (
@@ -501,26 +501,44 @@ def fetch_color_attrs_from_boatoptions(serial_numbers: list, mysql_conn) -> dict
                         OR ItemDesc1 LIKE 'BLACKOUT LUXE%'
                         OR ItemMasterProdCat IN ('H3A', 'H3T', 'H3P')
                         OR ItemMasterMCT IN ('H3A', 'H3T', 'H3P', 'A0V')
+                        OR (ItemMasterProdCat = 'ACC' AND ItemNo IN (
+                            'PANEL COLOR', 'ACCENT PANEL CO', 'BASE VINYL',
+                            'Trim Accents', 'Exterior Color '
+                        ))
                     )
             """, tuple(serials))
 
             for row in cursor.fetchall():
-                serial = row[0]
-                cat    = (row[1] or '').upper()
-                mct    = (row[2] or '').upper()
-                desc   = (row[3] or '').strip()
+                serial  = row[0]
+                cat     = (row[1] or '').upper()
+                mct     = (row[2] or '').upper()
+                desc    = (row[3] or '').strip()
                 cfgname = (row[4] or '').lower()
+                itemno  = (row[5] or '').strip()
 
                 if serial not in serial_colors:
                     serial_colors[serial] = {
-                        'AccentPanel': None, 'TrimAccent': None,
-                        'ColorPackage': None, 'BaseVinyl': None
+                        'PanelColor': None, 'AccentPanel': None,
+                        'TrimAccent': None, 'ColorPackage': None, 'BaseVinyl': None
                     }
 
                 desc_upper = desc.upper()
+                itemno_upper = itemno.upper()
 
+                # ACC-format rows (OrigOrderType='O' boats): ItemNo identifies the field,
+                # ItemDesc1 is the clean value
+                if cat == 'ACC' and itemno_upper == 'PANEL COLOR':
+                    serial_colors[serial]['PanelColor'] = desc
+                elif cat == 'ACC' and itemno_upper.startswith('ACCENT PANEL'):
+                    serial_colors[serial]['AccentPanel'] = desc
+                elif cat == 'ACC' and itemno_upper == 'BASE VINYL':
+                    serial_colors[serial]['BaseVinyl'] = desc
+                elif cat == 'ACC' and itemno_upper.startswith('TRIM ACCENT'):
+                    serial_colors[serial]['TrimAccent'] = desc
+                elif cat == 'ACC' and itemno_upper.startswith('EXTERIOR COLOR'):
+                    serial_colors[serial]['ColorPackage'] = desc
                 # CPQ boats: CfgName='baseVinyl' → ItemDesc1 is already the clean value
-                if cfgname == 'basevinyl':
+                elif cfgname == 'basevinyl':
                     serial_colors[serial]['BaseVinyl'] = desc
                 # Legacy boats: ItemDesc1 includes category prefix — strip it
                 elif 'BASE VINYL' in desc_upper or 'VINYL BASE' in desc_upper or mct == 'A0V':
@@ -1059,7 +1077,7 @@ def main():
             so_to_config_id = {
                 str(b.get('ERP_OrderNo', '')): b.get('ConfigId')
                 for b in raw_boats
-                if b.get('ConfigId') and str(b.get('ERP_OrderNo', '')).startswith('SO')
+                if str(b.get('ERP_OrderNo', '')).startswith('SO')
             }
             cpq_so_numbers = list(so_to_config_id.keys())
             if cpq_so_numbers:
@@ -1088,7 +1106,7 @@ def main():
                 bo_colors = boatoptions_colors.get(serial, {})  # Fallback for legacy boats
                 
                 # Use CPQ config attrs if available, otherwise fall back to BoatOptions
-                panel_color = (boat.get('PanelColor') or cfg.get('PanelColor_cfg') or '').strip()
+                panel_color = (boat.get('PanelColor') or cfg.get('PanelColor_cfg') or bo_colors.get('PanelColor') or '').strip()
                 accent_panel = (cfg.get('AccentPanel') or bo_colors.get('AccentPanel') or '').strip()
                 trim_accent = (cfg.get('TrimAccent') or bo_colors.get('TrimAccent') or '').strip()
                 color_package = (cfg.get('ColorPackage') or bo_colors.get('ColorPackage') or '').strip()
@@ -1131,22 +1149,25 @@ def main():
             snm_inserted, snm_skipped = load_serial_master(prepared, mysql_conn)
             reg_inserted, reg_skipped = load_registration_status(prepared, mysql_conn)
 
-            # Update SerialNumberMaster with Liquifire URLs for CPQ boats invoiced today.
-            cpq_boats = [b for b in prepared if b.get('IsCPQ')]
-            cpq_with_image = [b for b in cpq_boats if b.get('LiquifireImageUrl')]
-            cpq_without_image = [b for b in cpq_boats if not b.get('LiquifireImageUrl')]
-            
-            log(f"CPQ boats from today's import: {len(cpq_boats)} total")
-            log(f"  - With image URLs: {len(cpq_with_image)}")
-            log(f"  - Without image URLs: {len(cpq_without_image)}")
-            
-            if cpq_without_image:
-                log(f"CPQ boats missing image URLs: {[b['BoatSerialNo'] for b in cpq_without_image]}", "WARNING")
-            
-            if cpq_with_image:
+            # Update SerialNumberMaster with Liquifire URLs for all boats with SO order numbers.
+            # This covers both CPQ-configured boats and OrigOrderType='O' boats which EOS may
+            # have inserted without a URL.
+            boats_with_image = [b for b in prepared if b.get('LiquifireImageUrl')]
+            boats_without_image = [b for b in prepared
+                                   if str(b.get('ERP_OrderNo', '')).startswith('SO')
+                                   and not b.get('LiquifireImageUrl')]
+
+            log(f"Boats with SO order numbers: {len(so_to_config_id)} total")
+            log(f"  - With image URLs: {len(boats_with_image)}")
+            log(f"  - Without image URLs: {len(boats_without_image)}")
+
+            if boats_without_image:
+                log(f"Boats missing image URLs: {[b['BoatSerialNo'] for b in boats_without_image]}", "WARNING")
+
+            if boats_with_image:
                 cursor = mysql_conn.cursor()
                 updated = 0
-                for boat in cpq_with_image:
+                for boat in boats_with_image:
                     cursor.execute(
                         f"UPDATE {MYSQL_DB}.SerialNumberMaster "
                         "SET LiquifireImageUrl = %s WHERE Boat_SerialNo = %s",
@@ -1154,12 +1175,9 @@ def main():
                     )
                     if cursor.rowcount > 0:
                         updated += 1
-                        log(f"Updated {boat['BoatSerialNo']} with image URL")
-                    else:
-                        log(f"No update needed for {boat['BoatSerialNo']} (already has URL or not found)")
                 mysql_conn.commit()
                 cursor.close()
-                log(f"Updated {MYSQL_DB}.SerialNumberMaster with image URLs for {updated} CPQ boat(s)", "SUCCESS")
+                log(f"Updated {MYSQL_DB}.SerialNumberMaster with image URLs for {updated} boat(s)", "SUCCESS")
 
             mysql_conn.close()
         else:
