@@ -1066,6 +1066,21 @@ def main():
         cursor.close()
         mssql_conn.close()
 
+        # Deduplicate by BoatSerialNo — MSSQL can return the same HIN twice when a boat
+        # has multiple invoice records (e.g., partial invoicing or correction invoices).
+        seen_serials: set = set()
+        deduped: list = []
+        for b in raw_boats:
+            serial = b.get('BoatSerialNo')
+            if serial and serial not in seen_serials:
+                seen_serials.add(serial)
+                deduped.append(b)
+            elif serial:
+                log(f"Duplicate HIN from MSSQL (skipping): {serial}", "WARNING")
+        if len(deduped) < len(raw_boats):
+            log(f"Deduplicated: {len(raw_boats)} → {len(deduped)} boats")
+        raw_boats = deduped
+
         prepared = []
         if raw_boats:
             config_ids  = {b.get('ConfigId') for b in raw_boats if b.get('ConfigId')}
@@ -1164,7 +1179,8 @@ def main():
                                    if str(b.get('ERP_OrderNo', '')).startswith('SO')
                                    and not b.get('LiquifireImageUrl')]
 
-            log(f"Boats with SO order numbers: {len(so_to_config_id)} total")
+            so_boats_count = len(boats_with_image) + len(boats_without_image)
+            log(f"Boats with SO order numbers: {so_boats_count} total")
             log(f"  - With image URLs: {len(boats_with_image)}")
             log(f"  - Without image URLs: {len(boats_without_image)}")
 
@@ -1173,18 +1189,18 @@ def main():
 
             if boats_with_image:
                 cursor = mysql_conn.cursor()
-                updated = 0
                 for boat in boats_with_image:
                     cursor.execute(
                         f"UPDATE {MYSQL_DB}.SerialNumberMaster "
                         "SET LiquifireImageUrl = %s WHERE Boat_SerialNo = %s",
                         (boat['LiquifireImageUrl'], boat['BoatSerialNo'])
                     )
-                    if cursor.rowcount > 0:
-                        updated += 1
                 mysql_conn.commit()
                 cursor.close()
-                log(f"Updated {MYSQL_DB}.SerialNumberMaster with image URLs for {updated} boat(s)", "SUCCESS")
+                # Note: rowcount=0 is normal for new boats — LiquifireImageUrl was already
+                # written via the INSERT from temp_snm. The UPDATE is needed only for
+                # OrigOrderType='O' boats that EOS inserted without a URL.
+                log(f"Image URLs applied for {len(boats_with_image)} boat(s) in {MYSQL_DB}.SerialNumberMaster", "SUCCESS")
 
             mysql_conn.close()
         else:
