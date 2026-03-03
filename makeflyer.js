@@ -271,6 +271,19 @@ switch (accentCol) {
         break;
 }
 
+var selectedImg = underImage; // already fetched via getAnswer('POSTER_IMG')
+var imgSrc = $('[data-ref="' + selectedImg + '"]').find('img').attr('src');
+console.log('IMAGE SRC =' + imgSrc);
+
+var dlr_img_url = getValue('DLR_IMG', 'DLR_IMG_URL');
+if (dlr_img_url && typeof dlr_img_url === 'string' && dlr_img_url.length > 0) {
+    imgSrc = dlr_img_url;
+}
+
+var selectedPerfLogo = getAnswer('PERF_LOGOS');
+var logoSrc = $('[data-ref="' + selectedPerfLogo + '"]').find('img').attr('src');
+console.log('logoSrc', logoSrc);
+
 var optionalMessage = "";
 if (isAnswered('DEALER_MSG', 'MESSAGE') === true) {
     optionalMessage = getValue('DEALER_MSG', 'MESSAGE');
