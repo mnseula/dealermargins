@@ -574,33 +574,64 @@ def fetch_color_attrs_from_boatoptions(serial_numbers: list, mysql_conn) -> dict
 
 import re as _re
 
-def _normalize_liquifire_url(url: str) -> str:
-    """
-    Use cat[orthographic] if available for this model, otherwise fall back to cat[pon].
-    Liquifire returns a tiny error GIF (~3-4KB) when a view doesn't exist.
-    """
-    orthographic_url = _re.sub(r'cat\[[^\]]*\]', 'cat[orthographic]', url)
+_LIQUIFIRE_BASE = "https://polarismarine.liquifire.com/polarismarine"
+
+def _is_valid_liquifire_image(url: str) -> bool:
+    """Returns True if the URL yields a real image (JPEG, >10KB)."""
     try:
-        r = requests.get(orthographic_url, verify=False, timeout=10)
-        if r.status_code == 200 and len(r.content) > 10000:
-            return orthographic_url
+        r = requests.get(url, verify=False, timeout=10)
+        return (r.status_code == 200
+                and 'jpeg' in r.headers.get('Content-Type', '')
+                and len(r.content) > 10000)
     except Exception:
-        pass
+        return False
+
+
+def _normalize_liquifire_url(url: str, item_no: str = '') -> str:
+    """
+    Validate and normalize a Liquifire URL from CPQ.
+    Cycle through fallbacks until a real JPEG is returned:
+      1. cat[orthographic] with original asset/view
+      2. cat[pon] with original asset/view
+      3. cat[pon], asset[{item_no}], view[side]   ← fallback using BoatItemNo
+      4. cat[pon], asset[{item_no}], view[]        ← fallback with no view
+    Liquifire returns a tiny GIF (~3-4KB) for invalid combinations.
+    """
+    candidates = [
+        _re.sub(r'cat\[[^\]]*\]', 'cat[orthographic]', url),
+        _re.sub(r'cat\[[^\]]*\]', 'cat[pon]', url),
+    ]
+    if item_no:
+        candidates += [
+            f"{_LIQUIFIRE_BASE}?set=cat[pon],asset[{item_no}],view[side]&call=url[file:PS/main]&sink",
+            f"{_LIQUIFIRE_BASE}?set=cat[pon],asset[{item_no}],view[]&call=url[file:PS/main]&sink",
+        ]
+
+    for candidate in candidates:
+        if _is_valid_liquifire_image(candidate):
+            return candidate
+
+    # Nothing worked — return the cat[pon] version as best effort
     return _re.sub(r'cat\[[^\]]*\]', 'cat[pon]', url)
 
 
-def fetch_cpq_image_urls(so_numbers: list, config_id_map: dict = None) -> dict:
+def fetch_cpq_image_urls(so_numbers: list, config_id_map: dict = None,
+                         itemno_map: dict = None) -> dict:
     """
     For each SO number (CPQ boats), fetch LastConfigurationImageLink from
     CPQ CPQEQ OrderLine entity (PRD environment).
     Falls back to querying by ConfigurationId when ExternalId lookup returns nothing
     (e.g. orders with non-standard SO numbers like SOORE000001).
+    If the CPQ URL is invalid (e.g. furniture swatch instead of boat image),
+    cycles through fallback Liquifire URLs using the BoatItemNo.
     Returns dict: {so_number: image_url}
     """
     if not so_numbers:
         return {}
     if config_id_map is None:
         config_id_map = {}
+    if itemno_map is None:
+        itemno_map = {}
 
     try:
         resp = requests.post(load_cpq_data.TOKEN_ENDPOINT_PRD, data={
@@ -637,7 +668,7 @@ def fetch_cpq_image_urls(so_numbers: list, config_id_map: dict = None) -> dict:
                         for line in r2.json().get('items', []):
                             url = line.get('LastConfigurationImageLink')
                             if url:
-                                image_urls[so] = _normalize_liquifire_url(url)
+                                image_urls[so] = _normalize_liquifire_url(url, itemno_map.get(so, ''))
                                 break
                     if so in image_urls:
                         continue
@@ -653,7 +684,7 @@ def fetch_cpq_image_urls(so_numbers: list, config_id_map: dict = None) -> dict:
                     for line in r3.json().get('items', []):
                         url = line.get('LastConfigurationImageLink')
                         if url:
-                            image_urls[so] = _normalize_liquifire_url(url)
+                            image_urls[so] = _normalize_liquifire_url(url, itemno_map.get(so, ''))
                             log(f"Image found via ConfigurationId fallback for {so} ({config_id})")
                             break
                 else:
@@ -1100,10 +1131,16 @@ def main():
                 for b in raw_boats
                 if str(b.get('ERP_OrderNo', '')).startswith('SO')
             }
+            so_to_itemno = {
+                str(b.get('ERP_OrderNo', '')): (b.get('BoatItemNo') or '').strip()
+                for b in raw_boats
+                if str(b.get('ERP_OrderNo', '')).startswith('SO')
+            }
             cpq_so_numbers = list(so_to_config_id.keys())
             if cpq_so_numbers:
                 log(f"Fetching CPQ image URLs for {len(cpq_so_numbers)} CPQ order(s)...")
-                cpq_image_urls = fetch_cpq_image_urls(cpq_so_numbers, config_id_map=so_to_config_id)
+                cpq_image_urls = fetch_cpq_image_urls(cpq_so_numbers, config_id_map=so_to_config_id,
+                                                      itemno_map=so_to_itemno)
             else:
                 cpq_image_urls = {}
 
