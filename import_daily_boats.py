@@ -861,10 +861,22 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
     log(f"{len(new_boats)} new boats for SerialNumberMaster ({skipped} already exist)")
 
     if not new_boats:
-        # Still update color fields for existing boats (same-day re-run scenario)
+        # Update all fields for existing boats — handles re-invoice to a different dealer
+        # as well as same-day re-run scenario.
         update_sql = """
             UPDATE {table}
-            SET PanelColor    = CASE WHEN %s <> '' THEN %s ELSE PanelColor    END,
+            SET ERP_OrderNo          = %s,
+                InvoiceNo            = %s,
+                InvoiceDateYYYYMMDD  = %s,
+                DealerNumber         = %s,
+                DealerName           = %s,
+                DealerCity           = %s,
+                DealerState          = %s,
+                DealerZip            = %s,
+                DealerCountry        = %s,
+                WebOrderNo           = %s,
+                Presold              = %s,
+                PanelColor    = CASE WHEN %s <> '' THEN %s ELSE PanelColor    END,
                 AccentPanel   = CASE WHEN %s <> '' THEN %s ELSE AccentPanel   END,
                 BaseVinyl     = CASE WHEN %s <> '' THEN %s ELSE BaseVinyl     END,
                 ColorPackage  = CASE WHEN %s <> '' THEN %s ELSE ColorPackage  END,
@@ -872,8 +884,12 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
                 ParentRepName = CASE WHEN %s <> '' THEN %s ELSE ParentRepName END
             WHERE Boat_SerialNo = %s
         """
-        color_data = [
-            (b['PanelColor'],    b['PanelColor'],
+        update_data = [
+            (b['ERP_OrderNo'], b['InvoiceNo'], b['InvoiceDate'],
+             b['DealerNumber'], b['DealerName'], b['DealerCity'],
+             b['DealerState'], b['DealerZip'], b['DealerCountry'],
+             b['WebOrderNo'], b['Presold'],
+             b['PanelColor'],    b['PanelColor'],
              b['AccentPanel'],   b['AccentPanel'],
              b['BaseVinyl'],     b['BaseVinyl'],
              b['ColorPackage'],  b['ColorPackage'],
@@ -882,9 +898,9 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
              b['BoatSerialNo'])
             for b in boats
         ]
-        cursor.executemany(update_sql.format(table='SerialNumberMaster'), color_data)
+        cursor.executemany(update_sql.format(table='SerialNumberMaster'), update_data)
         conn.commit()
-        log(f"Updated color fields for {len(boats)} existing boats (no new inserts)", "SUCCESS")
+        log(f"Updated {len(boats)} existing boats in {MYSQL_DB}.SerialNumberMaster (dealer + colors)", "SUCCESS")
         cursor.close()
         return 0, skipped
 
@@ -959,11 +975,23 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
 
         cursor.execute("DROP TEMPORARY TABLE temp_snm")
 
-        # UPDATE color fields for all boats in today's batch (INSERT IGNORE skips existing rows).
-        # Only overwrite a field if we have a non-empty value so we never blank out good data.
+        # UPDATE dealer + invoice + color fields for all boats in today's batch.
+        # INSERT IGNORE skips existing rows, but UPDATE ensures re-invoiced boats
+        # (credited from one dealer and re-sold to another) get their dealer info refreshed.
         update_sql = """
             UPDATE {table}
-            SET PanelColor    = CASE WHEN %s <> '' THEN %s ELSE PanelColor    END,
+            SET ERP_OrderNo          = %s,
+                InvoiceNo            = %s,
+                InvoiceDateYYYYMMDD  = %s,
+                DealerNumber         = %s,
+                DealerName           = %s,
+                DealerCity           = %s,
+                DealerState          = %s,
+                DealerZip            = %s,
+                DealerCountry        = %s,
+                WebOrderNo           = %s,
+                Presold              = %s,
+                PanelColor    = CASE WHEN %s <> '' THEN %s ELSE PanelColor    END,
                 AccentPanel   = CASE WHEN %s <> '' THEN %s ELSE AccentPanel   END,
                 BaseVinyl     = CASE WHEN %s <> '' THEN %s ELSE BaseVinyl     END,
                 ColorPackage  = CASE WHEN %s <> '' THEN %s ELSE ColorPackage  END,
@@ -971,8 +999,12 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
                 ParentRepName = CASE WHEN %s <> '' THEN %s ELSE ParentRepName END
             WHERE Boat_SerialNo = %s
         """
-        color_data = [
-            (b['PanelColor'],    b['PanelColor'],
+        update_data = [
+            (b['ERP_OrderNo'], b['InvoiceNo'], b['InvoiceDate'],
+             b['DealerNumber'], b['DealerName'], b['DealerCity'],
+             b['DealerState'], b['DealerZip'], b['DealerCountry'],
+             b['WebOrderNo'], b['Presold'],
+             b['PanelColor'],    b['PanelColor'],
              b['AccentPanel'],   b['AccentPanel'],
              b['BaseVinyl'],     b['BaseVinyl'],
              b['ColorPackage'],  b['ColorPackage'],
@@ -981,12 +1013,11 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
              b['BoatSerialNo'])
             for b in boats
         ]
-        cursor.executemany(update_sql.format(table='SerialNumberMaster'), color_data)
-        updated = cursor.rowcount
+        cursor.executemany(update_sql.format(table='SerialNumberMaster'), update_data)
 
         conn.commit()
         log(f"Inserted {inserted} boats into {MYSQL_DB}.SerialNumberMaster", "SUCCESS")
-        log(f"Updated color fields for {len(boats)} boats in {MYSQL_DB}.SerialNumberMaster", "SUCCESS")
+        log(f"Updated dealer + color fields for {len(boats)} boats in {MYSQL_DB}.SerialNumberMaster", "SUCCESS")
         return inserted, skipped
 
     finally:
