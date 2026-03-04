@@ -593,8 +593,9 @@ def _normalize_liquifire_url(url: str, item_no: str = '') -> str:
     Cycle through fallbacks until a real JPEG is returned:
       1. cat[orthographic] with original asset/view
       2. cat[pon] with original asset/view
-      3. cat[pon], asset[{item_no}], view[side]   ← fallback using BoatItemNo
-      4. cat[pon], asset[{item_no}], view[]        ← fallback with no view
+      3. swap asset+view to item_no/side, keep all color params  ← configured colors
+      4. cat[pon], asset[{item_no}], view[side]   ← bare hull fallback
+      5. cat[pon], asset[{item_no}], view[]        ← last resort
     Liquifire returns a tiny GIF (~3-4KB) for invalid combinations.
     """
     candidates = [
@@ -602,7 +603,14 @@ def _normalize_liquifire_url(url: str, item_no: str = '') -> str:
         _re.sub(r'cat\[[^\]]*\]', 'cat[pon]', url),
     ]
     if item_no:
+        # Keep all color params from the CPQ URL but fix asset and view —
+        # handles cases where CPQ returns a furniture swatch (asset[furn_*], view[])
+        # instead of the boat hull image.
+        configured_url = _re.sub(r'asset\[[^\]]*\]', f'asset[{item_no}]', url)
+        configured_url = _re.sub(r'view\[[^\]]*\]', 'view[side]', configured_url)
+        configured_url = _re.sub(r'cat\[[^\]]*\]', 'cat[pon]', configured_url)
         candidates += [
+            configured_url,
             f"{_LIQUIFIRE_BASE}?set=cat[pon],asset[{item_no}],view[side]&call=url[file:PS/main]&sink",
             f"{_LIQUIFIRE_BASE}?set=cat[pon],asset[{item_no}],view[]&call=url[file:PS/main]&sink",
         ]
