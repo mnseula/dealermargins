@@ -221,6 +221,9 @@ WHERE coi.site_ref = 'BENN'
     AND iim.inv_num IS NOT NULL
     AND iim.inv_num NOT LIKE 'CR%'
     AND coi.qty_invoiced > 0
+    AND co.co_num NOT LIKE 'WN%'
+    AND co.co_num NOT LIKE 'WP%'
+    AND co.co_num NOT LIKE 'WW%'
     AND CAST(iim.tax_date AS DATE) = CAST(GETDATE() AS DATE)
 
 UNION ALL
@@ -307,6 +310,9 @@ WHERE coi.config_id IS NOT NULL
     AND co.external_confirmation_ref LIKE 'SO%'
     AND iim.inv_num NOT LIKE 'CR%'
     AND coi.qty_invoiced > 0
+    AND co.co_num NOT LIKE 'WN%'
+    AND co.co_num NOT LIKE 'WP%'
+    AND co.co_num NOT LIKE 'WW%'
     AND CAST(iim.tax_date AS DATE) = CAST(GETDATE() AS DATE)
 
 )
@@ -396,6 +402,9 @@ def build_serial_master_query(db: str) -> str:
         AND iim.inv_num IS NOT NULL
         AND iim.inv_num NOT LIKE 'CR%'
         AND coi.qty_invoiced > 0
+        AND co.co_num NOT LIKE 'WN%'
+        AND co.co_num NOT LIKE 'WP%'
+        AND co.co_num NOT LIKE 'WW%'
         AND CAST(iim.tax_date AS DATE) = CAST(GETDATE() AS DATE)
     ORDER BY BoatSerialNo
     """
