@@ -1303,28 +1303,28 @@ def main():
         lines.append("=" * 80)
         lines.append("PIPELINE SUMMARY")
         lines.append("=" * 80)
-        lines.append(f"\nSTEP 1 — BoatOptions ({MYSQL_DB}):")
+        lines.append(f"\nSTEP 1 - BoatOptions ({MYSQL_DB}):")
         if bo_results:
             for table, count in sorted(bo_results.items()):
                 lines.append(f"  {table}: {count:,} rows total")
         else:
             lines.append("  No data loaded")
-        lines.append(f"\nSTEP 2 — SerialNumberMaster ({MYSQL_DB}):")
+        lines.append(f"\nSTEP 2 - SerialNumberMaster ({MYSQL_DB}):")
         lines.append(f"  Boats found today:        {len(raw_boats)}")
         lines.append(f"  SerialNumberMaster:       {snm_inserted} inserted, {snm_skipped} already existed")
         lines.append(f"  RegistrationStatus:       {reg_inserted} inserted, {reg_skipped} already existed")
 
         # ── DEALER TABLE ────────────────────────────────────────────────────
         if prepared:
-            lines.append(f"\n{'─' * 100}")
+            lines.append(f"\n{'-' * 100}")
             lines.append(f"  {'Serial':<15} {'Dealer#':<10} {'Dealer Name':<42} {'City':<22} {'State'}")
-            lines.append(f"  {'─'*15} {'─'*10} {'─'*42} {'─'*22} {'─'*5}")
+            lines.append(f"  {'-'*15} {'-'*10} {'-'*42} {'-'*22} {'-'*5}")
             for b in sorted(prepared, key=lambda x: x['BoatSerialNo']):
                 lines.append(
                     f"  {b['BoatSerialNo']:<15} {b['DealerNumber']:<10} "
                     f"{b['DealerName']:<42} {b['DealerCity']:<22} {b['DealerState']}"
                 )
-            lines.append(f"{'─' * 100}")
+            lines.append(f"{'-' * 100}")
 
         lines.append(f"\nCompleted: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         lines.append("=" * 80)
