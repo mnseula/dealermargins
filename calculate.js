@@ -313,7 +313,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
                 setValue('DLR2', 'ENG_FULL_W_MARGIN_MSRP', Math.round(defaultengineprice / msrpMargin));
             }
             else {
-                setValue('DLR2', 'ENG_FULL_W_MARGIN_MSRP', Math.round(defaultengineprice / msrpMargin) * vol_disc);
+                setValue('DLR2', 'ENG_FULL_W_MARGIN_MSRP', Math.round(defaultengineprice * 0.9 * 0.99 / (1 - 0.37)));
             }
 
             if (window.hasEngineLowerUnit) {
@@ -348,7 +348,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
                 // 0% margin: prerig sale price = prerig MSRP
                 var prerigMSRP = (serialYear < 20 || isCpqBoat) ?
                     Math.round(prerigonboatprice / msrpMargin) :
-                    Math.round(prerigonboatprice / msrpMargin) * vol_disc;
+                    Math.round(prerigonboatprice * 0.9 * 0.99 / (1 - 0.37));
                 setValue('DLR2', 'PRERIG_FULL_W_MARGIN_SALE', prerigMSRP);
             } else {
                 setValue('DLR2', 'PRERIG_FULL_W_MARGIN_SALE', Math.round(prerigonboatprice / optionmargin) * vol_disc);
@@ -358,7 +358,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
                 setValue('DLR2', 'PRERIG_FULL_W_MARGIN_MSRP', Math.round(prerigonboatprice / msrpMargin));
             }
             else {
-                setValue('DLR2', 'PRERIG_FULL_W_MARGIN_MSRP', Math.round(prerigonboatprice / msrpMargin) * vol_disc);
+                setValue('DLR2', 'PRERIG_FULL_W_MARGIN_MSRP', Math.round(prerigonboatprice * 0.9 * 0.99 / (1 - 0.37)));
             }
 
             // Special case: If option margin is 0%, use MSRP pricing
@@ -446,7 +446,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
     console.log('pkgmsrp is ', pkgmsrp);
 
     if (pkgmsrp == 0) {
-        msrpboatpackageprice = Number(boatpackageprice * msrpVolume) / msrpMargin + additionalCharge;
+        msrpboatpackageprice = Number(boatpackageprice * 0.9 * 0.99 / (1 - 0.37)) + additionalCharge;
         console.log('boatpackageprice 202', boatpackageprice);
         console.log('msrpvolume 202', msrpVolume);
         console.log('msrpMargin', msrpMargin);
@@ -455,7 +455,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
 
         if (series == 'SV') {
             console.log('Keri Additional Charge', additionalCharge);
-            msrpboatpackageprice = Number((boatpackageprice * msrpVolume * msrpLoyalty) / msrpMargin) + Number(additionalCharge);
+            msrpboatpackageprice = Number(boatpackageprice * msrpLoyalty * 0.9 * 0.99 / (1 - 0.37)) + Number(additionalCharge);
             console.log('msrp package price', Math.round(msrpboatpackageprice));
             saleboatpackageprice = Math.round(msrpboatpackageprice);
         }
@@ -558,7 +558,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
                 msrpprice = Number(window.pontoonRealMSRP);
                 console.log("Using real MSRP from CPQ: $", msrpprice);
             } else {
-                msrpprice = Number((dealercost) * vol_disc) / msrpMargin + Number(additionalCharge);
+                msrpprice = Number(dealercost * 0.9 * 0.99 / (1 - 0.37)) + Number(additionalCharge);
                 console.log("Calculated MSRP from dealer cost: $", msrpprice);
             }
 
@@ -568,7 +568,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
                 saleprice = Number((dealercost * msrpVolume * msrpLoyalty) / baseboatmargin) + Number(freight) + Number(prep) + Number(additionalCharge);
                 // For SV series, only override MSRP with saleprice if we don't have real CPQ MSRP
                 if (window.pontoonRealMSRP === null || window.pontoonRealMSRP === undefined) {
-                    msrpprice = saleprice;
+                    msrpprice = Number(dealercost * msrpLoyalty * 0.9 * 0.99 / (1 - 0.37)) + Number(additionalCharge);
                 }
             }
             setValue('DLR2', 'BOAT_SP', Math.round(saleprice));
@@ -603,7 +603,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
                 msrpprice = Number((dealercost * 0.9 * 0.99) / (1 - 0.37));
                 console.log("CPQ engine MSRP (Edwin formula): $" + msrpprice);
             } else {
-                msrpprice = Number((dealercost * msrpVolume) / msrpMargin);
+                msrpprice = Number(dealercost * 0.9 * 0.99 / (1 - 0.37));
             }
 
             // Special handling for SV series (legacy)
@@ -633,7 +633,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
                 if (discountHasRealMSRP) {
                     msrpprice = Number(boatoptions[i].MSRP);
                 } else {
-                    msrpprice = Number((EngineDiscountAdditions * msrpVolume) / msrpMargin);
+                    msrpprice = Number(EngineDiscountAdditions * 0.9 * 0.99 / (1 - 0.37));
                 }
 
                 if (series == 'SV' && !discountHasRealMSRP) {
@@ -697,7 +697,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
                 dealercost = Number(dealercost - Number(defaultengineprice));
                 boatpackageprice = Number(boatpackageprice) - Number(dealercost);
 
-                msrpboatpackageprice = Number(msrpboatpackageprice) - Math.round(Number(dealercost * msrpVolume) / msrpMargin);
+                msrpboatpackageprice = Number(msrpboatpackageprice) - Math.round(Number(dealercost * 0.9 * 0.99 / (1 - 0.37)));
 
                 if(series === 'SV') {
                     msrpboatpackageprice = msrpboatpackageprice;
@@ -712,14 +712,14 @@ window.Calculate2021 = window.Calculate2021 || function () {
                     msrp = Number(boatoptions[i].MSRP).toFixed(2);
                     console.log("Using real MSRP from CPQ for engine: $" + msrp);
                 } else if(series === 'SV') {
-                    msrp = Math.round(Number((dealercost * msrpVolume * msrpLoyalty)/ msrpMargin)).toFixed(2);
+                    msrp = Math.round(Number(dealercost * msrpLoyalty * 0.9 * 0.99 / (1 - 0.37))).toFixed(2);
                     saleprice = msrp;
                 } else if (isCpqBoat) {
                     // CPQ FIX: Engine MSRP formula per Edwin — dealer price does not map to MSRP via margin.
                     // Formula: MSRP = (dealerCost * 0.9 * 0.99) / (1 - 0.37)
                     msrp = Math.round(Number((dealercost * 0.9 * 0.99) / (1 - 0.37))).toFixed(2);
                 } else {
-                    msrp = Math.round(Number((dealercost * msrpVolume)/ msrpMargin)).toFixed(2);
+                    msrp = Math.round(Number(dealercost * 0.9 * 0.99 / (1 - 0.37))).toFixed(2);
                 }
 
                 boattable.push({
@@ -748,7 +748,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
                 else { saleprice = (Number(dealercost / optionmargin) * vol_disc); }
                 if (prodCategory != 'PL1' && prodCategory != 'PL2' && prodCategory != 'PL3' && prodCategory != 'PL4' && prodCategory != 'PL5' && prodCategory != 'PL6') {
                     boatpackageprice = Number(boatpackageprice) - Number(dealercost);
-                    msrpboatpackageprice = Number(msrpboatpackageprice) - (Number(dealercost) / msrpMargin);
+                    msrpboatpackageprice = Number(msrpboatpackageprice) - Number(dealercost * 0.9 * 0.99 / (1 - 0.37));
                     setValue('DLR2', 'PRERIG_INC', dealercost);
                 }
 
@@ -758,9 +758,9 @@ window.Calculate2021 = window.Calculate2021 || function () {
                     msrp = Number(boatoptions[i].MSRP).toFixed(2);
                     console.log("Using real MSRP from CPQ for prerig: $" + msrp);
                 } else if(series === 'SV') {
-                    msrp = Math.round(Number((dealercost * msrpVolume * msrpLoyalty )/ msrpMargin)).toFixed(2);
+                    msrp = Math.round(Number(dealercost * msrpLoyalty * 0.9 * 0.99 / (1 - 0.37))).toFixed(2);
                 } else {
-                    msrp = Math.round(Number((dealercost * msrpVolume)/ msrpMargin)).toFixed(2);
+                    msrp = Math.round(Number(dealercost * 0.9 * 0.99 / (1 - 0.37))).toFixed(2);
                 }
 
                 boattable.push({
@@ -786,9 +786,9 @@ window.Calculate2021 = window.Calculate2021 || function () {
                     msrp = Number(boatoptions[i].MSRP).toFixed(2);
                     console.log("Using real MSRP from CPQ for standalone prerig: $" + msrp);
                 } else if(series === 'SV') {
-                    msrp = Math.round(Number((dealercost * msrpVolume * msrpLoyalty )/ msrpMargin)).toFixed(2);
+                    msrp = Math.round(Number(dealercost * msrpLoyalty * 0.9 * 0.99 / (1 - 0.37))).toFixed(2);
                 } else {
-                    msrp = Math.round(Number((dealercost * msrpVolume)/ msrpMargin)).toFixed(2);
+                    msrp = Math.round(Number(dealercost * 0.9 * 0.99 / (1 - 0.37))).toFixed(2);
                 }
 
                 // Calculate sale price - special case for 0% margin
@@ -827,7 +827,7 @@ window.Calculate2021 = window.Calculate2021 || function () {
                 msrpcost = Number(dealercost / msrpMargin);
             }
             else {
-                msrpcost = Number((dealercost * msrpVolume) / msrpMargin);
+                msrpcost = Number(dealercost * 0.9 * 0.99 / (1 - 0.37));
             }
         }
         if (mct == 'PERFORMANCE PKG' && (pc == 'L2' || pc == 'L7')) {
