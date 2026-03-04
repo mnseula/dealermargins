@@ -1250,7 +1250,8 @@ def main():
                     'ParentRepName':   (boat.get('ParentRepName') or '').strip(),
                     'Presold':         'Y' if boat.get('Presold') in (1, True, 'Y', 'y') else 'N',
                     'Quantity':        int(boat.get('Quantity') or 1),
-                    'LiquifireImageUrl': cpq_image_urls.get(str(boat.get('ERP_OrderNo', '')), ''),
+                    'LiquifireImageUrl': cpq_image_urls.get(str(boat.get('ERP_OrderNo', '')),
+                                         'https://s3.amazonaws.com/eosstatic/images/0/5880c9a7a9d29ae43164c78f/Generic-01.jpg'),
                     'IsCPQ':           is_cpq,
                 })
 
