@@ -2,17 +2,28 @@
 """
 Export CPQ Order Number → CPQ Quote Number mapping to CSV.
 
-Fetches all Orders from CPQ EQ (PRD), follows OrderedFromQuote GUID to
+Fetches Orders from CPQ EQ (PRD), follows OrderedFromQuote GUID to
 the source Quote entity, and outputs a two-column CSV:
     CPQ_Order_Number, CPQ_Quote_Number
 
 Usage:
-    python3 export_cpq_quote_numbers.py [output.csv]
-    (default output file: cpq_order_quote_numbers.csv)
+    # All orders (full history):
+    python3 export_cpq_quote_numbers.py
+
+    # Orders from a specific date onwards:
+    python3 export_cpq_quote_numbers.py --since 2025-12-15
+
+    # Today's orders only (for daily scheduled runs):
+    python3 export_cpq_quote_numbers.py --today
+
+    # Custom output filename:
+    python3 export_cpq_quote_numbers.py --today --output /path/to/file.csv
 """
+import argparse
 import csv
 import sys
 import time
+from datetime import date, datetime, timezone
 import requests
 import urllib3
 
@@ -28,8 +39,8 @@ TOKEN_URL     = 'https://mingle-sso.inforcloudsuite.com/QA2FNBZCKUAUH7QB_PRD/as/
 BASE          = 'https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_PRD'
 EQ_BASE       = f'{BASE}/CPQEQ/RuntimeApi/EnterpriseQuoting/Entities'
 
-PAGE_SIZE     = 100   # orders per page
-QUOTE_CACHE   = {}    # GUID → QuoteNumberString (avoid duplicate lookups)
+PAGE_SIZE     = 100
+QUOTE_CACHE   = {}    # GUID → QuoteNumberString
 
 
 def get_token():
@@ -44,15 +55,27 @@ def get_token():
     return resp.json()['access_token']
 
 
-def fetch_all_orders(session):
-    """Paginate through all Order entities, return list of dicts."""
+def build_filter(since_date=None, until_date=None):
+    """Build OData $filter string. Always includes the base filter."""
+    parts = ["OrderNumberString gt ''"]
+    if since_date:
+        parts.append(f"CreatedDate ge '{since_date}T00:00:00Z'")
+    if until_date:
+        # until end of that day
+        parts.append(f"CreatedDate lt '{until_date}T00:00:00Z'")
+    return ' and '.join(parts)
+
+
+def fetch_orders(session, since_date=None, until_date=None):
+    """Paginate through Order entities matching the date range."""
     orders = []
     skip = 0
+    odata_filter = build_filter(since_date, until_date)
     while True:
         resp = session.get(f'{EQ_BASE}/Order', params={
-            '$filter':  "OrderNumberString gt ''",
-            '$top':     PAGE_SIZE,
-            '$skip':    skip,
+            '$filter': odata_filter,
+            '$top':    PAGE_SIZE,
+            '$skip':   skip,
         }, verify=False, timeout=60)
         resp.raise_for_status()
         data = resp.json()
@@ -65,13 +88,13 @@ def fetch_all_orders(session):
         if len(page) < PAGE_SIZE:
             break
         skip += PAGE_SIZE
-        time.sleep(0.1)   # be polite to the API
+        time.sleep(0.1)
     print()
     return orders
 
 
 def get_quote_number(session, quote_guid):
-    """Fetch QuoteNumberString for a given Quote GUID. Returns '' if not found."""
+    """Fetch QuoteNumberString for a given Quote GUID."""
     if quote_guid in QUOTE_CACHE:
         return QUOTE_CACHE[quote_guid]
 
@@ -91,9 +114,44 @@ def get_quote_number(session, quote_guid):
 
 
 def main():
-    output_file = sys.argv[1] if len(sys.argv) > 1 else 'cpq_order_quote_numbers.csv'
+    parser = argparse.ArgumentParser(description='Export CPQ Order → Quote Number to CSV')
+    parser.add_argument('--since',  metavar='YYYY-MM-DD', help='Include orders created on or after this date')
+    parser.add_argument('--today',  action='store_true',  help='Include only today\'s orders (for daily runs)')
+    parser.add_argument('--output', metavar='FILE',       help='Output CSV file path')
+    args = parser.parse_args()
 
-    print('Authenticating with CPQ PRD...')
+    today_str = date.today().isoformat()
+
+    # Determine date range
+    since_date = None
+    until_date = None
+
+    if args.today:
+        since_date = today_str
+        # until tomorrow = just today
+        tomorrow = date.today().replace(day=date.today().day + 1)
+        until_date = tomorrow.isoformat()
+    elif args.since:
+        since_date = args.since
+
+    # Determine output filename
+    if args.output:
+        output_file = args.output
+    elif args.today:
+        output_file = f'cpq_orders_{today_str}.csv'
+    else:
+        output_file = 'cpq_order_quote_numbers.csv'
+
+    # Summary of what we're doing
+    if since_date and until_date:
+        print(f'Mode: today ({today_str})')
+    elif since_date:
+        print(f'Mode: since {since_date}')
+    else:
+        print('Mode: all orders (full history)')
+    print(f'Output: {output_file}')
+
+    print('\nAuthenticating with CPQ PRD...')
     token = get_token()
     print('Token OK')
 
@@ -103,9 +161,17 @@ def main():
         'Accept': 'application/json',
     })
 
-    print('\nFetching all CPQ Orders...')
-    orders = fetch_all_orders(session)
+    print('\nFetching CPQ Orders...')
+    orders = fetch_orders(session, since_date=since_date, until_date=until_date)
     print(f'Total orders fetched: {len(orders)}')
+
+    if not orders:
+        print('No orders found for the specified date range.')
+        # Still write an empty CSV with headers
+        with open(output_file, 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=['CPQ_Order_Number', 'CPQ_Quote_Number'])
+            writer.writeheader()
+        return
 
     rows = []
     missing_quote = 0
@@ -136,7 +202,6 @@ def main():
 
     print()
 
-    # Write CSV
     with open(output_file, 'w', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=['CPQ_Order_Number', 'CPQ_Quote_Number'])
         writer.writeheader()
