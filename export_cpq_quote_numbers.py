@@ -118,6 +118,7 @@ def main():
     parser.add_argument('--since',  metavar='YYYY-MM-DD', help='Include orders created on or after this date')
     parser.add_argument('--today',  action='store_true',  help='Include only today\'s orders (for daily runs)')
     parser.add_argument('--output', metavar='FILE',       help='Output CSV file path')
+    parser.add_argument('--append', action='store_true',  help='Append to existing file instead of overwriting')
     args = parser.parse_args()
 
     today_str = date.today().isoformat()
@@ -137,8 +138,6 @@ def main():
     # Determine output filename
     if args.output:
         output_file = args.output
-    elif args.today:
-        output_file = f'cpq_orders_{today_str}.csv'
     else:
         output_file = 'cpq_order_quote_numbers.csv'
 
@@ -167,10 +166,6 @@ def main():
 
     if not orders:
         print('No orders found for the specified date range.')
-        # Still write an empty CSV with headers
-        with open(output_file, 'w', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=['CPQ_Order_Number', 'CPQ_Quote_Number'])
-            writer.writeheader()
         return
 
     rows = []
@@ -202,9 +197,13 @@ def main():
 
     print()
 
-    with open(output_file, 'w', newline='') as f:
+    import os
+    file_exists = os.path.isfile(output_file) and os.path.getsize(output_file) > 0
+    mode = 'a' if args.append and file_exists else 'w'
+    with open(output_file, mode, newline='') as f:
         writer = csv.DictWriter(f, fieldnames=['CPQ_Order_Number', 'CPQ_Quote_Number'])
-        writer.writeheader()
+        if mode == 'w':
+            writer.writeheader()
         writer.writerows(rows)
 
     print(f'\nDone.')
