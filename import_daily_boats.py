@@ -846,6 +846,174 @@ def load_boatoptions_batch(rows: List[Dict], table_name: str, conn) -> int:
 
 
 # ============================================================================
+# STEP 1b — MISSING ENGINE BACKFILL
+# ============================================================================
+
+def build_missing_engines_query(db: str, so_numbers: List[str]) -> str:
+    """
+    For a given list of SO numbers imported today, fetch any engine lines
+    that were invoiced on a different date (and thus missed by the main query).
+    Uses the same BoatOrders CTE to assign the correct BoatSerialNo.
+    """
+    placeholders = ','.join(f"'{so}'" for so in so_numbers)
+    return f"""
+WITH BoatOrders AS (
+    SELECT
+        coi.co_num,
+        coi.site_ref,
+        COALESCE(
+            MAX(CASE
+                WHEN NULLIF(coi.Uf_BENN_BoatSerialNumber, '') LIKE 'ETW%'
+                    THEN NULLIF(coi.Uf_BENN_BoatSerialNumber, '')
+                WHEN ser.ser_num LIKE 'ETW%'
+                    THEN ser.ser_num
+                ELSE NULL
+            END),
+            MAX(NULLIF(coi.Uf_BENN_BoatSerialNumber, '')),
+            MAX(ser.ser_num)
+        ) AS Uf_BENN_BoatSerialNumber,
+        MAX(NULLIF(coi.Uf_BENN_BoatModel, '')) AS Uf_BENN_BoatModel
+    FROM [{db}].[dbo].[coitem_mst] coi
+    LEFT JOIN [{db}].[dbo].[serial_mst] ser
+        ON coi.co_num = ser.ref_num
+        AND coi.co_line = ser.ref_line
+        AND coi.co_release = ser.ref_release
+        AND coi.item = ser.item
+        AND coi.site_ref = ser.site_ref
+        AND ser.ref_type = 'O'
+    LEFT JOIN [{db}].[dbo].[co_mst] co_bo
+        ON coi.co_num = co_bo.co_num
+        AND coi.site_ref = co_bo.site_ref
+    WHERE coi.site_ref = 'BENN'
+        AND coi.co_num IN ({placeholders})
+    GROUP BY coi.co_num, coi.site_ref
+)
+SELECT
+    LEFT(coi.Uf_BENN_BoatWebOrderNumber, 30)             AS [WebOrderNo],
+    LEFT(im.Uf_BENN_Series, 5)                           AS [C_Series],
+    coi.qty_invoiced                                     AS [QuantitySold],
+    LEFT(co.type, 1)                                     AS [Orig_Ord_Type],
+    LEFT(ser.ser_num, 12)                                AS [OptionSerialNo],
+    pcm.description                                      AS [MCTDesc],
+    coi.co_line                                          AS [LineSeqNo],
+    coi.co_line                                          AS [LineNo],
+    LEFT(coi.item, 15)                                   AS [ItemNo],
+    NULL                                                 AS [ItemMasterProdCatDesc],
+    LEFT(im.Uf_BENN_ProductCategory, 3)                  AS [ItemMasterProdCat],
+    LEFT(im.Uf_BENN_MaterialCostType, 10)                AS [ItemMasterMCT],
+    LEFT(coi.description, 100)                           AS [ItemDesc1],
+    LEFT(LTRIM(RTRIM(iim.inv_num)), 30)                  AS [InvoiceNo],
+    CASE WHEN iim.tax_date IS NOT NULL
+         THEN CONVERT(INT, CONVERT(VARCHAR(8), iim.tax_date, 112))
+         ELSE NULL
+    END                                                  AS [InvoiceDate],
+    CAST((coi.price * coi.qty_invoiced) AS DECIMAL(10,2)) AS [ExtSalesAmount],
+    LEFT(coi.co_num, 30)                                 AS [ERP_OrderNo],
+    LEFT(COALESCE(coi.Uf_BENN_BoatSerialNumber, bo.Uf_BENN_BoatSerialNumber), 15) AS [BoatSerialNo],
+    LEFT(COALESCE(coi.Uf_BENN_BoatModel, bo.Uf_BENN_BoatModel), 14) AS [BoatModelNo],
+    NULL                                                 AS [ApplyToNo],
+    ''                                                   AS [ConfigID],
+    ''                                                   AS [ValueText],
+    co.order_date                                        AS [order_date],
+    co.external_confirmation_ref                         AS [external_confirmation_ref],
+    NULL AS [MSRP], NULL AS [CfgName], NULL AS [CfgPage],
+    NULL AS [CfgScreen], NULL AS [CfgValue], NULL AS [CfgAttrType]
+FROM [{db}].[dbo].[coitem_mst] coi
+INNER JOIN BoatOrders bo
+    ON coi.co_num = bo.co_num AND coi.site_ref = bo.site_ref
+LEFT JOIN (
+    SELECT co_num, co_line, site_ref, inv_num, tax_date
+    FROM (
+        SELECT co_num, co_line, site_ref, inv_num, tax_date,
+               ROW_NUMBER() OVER (
+                   PARTITION BY co_num, co_line, site_ref
+                   ORDER BY tax_date DESC, inv_num DESC
+               ) AS rn
+        FROM [{db}].[dbo].[inv_item_mst]
+    ) ranked
+    WHERE rn = 1
+) iim ON coi.co_num = iim.co_num AND coi.co_line = iim.co_line
+     AND coi.site_ref = iim.site_ref
+LEFT JOIN [{db}].[dbo].[co_mst] co
+    ON coi.co_num = co.co_num AND coi.site_ref = co.site_ref
+LEFT JOIN [{db}].[dbo].[item_mst] im
+    ON coi.item = im.item AND coi.site_ref = im.site_ref
+LEFT JOIN [{db}].[dbo].[prodcode_mst] pcm
+    ON im.Uf_BENN_MaterialCostType = pcm.product_code AND im.site_ref = pcm.site_ref
+LEFT JOIN [{db}].[dbo].[serial_mst] ser
+    ON coi.co_num = ser.ref_num AND coi.co_line = ser.ref_line
+    AND coi.co_release = ser.ref_release AND coi.item = ser.item
+    AND coi.site_ref = ser.site_ref AND ser.ref_type = 'O'
+WHERE coi.site_ref = 'BENN'
+    AND coi.co_num IN ({placeholders})
+    AND im.Uf_BENN_MaterialCostType = 'ENG'
+    AND coi.qty_invoiced > 0
+    AND iim.inv_num IS NOT NULL
+    AND iim.inv_num NOT LIKE 'CR%'
+ORDER BY coi.co_num, coi.co_line
+"""
+
+
+def backfill_missing_engines(so_numbers: List[str], mysql_conn) -> int:
+    """
+    For today's imported SOs, check MSSQL for engine lines that were invoiced
+    on a different date and therefore missed by the main daily import query.
+    Only inserts engines not already present in MySQL.
+    """
+    if not so_numbers:
+        return 0
+
+    # Fetch engine rows from MSSQL for today's SOs
+    mssql_conn = pymssql.connect(**MSSQL_CONFIG)
+    cursor = mssql_conn.cursor(as_dict=True)
+    cursor.execute(build_missing_engines_query(MSSQL_DB, so_numbers))
+    engine_rows = cursor.fetchall()
+    cursor.close()
+    mssql_conn.close()
+
+    if not engine_rows:
+        log("No engine rows found for today's SOs in MSSQL")
+        return 0
+
+    log(f"Found {len(engine_rows)} engine row(s) in MSSQL for today's SOs")
+
+    # Check which engines are already in MySQL to avoid duplicates
+    mysql_cursor = mysql_conn.cursor()
+    new_rows = []
+    for row in engine_rows:
+        serial = row.get('BoatSerialNo') or ''
+        item   = row.get('ItemNo') or ''
+        so     = row.get('ERP_OrderNo') or ''
+        line   = row.get('LineNo') or 0
+        if not serial or not item:
+            continue
+        year  = detect_model_year(serial)
+        table = f"{MYSQL_DB}.{get_table_for_year(year)}"
+        mysql_cursor.execute(
+            f"SELECT 1 FROM {table} WHERE BoatSerialNo=%s AND ItemNo=%s AND ERP_OrderNo=%s AND LineNo=%s LIMIT 1",
+            (serial, item, so, line)
+        )
+        if not mysql_cursor.fetchone():
+            new_rows.append(row)
+
+    mysql_cursor.close()
+
+    if not new_rows:
+        log("All engine rows already present in MySQL — nothing to backfill")
+        return 0
+
+    log(f"Backfilling {len(new_rows)} missing engine row(s)...")
+    table_groups = group_by_table(new_rows)
+    inserted = 0
+    for table_name, rows in table_groups.items():
+        load_boatoptions_batch(rows, table_name, mysql_conn)
+        inserted += len(rows)
+
+    log(f"Engine backfill complete — {inserted} row(s) inserted", "SUCCESS")
+    return inserted
+
+
+# ============================================================================
 # STEP 2 — SERIAL NUMBER MASTER LOAD
 # ============================================================================
 
@@ -1128,6 +1296,18 @@ def main():
             table_groups = group_by_table(boat_option_rows)
             for table_name, rows in table_groups.items():
                 bo_results[table_name] = load_boatoptions_batch(rows, table_name, mysql_conn)
+
+            # ── STEP 1b: Engine backfill ─────────────────────────────────────
+            print()
+            log("=" * 60)
+            log("STEP 1b: MISSING ENGINE BACKFILL")
+            log("=" * 60)
+            today_so_numbers = list({
+                row.get('ERP_OrderNo') for row in boat_option_rows
+                if row.get('ERP_OrderNo')
+            })
+            log(f"Checking {len(today_so_numbers)} SO(s) for missing engine rows...")
+            backfill_missing_engines(today_so_numbers, mysql_conn)
             mysql_conn.close()
         else:
             log("No line items found for today.", "WARNING")
