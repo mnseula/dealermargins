@@ -825,7 +825,7 @@ def load_boatoptions_batch(rows: List[Dict], table_name: str, conn) -> int:
                 row.get('ERP_OrderNo'), row.get('BoatSerialNo'), boat_model_no,
                 row.get('LineNo'), row.get('ItemNo'), row.get('ItemDesc1'),
                 row.get('ExtSalesAmount'), row.get('QuantitySold'),
-                row.get('Series') or row.get('C_Series'),
+                row.get('Series') or row.get('C_Series') or _series_from_model(boat_model_no),
                 row.get('WebOrderNo'), row.get('Orig_Ord_Type'), row.get('ApplyToNo'),
                 row.get('InvoiceNo'), row.get('InvoiceDate'), prod_cat,
                 row.get('ItemMasterProdCatDesc'), row.get('ItemMasterMCT'),
@@ -846,6 +846,19 @@ def load_boatoptions_batch(rows: List[Dict], table_name: str, conn) -> int:
 
 
 # ============================================================================
+def _series_from_model(model: str) -> str:
+    """Extract Bennington series from model name when Uf_BENN_Series is NULL.
+    Model format: {2-digit-year}{series}{floorplan}, e.g. '23M1SB' -> 'M1', '22SSB' -> 'S'
+    """
+    if not model:
+        return ''
+    suffix = model[2:] if len(model) > 2 and model[:2].isdigit() else model
+    for s in ('LXS', 'QX', 'SV', 'SX', 'M1', 'M2', 'M3', 'Q', 'R', 'S', 'L', 'M'):
+        if suffix.startswith(s):
+            return s
+    return ''
+
+
 # STEP 1b — MISSING ENGINE BACKFILL
 # ============================================================================
 

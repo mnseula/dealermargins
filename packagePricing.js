@@ -402,10 +402,32 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
             return rec.ItemMasterMCT === 'BOA' || rec.ItemMasterMCT === 'BOI';
         });
 
-        if (boatRecord.length > 0 && boatRecord[0].Series) {
-            console.log('CPQ boat: Using SERIES from boatoptions:', boatRecord[0].Series);
-            window.series = boatRecord[0].Series;
-            window.boatpricingtype = 'reg';  // CPQ boats use regular pricing
+        if (boatRecord.length > 0 && (boatRecord[0].Series || boatRecord[0].C_Series)) {
+            var detectedSeries = boatRecord[0].Series || boatRecord[0].C_Series;
+            console.log('CPQ boat: Using SERIES from boatoptions:', detectedSeries);
+            window.series = detectedSeries;
+            window.boatpricingtype = 'reg';
+        } else if (boatRecord.length > 0 && window.realmodel) {
+            // Series/C_Series is null in DB — extract from model name
+            // Model format: {2-digit-year}{series}{floorplan}, e.g. '23M1SB' → 'M1', '22SSB' → 'S'
+            var modelSuffix = window.realmodel.replace(/^\d{2}/, '');
+            var knownSeries = ['LXS', 'QX', 'SV', 'SX', 'M1', 'M2', 'M3', 'Q', 'R', 'S', 'L', 'M'];
+            var extractedSeries = '';
+            for (var si = 0; si < knownSeries.length; si++) {
+                if (modelSuffix.indexOf(knownSeries[si]) === 0) {
+                    extractedSeries = knownSeries[si];
+                    break;
+                }
+            }
+            if (extractedSeries) {
+                console.log('CPQ boat: Extracted SERIES from model name:', extractedSeries, '(model:', window.realmodel + ')');
+                window.series = extractedSeries;
+                window.boatpricingtype = 'reg';
+            } else {
+                console.log('CPQ boat: Could not extract series from model name:', window.realmodel, '- proceeding without series');
+                window.series = '';
+                window.boatpricingtype = 'reg';
+            }
         } else {
             console.log('ERROR: Could not find boat record in boatoptions for CPQ boat');
             alert('Model was not found! Contact your administrator to report about this error.');
