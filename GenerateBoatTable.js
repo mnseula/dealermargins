@@ -264,15 +264,21 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         $('#hideUnselectedOptionsContainer').remove();
         var currentHideUnselected = (window.hideUnselectedBoatOptions === true);
         
+        var currentHideZeroPrice = (window.hideZeroPriceOptions === true);
         var checkboxHtml = '<div id="hideUnselectedOptionsContainer" style="margin-top: 10px; margin-bottom: 10px;">' +
             '<label style="font-family: Calibri; font-size: 14px; cursor: pointer;">' +
             '<input type="checkbox" id="hideUnselectedOptions" style="margin-right: 5px;"' + (currentHideUnselected ? ' checked' : '') + '>' +
             'Hide unselected boat options' +
             '</label>' +
+            '&nbsp;&nbsp;&nbsp;' +
+            '<label style="font-family: Calibri; font-size: 14px; cursor: pointer;">' +
+            '<input type="checkbox" id="hideZeroPriceOptions" style="margin-right: 5px;"' + (currentHideZeroPrice ? ' checked' : '') + '>' +
+            'Hide $0 options' +
+            '</label>' +
             '</div>';
         $('div[data-ref="INCLUDED/INCLUDED_OPTIONS"]').append(checkboxHtml);
 
-        // Add event handler to filter rows when checkbox is changed
+        // Handler: hide unselected ("No...") items
         $('#hideUnselectedOptions').on('change', function() {
             var hideUnselected = $(this).prop('checked');
             window.hideUnselectedBoatOptions = hideUnselected;
@@ -281,11 +287,24 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
                 if (firstTd.length > 0) {
                     var desc = firstTd.text().trim().toUpperCase();
                     if (desc.startsWith('NO ') || desc.startsWith('NO-')) {
-                        if (hideUnselected) {
-                            $(this).hide();
-                        } else {
-                            $(this).show();
-                        }
+                        $(this).toggle(!hideUnselected);
+                    }
+                }
+            });
+        });
+
+        // Handler: hide $0 price items
+        $('#hideZeroPriceOptions').on('change', function() {
+            var hideZero = $(this).prop('checked');
+            window.hideZeroPriceOptions = hideZero;
+            $('#included tbody tr').each(function() {
+                var msTd = $(this).find('td[type="MS"]');
+                var spTd = $(this).find('td[type="SP"]');
+                if (msTd.length > 0 && spTd.length > 0) {
+                    var msVal = parseFloat(msTd.text().trim()) || 0;
+                    var spVal = parseFloat(spTd.text().trim()) || 0;
+                    if (msVal === 0 && spVal === 0) {
+                        $(this).toggle(!hideZero);
                     }
                 }
             });
@@ -293,9 +312,11 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
 
         // Apply persisted state immediately after render
         $('#hideUnselectedOptions').trigger('change');
+        $('#hideZeroPriceOptions').trigger('change');
     } else {
         $('#hideUnselectedOptionsContainer').remove();
         window.hideUnselectedBoatOptions = false;
+        window.hideZeroPriceOptions = false;
     }
 
     $('[type="SP"],[type="MS"],[type="DC"]').hide();
