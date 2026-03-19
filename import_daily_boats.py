@@ -1027,6 +1027,54 @@ def backfill_missing_engines(so_numbers: List[str], mysql_conn) -> int:
 
 
 # ============================================================================
+# STEP 1c — SWEEP: ALL BOATS MISSING ENGINES (LOOKBACK WINDOW)
+# ============================================================================
+
+def find_sos_missing_engines(mysql_conn, lookback_days: int = 180) -> List[tuple]:
+    """
+    Query MySQL for all (ERP_OrderNo, BoatSerialNo) pairs in BoatOptions26
+    that have a BOA row but no ENG row, within the lookback window.
+    Returns list of (so_number, serial) tuples.
+    """
+    cursor = mysql_conn.cursor()
+    cursor.execute(f"""
+        SELECT DISTINCT b.ERP_OrderNo, b.BoatSerialNo
+        FROM {MYSQL_DB}.BoatOptions26 b
+        WHERE b.ItemMasterMCT = 'BOA'
+          AND b.ERP_OrderNo IS NOT NULL
+          AND b.ERP_OrderNo != ''
+          AND b.BoatSerialNo IS NOT NULL
+          AND b.BoatSerialNo != ''
+          AND b.InvoiceDate >= DATE_FORMAT(CURDATE() - INTERVAL {lookback_days} DAY, '%Y%m%d') + 0
+          AND NOT EXISTS (
+              SELECT 1 FROM {MYSQL_DB}.BoatOptions26 e
+              WHERE e.ERP_OrderNo = b.ERP_OrderNo
+                AND e.ItemMasterMCT = 'ENG'
+          )
+        ORDER BY b.ERP_OrderNo
+    """)
+    rows = cursor.fetchall()
+    cursor.close()
+    return rows
+
+
+def sweep_missing_engines(mysql_conn, lookback_days: int = 180) -> int:
+    """
+    Step 1c: Scan all boats in the lookback window that are missing an engine
+    row and attempt to backfill from CSIPRD. Reuses the same engine query and
+    insert logic as Step 1b.
+    """
+    missing = find_sos_missing_engines(mysql_conn, lookback_days)
+    if not missing:
+        log("Step 1c: No boats missing engines found in the lookback window")
+        return 0
+
+    so_numbers = list({row[0] for row in missing})
+    log(f"Step 1c: Found {len(missing)} boat(s) missing engines across {len(so_numbers)} SO(s) — querying CSIPRD...")
+    return backfill_missing_engines(so_numbers, mysql_conn)
+
+
+# ============================================================================
 # STEP 2 — SERIAL NUMBER MASTER LOAD
 # ============================================================================
 
@@ -1321,6 +1369,13 @@ def main():
             })
             log(f"Checking {len(today_so_numbers)} SO(s) for missing engine rows...")
             backfill_missing_engines(today_so_numbers, mysql_conn)
+
+            # ── STEP 1c: Sweep all boats missing engines (180-day window) ────
+            print()
+            log("=" * 60)
+            log("STEP 1c: SWEEP — ALL BOATS MISSING ENGINES (180-DAY WINDOW)")
+            log("=" * 60)
+            sweep_missing_engines(mysql_conn, lookback_days=180)
             mysql_conn.close()
         else:
             log("No line items found for today.", "WARNING")
