@@ -365,7 +365,7 @@ def build_serial_master_query(db: str) -> str:
         coi.qty_invoiced                        AS Quantity,
         coi.config_id                           AS ConfigId,
         co.external_confirmation_ref            AS SoNumber,
-        NULL                                    AS ParentRepName
+        ''                                      AS ParentRepName
     FROM [{db}].[dbo].[coitem_mst] coi
     LEFT JOIN [{db}].[dbo].[serial_mst] ser
         ON coi.co_num = ser.ref_num
@@ -1015,7 +1015,30 @@ def backfill_missing_engines(so_numbers: List[str], mysql_conn) -> int:
         log("All engine rows already present in MySQL — nothing to backfill")
         return 0
 
-    log(f"Backfilling {len(new_rows)} missing engine row(s)...")
+    # Look up dealer info for each boat being backfilled
+    serials = list({r.get('BoatSerialNo') for r in new_rows if r.get('BoatSerialNo')})
+    dealer_map = {}
+    if serials:
+        dl_cursor = mysql_conn.cursor()
+        fmt = ','.join(['%s'] * len(serials))
+        dl_cursor.execute(
+            f"SELECT Boat_SerialNo, DealerName, DealerNumber FROM {MYSQL_DB}.SerialNumberMaster "
+            f"WHERE Boat_SerialNo IN ({fmt})",
+            serials
+        )
+        for sn, dname, dnum in dl_cursor.fetchall():
+            dealer_map[sn] = (dname or '', dnum or '')
+        dl_cursor.close()
+
+    log(f"Backfilling {len(new_rows)} missing engine row(s):")
+    for r in new_rows:
+        sn      = r.get('BoatSerialNo', '')
+        so      = r.get('ERP_OrderNo', '')
+        desc    = r.get('ItemDesc1', '')
+        item    = r.get('ItemNo', '')
+        dname, dnum = dealer_map.get(sn, ('', ''))
+        log(f"  Engine backfilled: SO={so}  Boat={sn}  Engine={item} ({desc})  Dealer={dname} ({dnum})")
+
     table_groups = group_by_table(new_rows)
     inserted = 0
     for table_name, rows in table_groups.items():
@@ -1110,7 +1133,7 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
                 BaseVinyl     = CASE WHEN %s <> '' THEN %s ELSE BaseVinyl     END,
                 ColorPackage  = CASE WHEN %s <> '' THEN %s ELSE ColorPackage  END,
                 TrimAccent    = CASE WHEN %s <> '' THEN %s ELSE TrimAccent    END,
-                ParentRepName = CASE WHEN %s <> '' THEN %s ELSE ParentRepName END
+                ParentRepName = COALESCE(CASE WHEN %s <> '' THEN %s ELSE ParentRepName END, '')
             WHERE Boat_SerialNo = %s
         """
         update_data = [
@@ -1225,7 +1248,7 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
                 BaseVinyl     = CASE WHEN %s <> '' THEN %s ELSE BaseVinyl     END,
                 ColorPackage  = CASE WHEN %s <> '' THEN %s ELSE ColorPackage  END,
                 TrimAccent    = CASE WHEN %s <> '' THEN %s ELSE TrimAccent    END,
-                ParentRepName = CASE WHEN %s <> '' THEN %s ELSE ParentRepName END
+                ParentRepName = COALESCE(CASE WHEN %s <> '' THEN %s ELSE ParentRepName END, '')
             WHERE Boat_SerialNo = %s
         """
         update_data = [
