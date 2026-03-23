@@ -13,7 +13,7 @@ if not exist "%OUTPUT_DIR%" mkdir "%OUTPUT_DIR%"
 
 REM Run Python script
 pushd "%SCRIPT_DIR%"
-E:\Python\python.exe "%PYTHON_SCRIPT%" --since 2025-12-15 --output "%OUTPUT_CSV%"
+E:\Python\python.exe -u "%PYTHON_SCRIPT%" --since 2025-12-15 --output "%OUTPUT_CSV%"
 set EXIT_CODE=%ERRORLEVEL%
 popd
 
