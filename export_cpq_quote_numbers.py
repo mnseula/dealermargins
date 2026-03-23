@@ -21,9 +21,10 @@ Usage:
 """
 import argparse
 import csv
+import os
 import sys
 import time
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 import requests
 import urllib3
 
@@ -130,7 +131,7 @@ def main():
     if args.today:
         since_date = today_str
         # until tomorrow = just today
-        tomorrow = date.today().replace(day=date.today().day + 1)
+        tomorrow = date.today() + timedelta(days=1)
         until_date = tomorrow.isoformat()
     elif args.since:
         since_date = args.since
@@ -197,7 +198,6 @@ def main():
 
     print()
 
-    import os
     file_exists = os.path.isfile(output_file) and os.path.getsize(output_file) > 0
     mode = 'a' if args.append and file_exists else 'w'
     with open(output_file, mode, newline='') as f:
