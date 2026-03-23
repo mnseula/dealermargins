@@ -14,7 +14,7 @@ if not exist "%OUTPUT_DIR%" mkdir "%OUTPUT_DIR%"
 REM Run Python script
 pushd "%SCRIPT_DIR%"
 @REM E:\Python\python.exe -u "%PYTHON_SCRIPT%" --since 2025-12-15 --output "%OUTPUT_CSV%"
-E:\Python\python.exe -u "%PYTHON_SCRIPT%" --today --output "%OUTPUT_CSV%"
+E:\Python\python.exe -u "%PYTHON_SCRIPT%" --today --append --output "%OUTPUT_CSV%"
 set EXIT_CODE=%ERRORLEVEL%
 popd
 
