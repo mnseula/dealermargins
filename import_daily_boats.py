@@ -1098,6 +1098,63 @@ def sweep_missing_engines(mysql_conn, lookback_days: int = 180) -> int:
 
 
 # ============================================================================
+# STEP 1d — SWEEP: CPQ BOATS MISSING LIQUIFIRE IMAGE (LOOKBACK WINDOW)
+# ============================================================================
+
+def sweep_missing_liquifire_urls(mysql_conn, lookback_days: int = 180) -> int:
+    """
+    Step 1d: Find CPQ boats (ERP_OrderNo LIKE 'SO%') in the lookback window
+    whose LiquifireImageUrl is NULL, fetch the real URL from CPQ, and update
+    SerialNumberMaster.
+    """
+    cursor = mysql_conn.cursor()
+    cursor.execute(f"""
+        SELECT Boat_SerialNo, ERP_OrderNo, BoatItemNo
+        FROM {MYSQL_DB}.SerialNumberMaster
+        WHERE ERP_OrderNo LIKE 'SO%%'
+          AND LiquifireImageUrl IS NULL
+          AND InvoiceDateYYYYMMDD >= DATE_FORMAT(CURDATE() - INTERVAL {lookback_days} DAY, '%Y%m%d') + 0
+        ORDER BY ERP_OrderNo DESC
+    """)
+    rows = cursor.fetchall()
+    cursor.close()
+
+    if not rows:
+        log("Step 1d: No CPQ boats missing Liquifire URLs in the lookback window")
+        return 0
+
+    so_numbers  = [r[1] for r in rows]
+    itemno_map  = {r[1]: r[2] for r in rows}
+    serial_map  = {r[1]: r[0] for r in rows}
+
+    log(f"Step 1d: Found {len(rows)} CPQ boat(s) missing Liquifire URLs — querying CPQ PRD...")
+    image_urls = fetch_cpq_image_urls(so_numbers, itemno_map=itemno_map)
+
+    if not image_urls:
+        log("Step 1d: No image URLs returned from CPQ")
+        return 0
+
+    cursor = mysql_conn.cursor()
+    updated = 0
+    for so, url in image_urls.items():
+        serial = serial_map.get(so)
+        if not serial or not url:
+            continue
+        cursor.execute(
+            f"UPDATE {MYSQL_DB}.SerialNumberMaster SET LiquifireImageUrl = %s WHERE Boat_SerialNo = %s",
+            (url, serial)
+        )
+        if cursor.rowcount:
+            log(f"  Image updated: {serial} ({so}) — {url[:80]}...")
+            updated += 1
+
+    mysql_conn.commit()
+    cursor.close()
+    log(f"Step 1d: Updated Liquifire URLs for {updated} boat(s)", "SUCCESS")
+    return updated
+
+
+# ============================================================================
 # STEP 2 — SERIAL NUMBER MASTER LOAD
 # ============================================================================
 
@@ -1399,6 +1456,13 @@ def main():
             log("STEP 1c: SWEEP — ALL BOATS MISSING ENGINES (180-DAY WINDOW)")
             log("=" * 60)
             sweep_missing_engines(mysql_conn, lookback_days=180)
+
+            # ── STEP 1d: Sweep CPQ boats missing Liquifire image URLs ────────
+            print()
+            log("=" * 60)
+            log("STEP 1d: SWEEP — CPQ BOATS MISSING LIQUIFIRE IMAGE (180-DAY WINDOW)")
+            log("=" * 60)
+            sweep_missing_liquifire_urls(mysql_conn, lookback_days=180)
             mysql_conn.close()
         else:
             log("No line items found for today.", "WARNING")
