@@ -51,20 +51,6 @@ You can have multiple `<Test_Verenia_BoatLine>` elements within a single `<Test_
 
 ---
 
-## 3. Update BennTermsCode
-
-Change `BennTermsCode` from `NK` to `N3`:
-
-```xml
-<!-- Before -->
-<BennTermsCode>NK</BennTermsCode>
-
-<!-- After -->
-<BennTermsCode>N3</BennTermsCode>
-```
-
----
-
 ## Complete Example
 
 **Working XML Structure:**
@@ -79,8 +65,6 @@ Change `BennTermsCode` from `NK` to `N3`:
                 <ID>559236~0</ID>  <!-- Keep ~0 suffix -->
             </PartyIDs>
         </ShipToParty>
-        ...
-        <BennTermsCode>N3</BennTermsCode>  <!-- Use N3, not NK -->
         ...
     </Test_Verenia_BoatHeader>
     <Test_Verenia_BoatLine>
@@ -102,7 +86,6 @@ Change `BennTermsCode` from `NK` to `N3`:
 2. ✅ Multiple lines per order are fine
 3. ✅ Set `ue_LastRecord=0` for all lines except the last
 4. ✅ Set `ue_LastRecord=1` for the last line only
-5. ✅ Change `BennTermsCode` from `NK` to `N3`
 
 ---
 
@@ -111,4 +94,3 @@ Change `BennTermsCode` from `NK` to `N3`:
 - **2026-03-26**: Corrected instructions after successful Syteline acceptance
   - Multiple lines per order confirmed working
   - `~0` suffix should remain on ShipToParty IDs
-  - BennTermsCode should be `N3`
