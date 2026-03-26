@@ -883,12 +883,15 @@ if (tableClone) {
                 }
             }
         }
-        // Remove struck rows from print output entirely
+        // Struck rows print with strikethrough so there's a clear record
         if (window.struckRows && window.struckRows.size > 0) {
             var eyeBtn = row.querySelector('.row-eye-btn');
             if (eyeBtn && window.struckRows.has(eyeBtn.getAttribute('data-rowkey'))) {
-                row.remove();
-                return;
+                var tds = row.querySelectorAll('td');
+                tds.forEach(function(td) {
+                    td.style.textDecoration = 'line-through';
+                    td.style.color = '#aaa';
+                });
             }
         }
     });
