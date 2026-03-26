@@ -853,39 +853,48 @@ wsContents += "    <div class=\"title\">INCLUDED OPTIONS <\/div>";
 
 // Clone the table and apply active filters before printing
 var includedTableHtml = document.getElementById('included').outerHTML;
-if (window.hideUnselectedBoatOptions || window.hideZeroPriceOptions) {
-    var tempDiv = document.createElement('div');
-    tempDiv.innerHTML = includedTableHtml;
-    var tableClone = tempDiv.querySelector('#included');
-    if (tableClone) {
-        var rows = tableClone.querySelectorAll('tbody tr');
-        rows.forEach(function(row) {
-            // Filter "No..." items
-            if (window.hideUnselectedBoatOptions) {
-                var firstTd = row.querySelector('td:first-child');
-                if (firstTd) {
-                    var desc = firstTd.textContent.trim().toUpperCase();
-                    if (desc.startsWith('NO ') || desc.startsWith('NO-')) {
-                        row.remove();
-                        return;
-                    }
+var tempDiv = document.createElement('div');
+tempDiv.innerHTML = includedTableHtml;
+var tableClone = tempDiv.querySelector('#included');
+if (tableClone) {
+    var rows = tableClone.querySelectorAll('tbody tr');
+    rows.forEach(function(row) {
+        // Filter "No..." items
+        if (window.hideUnselectedBoatOptions) {
+            var firstTd = row.querySelector('td:first-child');
+            if (firstTd) {
+                var desc = firstTd.textContent.trim().toUpperCase();
+                if (desc.startsWith('NO ') || desc.startsWith('NO-')) {
+                    row.remove();
+                    return;
                 }
             }
-            // Filter $0 items
-            if (window.hideZeroPriceOptions) {
-                var msTd = row.querySelector('td[type="MS"]');
-                var spTd = row.querySelector('td[type="SP"]');
-                if (msTd && spTd) {
-                    var msVal = parseFloat(msTd.textContent.trim()) || 0;
-                    var spVal = parseFloat(spTd.textContent.trim()) || 0;
-                    if (msVal === 0 && spVal === 0) {
-                        row.remove();
-                    }
+        }
+        // Filter $0 items
+        if (window.hideZeroPriceOptions) {
+            var msTd = row.querySelector('td[type="MS"]');
+            var spTd = row.querySelector('td[type="SP"]');
+            if (msTd && spTd) {
+                var msVal = parseFloat(msTd.textContent.trim()) || 0;
+                var spVal = parseFloat(spTd.textContent.trim()) || 0;
+                if (msVal === 0 && spVal === 0) {
+                    row.remove();
+                    return;
                 }
             }
-        });
-        includedTableHtml = tableClone.outerHTML;
-    }
+        }
+        // Filter manually hidden rows
+        if (window.hiddenRows && window.hiddenRows.size > 0) {
+            var cb = row.querySelector('.row-hide-cb');
+            if (cb && window.hiddenRows.has(cb.getAttribute('data-rowkey'))) {
+                row.remove();
+                return;
+            }
+        }
+    });
+    // Strip checkbox elements so they don't appear in print output
+    tableClone.querySelectorAll('.row-hide-cb').forEach(function(cb) { cb.remove(); });
+    includedTableHtml = tableClone.outerHTML;
 }
 
 wsContents += "    <div id=\"includedoptions\">" + includedTableHtml + "<\/div>";

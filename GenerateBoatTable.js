@@ -122,7 +122,8 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
             //}
             //At the end here is where we should do the skips
         } else if (mct !== 'ENGINES' && inc !== '1' && mct !== 'PRE-RIG' && mct !== 'Disc - Selling') {
-            rows = rows + '<tr>' + '<td>' + escapeHtml(desc) + '</td><td>' + escapeHtml(itemno) + '</td><td align="center">' + qty + '</td><td type="DC" align="right">' + dc + '</td><td type="MS" align="right">' + msrp + '</td><td type="SP" align="right">' + sp + '</td></tr>';
+            var rowKey = (itemno + '_' + desc).replace(/"/g, '&quot;');
+            rows = rows + '<tr><td><input type="checkbox" class="row-hide-cb" data-rowkey="' + rowKey + '" style="margin-right:4px;vertical-align:middle;cursor:pointer">' + escapeHtml(desc) + '</td><td>' + escapeHtml(itemno) + '</td><td align="center">' + qty + '</td><td type="DC" align="right">' + dc + '</td><td type="MS" align="right">' + msrp + '</td><td type="SP" align="right">' + sp + '</td></tr>';
             rowstotal_SP = rowstotal_SP + Number(sp);
             rowstotal_MS = rowstotal_MS + Number(msrp);
         } else {
@@ -256,6 +257,30 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
 
     //Append and Set and Make Read Only
     $('div[data-ref="INCLUDED/INCLUDED_OPTIONS"]').append(table);
+
+    // Row-hiding: initialize session state and attach handler
+    if (!window.hiddenRows) { window.hiddenRows = new Set(); }
+
+    // Re-apply previously hidden rows after re-render
+    $('#included tbody tr').each(function() {
+        var cb = $(this).find('.row-hide-cb');
+        if (cb.length && window.hiddenRows.has(cb.attr('data-rowkey'))) {
+            cb.prop('checked', true);
+            $(this).hide();
+        }
+    });
+
+    // Handler: toggle row visibility and persist in session state
+    $('#included').on('change', '.row-hide-cb', function() {
+        var key = $(this).attr('data-rowkey');
+        if ($(this).prop('checked')) {
+            window.hiddenRows.add(key);
+            $(this).closest('tr').hide();
+        } else {
+            window.hiddenRows.delete(key);
+            $(this).closest('tr').show();
+        }
+    });
 
     // CPQ BOAT ONLY: Add checkbox to hide unselected options (items starting with "No")
     var isCpqBoat = (pkgrowtotal_SP > 0);
