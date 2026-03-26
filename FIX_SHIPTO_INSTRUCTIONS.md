@@ -1,39 +1,17 @@
-# Fix ShipTo Party ID ~0 Suffix
+# Syteline XML Fix Instructions
 
-## Problem
-Syteline rejects orders where the ShipTo Party ID contains a `~0` suffix (e.g., `559236~0`).
+## Correct Approach (Updated 2026-03-26)
 
-## Error Pattern
-```xml
-<ShipToParty>
-    <PartyIDs>
-        <ID>559236~0</ID>  <!-- INVALID - contains ~0 -->
-    </PartyIDs>
-</ShipToParty>
-```
+After testing, the following fixes were confirmed to work with Syteline:
 
-## Solution
-Remove the `~0` suffix from the ShipTo Party ID.
+---
+
+## 1. Keep ShipTo `~0` Suffix
+
+**IMPORTANT:** Do NOT remove the `~0` suffix from ShipToParty IDs. Syteline accepts them as-is.
 
 ```xml
-<ShipToParty>
-    <PartyIDs>
-        <ID>559236</ID>  <!-- FIXED - removed ~0 -->
-    </PartyIDs>
-</ShipToParty>
-```
-
-## Instructions for LLM
-
-1. Find all `<ShipToParty><PartyIDs><ID>` elements in the XML
-2. Check if the ID value ends with `~0`
-3. If it does, remove the `~0` suffix, keeping only the numeric portion before it
-4. Leave all other elements unchanged
-
-## Example Fix
-
-**Before:**
-```xml
+<!-- CORRECT - Keep the ~0 suffix -->
 <ShipToParty>
     <PartyIDs>
         <ID>559236~0</ID>
@@ -41,107 +19,96 @@ Remove the `~0` suffix from the ShipTo Party ID.
 </ShipToParty>
 ```
 
-**After:**
-```xml
-<ShipToParty>
-    <PartyIDs>
-        <ID>559236</ID>
-    </PartyIDs>
-</ShipToParty>
-```
+---
 
-## Notes
-- Only modify ShipToParty IDs
-- Do NOT modify CarrierParty or other Party IDs
-- The fix is a simple string replacement: remove trailing `~0`
+## 2. Multiple Lines Per Order Are Allowed
+
+You can have multiple `<Test_Verenia_BoatLine>` elements within a single `<Test_Verenia_Boat>`.
+
+**Key Rule:** Set `ue_LastRecord` correctly:
+- `ue_LastRecord=0` for all lines EXCEPT the last
+- `ue_LastRecord=1` for the LAST line only
+
+```xml
+<Test_Verenia_Boat>
+    <Test_Verenia_BoatHeader>
+        ...
+    </Test_Verenia_BoatHeader>
+    <Test_Verenia_BoatLine>
+        ...
+        <ue_LastRecord>0</ue_LastRecord>  <!-- First line: 0 -->
+    </Test_Verenia_BoatLine>
+    <Test_Verenia_BoatLine>
+        ...
+        <ue_LastRecord>0</ue_LastRecord>  <!-- Middle line: 0 -->
+    </Test_Verenia_BoatLine>
+    <Test_Verenia_BoatLine>
+        ...
+        <ue_LastRecord>1</ue_LastRecord>  <!-- Last line: 1 -->
+    </Test_Verenia_BoatLine>
+</Test_Verenia_Boat>
+```
 
 ---
 
-# Fix Multi-Line Orders Not Accepted by Syteline
+## 3. Update BennTermsCode
 
-## Problem
-Syteline only accepted the first 2 orders (S1 and S2). Orders with multiple line items may not process correctly.
+Change `BennTermsCode` from `NK` to `N3`:
 
-## Original Structure (Problem)
+```xml
+<!-- Before -->
+<BennTermsCode>NK</BennTermsCode>
+
+<!-- After -->
+<BennTermsCode>N3</BennTermsCode>
+```
+
+---
+
+## Complete Example
+
+**Working XML Structure:**
 ```xml
 <Test_Verenia_Boat>
     <Test_Verenia_BoatHeader>
-        <AlternateDocumentID><ID>WP0523359-S1</ID></AlternateDocumentID>
+        <AlternateDocumentID>
+            <ID>WP0523443-S1</ID>
+        </AlternateDocumentID>
+        <ShipToParty>
+            <PartyIDs>
+                <ID>559236~0</ID>  <!-- Keep ~0 suffix -->
+            </PartyIDs>
+        </ShipToParty>
+        ...
+        <BennTermsCode>N3</BennTermsCode>  <!-- Use N3, not NK -->
         ...
     </Test_Verenia_BoatHeader>
-    <Test_Verenia_BoatLine>...line -01...</Test_Verenia_BoatLine>
-    <Test_Verenia_BoatLine>...line -02...</Test_Verenia_BoatLine>  <!-- Multiple lines in one order -->
+    <Test_Verenia_BoatLine>
+        ...
+        <ue_LastRecord>0</ue_LastRecord>  <!-- Not the last line -->
+    </Test_Verenia_BoatLine>
+    <Test_Verenia_BoatLine>
+        ...
+        <ue_LastRecord>1</ue_LastRecord>  <!-- Last line -->
+    </Test_Verenia_BoatLine>
 </Test_Verenia_Boat>
 ```
 
-## Solution
-Separate each line item into its own `<Test_Verenia_Boat>` wrapper with a unique order suffix (S1, S2, S3, etc.).
+---
 
-## Instructions for LLM
+## Summary Checklist
 
-1. Identify all `<Test_Verenia_BoatLine>` elements
-2. For each line, create a separate `<Test_Verenia_Boat>` block
-3. Increment the order suffix (S1, S2, S3, S4, etc.)
-4. Update `<AlternateDocumentID><ID>` to match (e.g., `WP0523359-S3`)
-5. Copy the `<Test_Verenia_BoatHeader>` for each new order
-6. Include only ONE `<Test_Verenia_BoatLine>` per order
-7. Set `ue_LastRecord` to `1` for each line (since it's now the only line)
+1. ✅ Keep `~0` suffix on ShipToParty IDs (do NOT remove)
+2. ✅ Multiple lines per order are fine
+3. ✅ Set `ue_LastRecord=0` for all lines except the last
+4. ✅ Set `ue_LastRecord=1` for the last line only
+5. ✅ Change `BennTermsCode` from `NK` to `N3`
 
-## Example Fix
+---
 
-**Before (Order S2 with 4 lines):**
-```xml
-<Test_Verenia_Boat>
-    <Test_Verenia_BoatHeader>
-        <AlternateDocumentID><ID>WP0523359-S2</ID></AlternateDocumentID>
-        ...
-    </Test_Verenia_BoatHeader>
-    <Test_Verenia_BoatLine>...line -03...</Test_Verenia_BoatLine>
-    <Test_Verenia_BoatLine>...line -04...</Test_Verenia_BoatLine>
-    <Test_Verenia_BoatLine>...line -05...</Test_Verenia_BoatLine>
-    <Test_Verenia_BoatLine>...line -06...</Test_Verenia_BoatLine>
-</Test_Verenia_Boat>
-```
+## History
 
-**After (4 separate orders):**
-```xml
-<Test_Verenia_Boat>
-    <Test_Verenia_BoatHeader>
-        <AlternateDocumentID><ID>WP0523359-S3</ID></AlternateDocumentID>
-        ...
-    </Test_Verenia_BoatHeader>
-    <Test_Verenia_BoatLine>...line -03...</Test_Verenia_BoatLine>
-</Test_Verenia_Boat>
-
-<Test_Verenia_Boat>
-    <Test_Verenia_BoatHeader>
-        <AlternateDocumentID><ID>WP0523359-S4</ID></AlternateDocumentID>
-        ...
-    </Test_Verenia_BoatHeader>
-    <Test_Verenia_BoatLine>...line -04...</Test_Verenia_BoatLine>
-</Test_Verenia_Boat>
-
-<Test_Verenia_Boat>
-    <Test_Verenia_BoatHeader>
-        <AlternateDocumentID><ID>WP0523359-S5</ID></AlternateDocumentID>
-        ...
-    </Test_Verenia_BoatHeader>
-    <Test_Verenia_BoatLine>...line -05...</Test_Verenia_BoatLine>
-</Test_Verenia_Boat>
-
-<Test_Verenia_Boat>
-    <Test_Verenia_BoatHeader>
-        <AlternateDocumentID><ID>WP0523359-S6</ID></AlternateDocumentID>
-        ...
-    </Test_Verenia_BoatHeader>
-    <Test_Verenia_BoatLine>...line -06...</Test_Verenia_BoatLine>
-</Test_Verenia_Boat>
-```
-
-## What Was Fixed (2026-03-24)
-- Original file: `sytelineExport_2026_3_24 13_56.xml`
-- Lines -01 and -02 were already separate (S1, S2)
-- Lines -03 through -06 were grouped under S2
-- Split lines -03, -04, -05, -06 into separate orders S3, S4, S5, S6
-- Each order now contains exactly one line item
-- All headers preserved with updated AlternateDocumentID
+- **2026-03-26**: Corrected instructions after successful Syteline acceptance
+  - Multiple lines per order confirmed working
+  - `~0` suffix should remain on ShipToParty IDs
+  - BennTermsCode should be `N3`
