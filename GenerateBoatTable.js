@@ -285,32 +285,37 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         }
     });
 
-    // CPQ BOAT ONLY: Add checkbox to hide unselected options (items starting with "No")
+    // ALL BOATS: Add checkboxes for unselected options (CPQ only) and $0 strikethrough
     var isCpqBoat = (pkgrowtotal_SP > 0);
-    if (isCpqBoat) {
-        // Remove existing checkbox if present (prevents duplicates on DOM reload)
-        $('#hideUnselectedOptionsContainer').remove();
-        var currentHideUnselected = (window.hideUnselectedBoatOptions === true);
-        
-        var currentStrikeZeroPrice = (window.strikeZeroPriceOptions === true);
-        var checkboxHtml = '<div id="hideUnselectedOptionsContainer" style="margin-top: 10px; margin-bottom: 10px;">' +
-            '<label style="font-family: Calibri; font-size: 14px; cursor: pointer;">' +
-            '<input type="checkbox" id="hideUnselectedOptions" style="margin-right: 5px;"' + (currentHideUnselected ? ' checked' : '') + '>' +
-            'Hide unselected boat options' +
-            '</label>' +
-            '&nbsp;&nbsp;&nbsp;' +
-            '<label style="font-family: Calibri; font-size: 14px; cursor: pointer;">' +
-            '<input type="checkbox" id="strikeZeroPriceOptions" style="margin-right: 5px;"' + (currentStrikeZeroPrice ? ' checked' : '') + '>' +
-            'Strike out $0 options' +
-            '</label>' +
-            '<div style="margin-top: 8px; font-family: Calibri; font-size: 11px; color: #888; line-height: 1.5;">' +
-            '&#128065; Click the eye icon next to any item to strike it out &mdash; it will stay visible here so you have a record, but it will <strong>not</strong> appear on the printed window sticker. ' +
-            'Use the checkboxes above to strike out entire groups at once. Click the eye again to undo.' +
-            '</div>' +
-            '</div>';
-        $('div[data-ref="INCLUDED/INCLUDED_OPTIONS"]').append(checkboxHtml);
 
-        // Handler: hide unselected ("No...") items
+    // Remove existing container if present (prevents duplicates on DOM reload)
+    $('#hideUnselectedOptionsContainer').remove();
+    var currentHideUnselected = (window.hideUnselectedBoatOptions === true);
+    var currentStrikeZeroPrice = (window.strikeZeroPriceOptions === true);
+
+    // "Hide unselected" only relevant for CPQ boats (they have "No..." items)
+    var hideUnselectedHtml = isCpqBoat
+        ? '<label style="font-family: Calibri; font-size: 14px; cursor: pointer;">' +
+          '<input type="checkbox" id="hideUnselectedOptions" style="margin-right: 5px;"' + (currentHideUnselected ? ' checked' : '') + '>' +
+          'Hide unselected boat options' +
+          '</label>&nbsp;&nbsp;&nbsp;'
+        : '';
+
+    var checkboxHtml = '<div id="hideUnselectedOptionsContainer" style="margin-top: 10px; margin-bottom: 10px;">' +
+        hideUnselectedHtml +
+        '<label style="font-family: Calibri; font-size: 14px; cursor: pointer;">' +
+        '<input type="checkbox" id="strikeZeroPriceOptions" style="margin-right: 5px;"' + (currentStrikeZeroPrice ? ' checked' : '') + '>' +
+        'Strike out $0 options' +
+        '</label>' +
+        '<div style="margin-top: 8px; font-family: Calibri; font-size: 11px; color: #888; line-height: 1.5;">' +
+        '&#128065; Click the eye icon next to any item to strike it out &mdash; it will stay visible here so you have a record, but it will <strong>not</strong> appear on the printed window sticker. ' +
+        'Use the checkboxes above to strike out entire groups at once. Click the eye again to undo.' +
+        '</div>' +
+        '</div>';
+    $('div[data-ref="INCLUDED/INCLUDED_OPTIONS"]').append(checkboxHtml);
+
+    // Handler: hide unselected ("No...") items — CPQ boats only
+    if (isCpqBoat) {
         $('#hideUnselectedOptions').on('change', function() {
             var hideUnselected = $(this).prop('checked');
             window.hideUnselectedBoatOptions = hideUnselected;
@@ -324,43 +329,39 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
                 }
             });
         });
+    }
 
-        // Handler: strike out $0 price items using the same eye/strikethrough mechanism
-        $('#strikeZeroPriceOptions').on('change', function() {
-            var strikeZero = $(this).prop('checked');
-            window.strikeZeroPriceOptions = strikeZero;
-            $('#included tbody tr').each(function() {
-                var eyeBtn = $(this).find('.row-eye-btn');
-                if (!eyeBtn.length) return;
-                var msTd = $(this).find('td[type="MS"]');
-                var spTd = $(this).find('td[type="SP"]');
-                if (msTd.length && spTd.length) {
-                    var msVal = parseFloat(msTd.text().trim()) || 0;
-                    var spVal = parseFloat(spTd.text().trim()) || 0;
-                    if (msVal === 0 && spVal === 0) {
-                        var key = eyeBtn.attr('data-rowkey');
-                        if (strikeZero) {
-                            window.struckRows.add(key);
-                            $(this).find('td').css({ 'text-decoration': 'line-through', 'color': '#aaa' });
-                            eyeBtn.css({ 'text-decoration': 'line-through', 'opacity': '0.35' }).attr('title', 'Click to restore');
-                        } else {
-                            window.struckRows.delete(key);
-                            $(this).find('td').css({ 'text-decoration': '', 'color': '' });
-                            eyeBtn.css({ 'text-decoration': '', 'opacity': '' }).attr('title', 'Click to strike out');
-                        }
+    // Handler: strike out $0 price items using the same eye/strikethrough mechanism
+    $('#strikeZeroPriceOptions').on('change', function() {
+        var strikeZero = $(this).prop('checked');
+        window.strikeZeroPriceOptions = strikeZero;
+        $('#included tbody tr').each(function() {
+            var eyeBtn = $(this).find('.row-eye-btn');
+            if (!eyeBtn.length) return;
+            var msTd = $(this).find('td[type="MS"]');
+            var spTd = $(this).find('td[type="SP"]');
+            if (msTd.length && spTd.length) {
+                var msVal = parseFloat(msTd.text().trim()) || 0;
+                var spVal = parseFloat(spTd.text().trim()) || 0;
+                if (msVal === 0 && spVal === 0) {
+                    var key = eyeBtn.attr('data-rowkey');
+                    if (strikeZero) {
+                        window.struckRows.add(key);
+                        $(this).find('td').css({ 'text-decoration': 'line-through', 'color': '#aaa' });
+                        eyeBtn.css({ 'text-decoration': 'line-through', 'opacity': '0.35' }).attr('title', 'Click to restore');
+                    } else {
+                        window.struckRows.delete(key);
+                        $(this).find('td').css({ 'text-decoration': '', 'color': '' });
+                        eyeBtn.css({ 'text-decoration': '', 'opacity': '' }).attr('title', 'Click to strike out');
                     }
                 }
-            });
+            }
         });
+    });
 
-        // Apply persisted state immediately after render
-        $('#hideUnselectedOptions').trigger('change');
-        $('#strikeZeroPriceOptions').trigger('change');
-    } else {
-        $('#hideUnselectedOptionsContainer').remove();
-        window.hideUnselectedBoatOptions = false;
-        window.strikeZeroPriceOptions = false;
-    }
+    // Apply persisted state immediately after render
+    if (isCpqBoat) { $('#hideUnselectedOptions').trigger('change'); }
+    $('#strikeZeroPriceOptions').trigger('change');
 
     $('[type="SP"],[type="MS"],[type="DC"]').hide();
     //$('[type="DC"]').show();
