@@ -452,7 +452,7 @@ wsContents += "    text-align:center;}";
 
 
 wsContents += "#standards {";
-wsContents += "    font-size: 10px;}";
+wsContents += "    font-size: 9px;}";
 wsContents += "<\/style>";
 wsContents += "<\/head>";
 wsContents += "<body>";
@@ -809,7 +809,7 @@ wsContents += "    <div class=\"title\" id=\"standardstitle\">STANDARD FEATURES<
 // CPQ boats: Use window.cpqStandardFeatures if user is authorized and data is available, otherwise use legacy stds
 if (isCpqAuthorized && window.cpqStandardFeatures) {
     console.log('Using CPQ standard features');
-    var standardsHtml = '<br>'; // Add space before first section
+    var standardsHtml = '';
 
     // Format: Area • feature1 • feature2 • feature3 •
     var areas = ['Interior Features', 'Exterior Features', 'Console Features', 'Warranty'];
@@ -823,7 +823,7 @@ if (isCpqAuthorized && window.cpqStandardFeatures) {
     areas.forEach(function(area) {
         if (window.cpqStandardFeatures[area] && window.cpqStandardFeatures[area].length > 0) {
             standardsHtml += '<strong>' + areaLabels[area] + '<\/strong> • ';
-            standardsHtml += window.cpqStandardFeatures[area].join(' • ') + ' •<br><br>';
+            standardsHtml += window.cpqStandardFeatures[area].join(' • ') + ' •<br>';
         }
     });
 
