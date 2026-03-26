@@ -883,17 +883,20 @@ if (tableClone) {
                 }
             }
         }
-        // Filter manually hidden rows
-        if (window.hiddenRows && window.hiddenRows.size > 0) {
-            var cb = row.querySelector('.row-hide-cb');
-            if (cb && window.hiddenRows.has(cb.getAttribute('data-rowkey'))) {
-                row.remove();
-                return;
+        // Apply strikethrough styling for struck rows (kept in print, just styled)
+        if (window.struckRows && window.struckRows.size > 0) {
+            var eyeBtn = row.querySelector('.row-eye-btn');
+            if (eyeBtn && window.struckRows.has(eyeBtn.getAttribute('data-rowkey'))) {
+                var tds = row.querySelectorAll('td');
+                tds.forEach(function(td) {
+                    td.style.textDecoration = 'line-through';
+                    td.style.color = '#aaa';
+                });
             }
         }
     });
-    // Strip checkbox elements so they don't appear in print output
-    tableClone.querySelectorAll('.row-hide-cb').forEach(function(cb) { cb.remove(); });
+    // Strip eye button elements so they don't appear in print output
+    tableClone.querySelectorAll('.row-eye-btn').forEach(function(btn) { btn.remove(); });
     includedTableHtml = tableClone.outerHTML;
 }
 
