@@ -870,20 +870,7 @@ if (tableClone) {
                 }
             }
         }
-        // Filter $0 items
-        if (window.hideZeroPriceOptions) {
-            var msTd = row.querySelector('td[type="MS"]');
-            var spTd = row.querySelector('td[type="SP"]');
-            if (msTd && spTd) {
-                var msVal = parseFloat(msTd.textContent.trim()) || 0;
-                var spVal = parseFloat(spTd.textContent.trim()) || 0;
-                if (msVal === 0 && spVal === 0) {
-                    row.remove();
-                    return;
-                }
-            }
-        }
-        // Struck rows are excluded from the window sticker entirely
+        // Struck rows are excluded from the window sticker entirely (covers $0 struck via checkbox too)
         if (window.struckRows && window.struckRows.size > 0) {
             var eyeBtn = row.querySelector('.row-eye-btn');
             if (eyeBtn && window.struckRows.has(eyeBtn.getAttribute('data-rowkey'))) {

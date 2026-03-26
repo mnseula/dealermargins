@@ -170,10 +170,7 @@ if(previouslySaved === 0){
             if (window.hideUnselectedBoatOptions && (upperItemdesc.startsWith('NO ') || upperItemdesc.startsWith('NO-'))) {
                 return; // Skip this item
             }
-            // Skip $0 items if hideZeroPriceOptions is checked
-            if (window.hideZeroPriceOptions && Number(boattable[i].MSRP) === 0 && Number(boattable[i].SalePrice) === 0) {
-                return;
-            }
+            // $0 items are handled via strikethrough in GenerateBoatTable (not filtered here)
             // New template: data-itemno stores itemno, value stores description, name uses itemno
             optionsList += newOptionItem1 + escapeHtmlAttribute(itemno) + newOptionItem2 + escapeHtmlAttribute(itemdesc) + newOptionItem3 + escapeHtmlAttribute(itemno) + newOptionItem4;
         }

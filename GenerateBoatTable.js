@@ -292,7 +292,7 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         $('#hideUnselectedOptionsContainer').remove();
         var currentHideUnselected = (window.hideUnselectedBoatOptions === true);
         
-        var currentHideZeroPrice = (window.hideZeroPriceOptions === true);
+        var currentStrikeZeroPrice = (window.strikeZeroPriceOptions === true);
         var checkboxHtml = '<div id="hideUnselectedOptionsContainer" style="margin-top: 10px; margin-bottom: 10px;">' +
             '<label style="font-family: Calibri; font-size: 14px; cursor: pointer;">' +
             '<input type="checkbox" id="hideUnselectedOptions" style="margin-right: 5px;"' + (currentHideUnselected ? ' checked' : '') + '>' +
@@ -300,9 +300,13 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
             '</label>' +
             '&nbsp;&nbsp;&nbsp;' +
             '<label style="font-family: Calibri; font-size: 14px; cursor: pointer;">' +
-            '<input type="checkbox" id="hideZeroPriceOptions" style="margin-right: 5px;"' + (currentHideZeroPrice ? ' checked' : '') + '>' +
-            'Hide $0 options' +
+            '<input type="checkbox" id="strikeZeroPriceOptions" style="margin-right: 5px;"' + (currentStrikeZeroPrice ? ' checked' : '') + '>' +
+            'Strike out $0 options' +
             '</label>' +
+            '<div style="margin-top: 8px; font-family: Calibri; font-size: 11px; color: #888; line-height: 1.5;">' +
+            '&#128065; Click the eye icon next to any item to strike it out &mdash; it will stay visible here so you have a record, but it will <strong>not</strong> appear on the printed window sticker. ' +
+            'Use the checkboxes above to strike out entire groups at once. Click the eye again to undo.' +
+            '</div>' +
             '</div>';
         $('div[data-ref="INCLUDED/INCLUDED_OPTIONS"]').append(checkboxHtml);
 
@@ -321,18 +325,29 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
             });
         });
 
-        // Handler: hide $0 price items
-        $('#hideZeroPriceOptions').on('change', function() {
-            var hideZero = $(this).prop('checked');
-            window.hideZeroPriceOptions = hideZero;
+        // Handler: strike out $0 price items using the same eye/strikethrough mechanism
+        $('#strikeZeroPriceOptions').on('change', function() {
+            var strikeZero = $(this).prop('checked');
+            window.strikeZeroPriceOptions = strikeZero;
             $('#included tbody tr').each(function() {
+                var eyeBtn = $(this).find('.row-eye-btn');
+                if (!eyeBtn.length) return;
                 var msTd = $(this).find('td[type="MS"]');
                 var spTd = $(this).find('td[type="SP"]');
-                if (msTd.length > 0 && spTd.length > 0) {
+                if (msTd.length && spTd.length) {
                     var msVal = parseFloat(msTd.text().trim()) || 0;
                     var spVal = parseFloat(spTd.text().trim()) || 0;
                     if (msVal === 0 && spVal === 0) {
-                        $(this).toggle(!hideZero);
+                        var key = eyeBtn.attr('data-rowkey');
+                        if (strikeZero) {
+                            window.struckRows.add(key);
+                            $(this).find('td').css({ 'text-decoration': 'line-through', 'color': '#aaa' });
+                            eyeBtn.css({ 'text-decoration': 'line-through', 'opacity': '0.35' }).attr('title', 'Click to restore');
+                        } else {
+                            window.struckRows.delete(key);
+                            $(this).find('td').css({ 'text-decoration': '', 'color': '' });
+                            eyeBtn.css({ 'text-decoration': '', 'opacity': '' }).attr('title', 'Click to strike out');
+                        }
                     }
                 }
             });
@@ -340,11 +355,11 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
 
         // Apply persisted state immediately after render
         $('#hideUnselectedOptions').trigger('change');
-        $('#hideZeroPriceOptions').trigger('change');
+        $('#strikeZeroPriceOptions').trigger('change');
     } else {
         $('#hideUnselectedOptionsContainer').remove();
         window.hideUnselectedBoatOptions = false;
-        window.hideZeroPriceOptions = false;
+        window.strikeZeroPriceOptions = false;
     }
 
     $('[type="SP"],[type="MS"],[type="DC"]').hide();
