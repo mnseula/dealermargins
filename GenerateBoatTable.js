@@ -293,16 +293,11 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     var currentHideUnselected = (window.hideUnselectedBoatOptions === true);
     var currentStrikeZeroPrice = (window.strikeZeroPriceOptions === true);
 
-    // "Hide unselected" only relevant for CPQ boats (they have "No..." items)
-    var hideUnselectedHtml = isCpqBoat
-        ? '<label style="font-family: Calibri; font-size: 14px; cursor: pointer;">' +
-          '<input type="checkbox" id="hideUnselectedOptions" style="margin-right: 5px;"' + (currentHideUnselected ? ' checked' : '') + '>' +
-          'Hide unselected boat options' +
-          '</label>&nbsp;&nbsp;&nbsp;'
-        : '';
-
     var checkboxHtml = '<div id="hideUnselectedOptionsContainer" style="margin-top: 10px; margin-bottom: 10px;">' +
-        hideUnselectedHtml +
+        '<label style="font-family: Calibri; font-size: 14px; cursor: pointer;">' +
+        '<input type="checkbox" id="hideUnselectedOptions" style="margin-right: 5px;"' + (currentHideUnselected ? ' checked' : '') + '>' +
+        'Hide unselected boat options' +
+        '</label>&nbsp;&nbsp;&nbsp;' +
         '<label style="font-family: Calibri; font-size: 14px; cursor: pointer;">' +
         '<input type="checkbox" id="strikeZeroPriceOptions" style="margin-right: 5px;"' + (currentStrikeZeroPrice ? ' checked' : '') + '>' +
         'Strike out $0 options' +
@@ -314,22 +309,20 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         '</div>';
     $('div[data-ref="INCLUDED/INCLUDED_OPTIONS"]').append(checkboxHtml);
 
-    // Handler: hide unselected ("No...") items — CPQ boats only
-    if (isCpqBoat) {
-        $('#hideUnselectedOptions').on('change', function() {
-            var hideUnselected = $(this).prop('checked');
-            window.hideUnselectedBoatOptions = hideUnselected;
-            $('#included tbody tr').each(function() {
-                var firstTd = $(this).find('td:first');
-                if (firstTd.length > 0) {
-                    var desc = firstTd.text().trim().toUpperCase();
-                    if (desc.startsWith('NO ') || desc.startsWith('NO-')) {
-                        $(this).toggle(!hideUnselected);
-                    }
+    // Handler: hide unselected ("No...") items
+    $('#hideUnselectedOptions').on('change', function() {
+        var hideUnselected = $(this).prop('checked');
+        window.hideUnselectedBoatOptions = hideUnselected;
+        $('#included tbody tr').each(function() {
+            var firstTd = $(this).find('td:first');
+            if (firstTd.length > 0) {
+                var desc = firstTd.text().trim().toUpperCase();
+                if (desc.startsWith('NO ') || desc.startsWith('NO-')) {
+                    $(this).toggle(!hideUnselected);
                 }
-            });
+            }
         });
-    }
+    });
 
     // Handler: strike out $0 price items using the same eye/strikethrough mechanism
     $('#strikeZeroPriceOptions').on('change', function() {
@@ -360,7 +353,7 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     });
 
     // Apply persisted state immediately after render
-    if (isCpqBoat) { $('#hideUnselectedOptions').trigger('change'); }
+    $('#hideUnselectedOptions').trigger('change');
     $('#strikeZeroPriceOptions').trigger('change');
 
     $('[type="SP"],[type="MS"],[type="DC"]').hide();
