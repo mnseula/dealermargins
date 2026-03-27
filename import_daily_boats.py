@@ -612,8 +612,14 @@ def _normalize_liquifire_url(url: str, item_no: str = '') -> str:
     If CPQ returns a non-Liquifire URL (e.g. configurator.inforcloudsuite.com),
     skip straight to the item_no fallbacks.
     """
+    cpq_model = ''
     if 'liquifire.com' not in url:
-        # Not a Liquifire URL — skip to item_no fallbacks below
+        # Not a Liquifire URL (e.g. configurator.inforcloudsuite.com).
+        # Extract the model name from the filename (e.g. HighRes2026_23MSB.png → 23MSB)
+        # so we can try it in Liquifire before falling back to the EOS item_no.
+        m = _re.search(r'HighRes\d+_([A-Za-z0-9]+)\.png', url)
+        if m:
+            cpq_model = m.group(1)
         url = f"{_LIQUIFIRE_BASE}?set=cat[pon],asset[],view[]&call=url[file:PS/main]&sink"
 
     candidates = [
@@ -643,6 +649,12 @@ def _normalize_liquifire_url(url: str, item_no: str = '') -> str:
                 stripped_configured,
                 f"{_LIQUIFIRE_BASE}?set=cat[pon],asset[{stripped_no}],view[side]&call=url[file:PS/main]&sink",
             ]
+
+    # If CPQ returned a configurator URL with a model name, try that in Liquifire first
+    if cpq_model:
+        candidates += [
+            f"{_LIQUIFIRE_BASE}?set=cat[pon],asset[{cpq_model}],view[side]&call=url[file:PS/main]&sink",
+        ]
 
     for candidate in candidates:
         if _is_valid_liquifire_image(candidate):
