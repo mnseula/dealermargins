@@ -937,7 +937,7 @@ SELECT
     COALESCE(NULLIF(coi.qty_invoiced, 0), coi.qty_ordered) AS [QuantitySold],
     LEFT(co.type, 1)                                     AS [Orig_Ord_Type],
     LEFT(ser.ser_num, 12)                                AS [OptionSerialNo],
-    COALESCE(pcm.description, 'ENGINES')                 AS [MCTDesc],
+    COALESCE(pcm.description, 'Engine')                  AS [MCTDesc],
     coi.co_line                                          AS [LineSeqNo],
     coi.co_line                                          AS [LineNo],
     LEFT(coi.item, 15)                                   AS [ItemNo],
