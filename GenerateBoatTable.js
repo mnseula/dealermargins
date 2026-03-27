@@ -258,7 +258,14 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     //Append and Set and Make Read Only
     $('div[data-ref="INCLUDED/INCLUDED_OPTIONS"]').append(table);
 
-    // Row-strikethrough: initialize session state and attach handler
+    // Row-strikethrough: reset state when navigating to a new boat
+    var currentSerial = getValue('BOAT_INFO', 'HULL_NO') || '';
+    if (!window.generatorLastSerial || window.generatorLastSerial !== currentSerial) {
+        window.struckRows = new Set();
+        window.strikeZeroPriceOptions = false;
+        window.hideUnselectedBoatOptions = false;
+        window.generatorLastSerial = currentSerial;
+    }
     if (!window.struckRows) { window.struckRows = new Set(); }
 
     // Re-apply previously struck rows after re-render
