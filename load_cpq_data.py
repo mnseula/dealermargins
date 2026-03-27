@@ -123,7 +123,7 @@ def fetch_model_prices(token: str) -> List[Dict]:
                         'model_id': str(item['value']).strip(),
                         'series': custom_props.get('Series', ''),
                         'parent_series': custom_props.get('ParentSeries', ''),
-                        'msrp': custom_props.get('Price', 0),
+                        'msrp': custom_props.get('Price') or 0,
                         'floorplan': custom_props.get('Floorplan', ''),
                         'floorplan_desc': custom_props.get('FloorplanDesc', ''),
                         'length': custom_props.get('Length', ''),
@@ -218,7 +218,7 @@ def load_model_prices_to_db(cursor, models: List[Dict]):
             )
 
             # Insert/update pricing (only if MSRP > 0)
-            if model['msrp'] > 0:
+            if (model['msrp'] or 0) > 0:
                 # Check if price changed
                 cursor.execute(
                     "SELECT pricing_id FROM ModelPricing WHERE model_id = %s AND end_date IS NULL AND msrp = %s",
