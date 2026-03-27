@@ -626,6 +626,17 @@ def _normalize_liquifire_url(url: str, item_no: str = '') -> str:
             f"{_LIQUIFIRE_BASE}?set=cat[pon],asset[{item_no}],view[side]&call=url[file:PS/main]&sink",
             f"{_LIQUIFIRE_BASE}?set=cat[pon],asset[{item_no}],view[]&call=url[file:PS/main]&sink",
         ]
+        # Some EOS item numbers have a middle digit Liquifire doesn't use (e.g. 23M1SB → 23MSB).
+        # Strip a single digit between the series letters and try those variants too.
+        stripped_no = _re.sub(r'^(\d{2}[A-Za-z]+)\d([A-Za-z].*)$', r'\1\2', item_no)
+        if stripped_no != item_no:
+            stripped_configured = _re.sub(r'asset\[[^\]]*\]', f'asset[{stripped_no}]', url)
+            stripped_configured = _re.sub(r'view\[[^\]]*\]', 'view[side]', stripped_configured)
+            stripped_configured = _re.sub(r'cat\[[^\]]*\]', 'cat[pon]', stripped_configured)
+            candidates += [
+                stripped_configured,
+                f"{_LIQUIFIRE_BASE}?set=cat[pon],asset[{stripped_no}],view[side]&call=url[file:PS/main]&sink",
+            ]
 
     for candidate in candidates:
         if _is_valid_liquifire_image(candidate):
