@@ -102,7 +102,7 @@ function bindSelect() {
             // EngineSerialNoMaster may not have been populated yet (e.g. engine backfilled
             // by Step 1b on a different invoice date). Fall back to BoatOptions26 directly.
             var boatOptionsTable = 'BoatOptions' + model_year;
-            var engRow = loadByListName(boatOptionsTable, "WHERE BoatSerialNo = '" + serial + "' AND (ItemMasterMCT = 'ENG' OR ItemMasterMCT = 'ENGINES') LIMIT 1");
+            var engRow = loadByListName(boatOptionsTable, "WHERE BoatSerialNo = '" + serial + "' AND ItemMasterMCT = 'ENG' LIMIT 1");
             if (engRow && engRow.length > 0) {
                 var engineERPNo = engRow[0].ERP_OrderNo || '';
                 console.log('engineRec fallback: found engine in BoatOptions, ERP_OrderNo =', engineERPNo);
