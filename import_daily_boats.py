@@ -609,7 +609,13 @@ def _normalize_liquifire_url(url: str, item_no: str = '') -> str:
       4. cat[pon], asset[{item_no}], view[side]   ← bare hull fallback
       5. cat[pon], asset[{item_no}], view[]        ← last resort
     Liquifire returns a tiny GIF (~3-4KB) for invalid combinations.
+    If CPQ returns a non-Liquifire URL (e.g. configurator.inforcloudsuite.com),
+    skip straight to the item_no fallbacks.
     """
+    if 'liquifire.com' not in url:
+        # Not a Liquifire URL — skip to item_no fallbacks below
+        url = f"{_LIQUIFIRE_BASE}?set=cat[pon],asset[],view[]&call=url[file:PS/main]&sink"
+
     candidates = [
         _re.sub(r'cat\[[^\]]*\]', 'cat[orthographic]', url),
         _re.sub(r'cat\[[^\]]*\]', 'cat[pon]', url),
