@@ -933,7 +933,8 @@ WITH BoatOrders AS (
 SELECT
     LEFT(coi.Uf_BENN_BoatWebOrderNumber, 30)             AS [WebOrderNo],
     LEFT(im.Uf_BENN_Series, 5)                           AS [C_Series],
-    coi.qty_invoiced                                     AS [QuantitySold],
+    -- Use qty_ordered for engines not yet invoiced (drop-ship pending)
+    COALESCE(NULLIF(coi.qty_invoiced, 0), coi.qty_ordered) AS [QuantitySold],
     LEFT(co.type, 1)                                     AS [Orig_Ord_Type],
     LEFT(ser.ser_num, 12)                                AS [OptionSerialNo],
     pcm.description                                      AS [MCTDesc],
@@ -949,7 +950,7 @@ SELECT
          THEN CONVERT(INT, CONVERT(VARCHAR(8), iim.tax_date, 112))
          ELSE NULL
     END                                                  AS [InvoiceDate],
-    CAST((coi.price * coi.qty_invoiced) AS DECIMAL(10,2)) AS [ExtSalesAmount],
+    CAST((coi.price * COALESCE(NULLIF(coi.qty_invoiced, 0), coi.qty_ordered)) AS DECIMAL(10,2)) AS [ExtSalesAmount],
     LEFT(coi.co_num, 30)                                 AS [ERP_OrderNo],
     LEFT(COALESCE(coi.Uf_BENN_BoatSerialNumber, bo.Uf_BENN_BoatSerialNumber), 15) AS [BoatSerialNo],
     LEFT(COALESCE(coi.Uf_BENN_BoatModel, bo.Uf_BENN_BoatModel), 14) AS [BoatModelNo],
@@ -989,8 +990,7 @@ LEFT JOIN [{db}].[dbo].[serial_mst] ser
 WHERE coi.site_ref = 'BENN'
     AND coi.co_num IN ({placeholders})
     AND im.Uf_BENN_MaterialCostType = 'ENG'
-    AND coi.qty_invoiced > 0
-    AND iim.inv_num IS NOT NULL
+    AND coi.qty_ordered > 0
     AND iim.inv_num NOT LIKE 'CR%'
 ORDER BY coi.co_num, coi.co_line
 """
