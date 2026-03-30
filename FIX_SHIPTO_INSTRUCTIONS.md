@@ -101,6 +101,7 @@ You can have multiple `<Test_Verenia_BoatLine>` elements within a single `<Test_
 
 ## History
 
+- **2026-03-30**: Saved WP0523856 (charge parts, dealer 557300~0, 2 lines: item 021565 qty 2 @ $1190 + item 800001 qty 2 @ $30) — multi-line order, `ue_LastRecord=0` on first line, `ue_LastRecord=1` on last line
 - **2026-03-30**: Saved WN0523811 (no charge parts, dealer 559236~0, item 021665) — XML was already correct, single line with `ue_LastRecord=1`
 - **2026-03-26**: Corrected instructions after successful Syteline acceptance
   - Multiple lines per order confirmed working
