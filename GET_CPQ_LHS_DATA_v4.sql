@@ -27,6 +27,7 @@ SELECT
     -- Use performance package deck_length if available, otherwise fall back to Models table
     COALESCE(mp.deck_length_str, m.deck_length_str) AS deck_length,
     mp.tube_height,
+    mp.transom,
     mp.pontoon_gauge AS pontoon_diameter,
     -- Engine configuration: use field if available, otherwise derive from twin_engine flag
     COALESCE(
