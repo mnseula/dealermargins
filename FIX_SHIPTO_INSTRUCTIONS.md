@@ -89,8 +89,19 @@ You can have multiple `<Test_Verenia_BoatLine>` elements within a single `<Test_
 
 ---
 
+## What to Do With a New XML
+
+1. Verify `ShipToParty` ID keeps the `~0` (or `~N`) suffix — do NOT strip it
+2. If multiple lines: set `ue_LastRecord=0` on all but the last, `ue_LastRecord=1` on the last
+3. If single line: set `ue_LastRecord=1`
+4. Save the file as `sytelineExport_YYYY-MM-DD.xml` (use today's date)
+5. Commit and push to git
+
+---
+
 ## History
 
+- **2026-03-30**: Saved WN0523811 (no charge parts, dealer 559236~0, item 021665) — XML was already correct, single line with `ue_LastRecord=1`
 - **2026-03-26**: Corrected instructions after successful Syteline acceptance
   - Multiple lines per order confirmed working
   - `~0` suffix should remain on ShipToParty IDs
