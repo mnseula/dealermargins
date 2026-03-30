@@ -629,21 +629,22 @@ if (isCpqAuthorized && window.cpqLhsData && window.cpqLhsData.model_id) {
         pontoonGauge = parseFloat(cpqData.pontoon_gauge).toFixed(2);
     }
 
-    // Format package name - extract transom height from package ID
+    // Format package name using actual API values (no_of_tubes, pontoon_gauge, transom)
     var packageName = 'Standard Package';
     if (cpqData.perf_package_id && cpqData.no_of_tubes) {
         var tubes = Math.round(parseFloat(cpqData.no_of_tubes));
-        var tubeSize = (tubes === 3) ? '27' : '25';
-        packageName = tubes + '. With ' + tubeSize + ' Tubes';
+        // Derive tube diameter from pontoon_gauge (0.08 -> 25", 0.10 -> 27") — from API
+        var tubeSize = '';
+        if (cpqData.pontoon_gauge === '0.08' || cpqData.pontoon_gauge === 0.08) {
+            tubeSize = '25';
+        } else if (cpqData.pontoon_gauge === '0.10' || cpqData.pontoon_gauge === 0.10) {
+            tubeSize = '27';
+        }
+        packageName = tubes + '. With' + (tubeSize ? ' ' + tubeSize + '"' : '') + ' Tubes';
 
-        // Extract transom height from package ID (e.g., "25_IN_22" -> "22", "EXPRESS_20" -> "20")
-        var transomMatch = cpqData.perf_package_id.match(/_(\d+)$/);
-        if (transomMatch) {
-            var transomHeight = transomMatch[1];
-            packageName += ' (' + transomHeight + '" transom)';
-        } else if (cpqData.package_name && cpqData.package_name !== cpqData.perf_package_id) {
-            // Use package name if different from ID
-            packageName += ' (' + cpqData.package_name + ')';
+        // Use transom field from API directly
+        if (cpqData.transom) {
+            packageName += ' (' + cpqData.transom + '" transom)';
         }
     }
 
