@@ -80,6 +80,29 @@ You can have multiple `<Test_Verenia_BoatLine>` elements within a single `<Test_
 
 ---
 
+## 3. Orphaned Lines (Line Exported in Verenia but Missing in Syteline)
+
+**Symptom:** A line shows up in `warrantyparts.PartsOrderLines` with `OrdLineStatus = 'Exported'` but `ERP_OrderNo` is empty. The other line(s) on the same order are already in Syteline.
+
+**Cause:** The original XML split the order into multiple separate `<Test_Verenia_Boat>` elements (e.g., S1 and S2). Only one shipment made it into Syteline.
+
+**Fix:** Re-process the full `PartsOrderID` through the Verenia "Create XML" button — not just the orphaned line. Syteline will receive all lines grouped together and add the missing one to the existing order.
+
+**What NOT to do:**
+- Do NOT change `ShipmentID` in MySQL to match line 1 — line 1 is already taken in Syteline and this risks a conflict or duplicate
+- Do NOT submit just the orphaned line as a standalone XML — Syteline will create a new separate order instead of attaching to the existing one
+- Do NOT manually craft an XML with the same `AlternateDocumentID` as the existing order — Syteline ignores it and still creates a new order
+
+**MySQL query to find orphaned lines:**
+```sql
+SELECT * FROM warrantyparts.PartsOrderLines
+WHERE OrdLineStatus = 'Exported'
+AND (ERP_OrderNo IS NULL OR ERP_OrderNo = '')
+AND OrdLineSttusLastUpd NOT LIKE '3/31/2026%';
+```
+
+---
+
 ## Summary Checklist
 
 1. ✅ Keep `~0` suffix on ShipToParty IDs (do NOT remove)
