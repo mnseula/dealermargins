@@ -1,0 +1,89 @@
+<ProcessTest_Verenia_Boat xmlns='http://schema.infor.com/InforOAGIS/2' xmlns:xs='http://www.w3.org/2001/XMLSchema'>
+                  <ApplicationArea>
+                       <Sender>
+                           <LogicalID>infor.file.test_verenia_boat_sftp</LogicalID>
+                           <ComponentID>External</ComponentID>
+                           <ConfirmationCode>OnError</ConfirmationCode>
+                       </Sender>
+                       <CreationDateTime>2023-09-07T16:34:51.379Z</CreationDateTime>
+                       <BODID>infor.file.test_verenia_boat_sftp:1694104491379:ee1ccf40-6bcd-4c72-8b61-8709239345eb</BODID>
+                   </ApplicationArea>
+                   <DataArea>
+                       <Process>
+                       <AccountingEntityID xmlns=""/>
+                       <LocationID xmlns=""/>
+                       <ActionCriteria>
+                           <ActionExpression actionCode='Add'/>
+                       </ActionCriteria>
+                       </Process><Test_Verenia_Boat>
+                            <Test_Verenia_BoatHeader>
+                                <AlternateDocumentID>
+                                    <ID>WP0523751-S1</ID>
+                                </AlternateDocumentID>
+                                <ShipToParty>
+                                    <PartyIDs>
+                                        <ID>557300~0</ID>
+                                    </PartyIDs>
+                                </ShipToParty>
+                                <CarrierParty>
+                                    <PartyIDs>
+                                        <ID>UPS</ID>
+                                    </PartyIDs>
+                                </CarrierParty>
+                                <PaymentTerm>
+                                    <Term>
+                                        <ID>P2</ID>
+                                    </Term>
+                                </PaymentTerm>
+                                <PurchaseOrderReference>
+                                    <DocumentID>
+                                        <ID>COHEN/RO</ID>
+                                    </DocumentID>
+                                </PurchaseOrderReference>
+                                <OrderDateTime>3/26/2026</OrderDateTime>
+                                <ue_BennOrderType>CHARGE PARTS</ue_BennOrderType>
+                                <ue_EngineForBoat/>
+                                <ue_PreSold/>
+                                <ue_ShowBoat/>
+                                <ue_RentalBoat/>
+                                <PanelColor>CHAMPAGNE</PanelColor>
+                                <BaseVinyl/>
+                                <BuildComments/>
+                                <DealerComments/>
+                                <BoatModel>2575RCWDR</BoatModel>
+                                <BoatSerialNo>ETWA2048E414</BoatSerialNo>
+                                <ShippingMethod>UPS</ShippingMethod>
+                                <BennTermsCode>NK</BennTermsCode>
+                                <ue_International>0</ue_International>
+                                <ue_InternationalType></ue_InternationalType>
+                                <ue_SpecialInstructions></ue_SpecialInstructions>
+                                <ue_Reason></ue_Reason>
+                                <ue_LoadNumber/>
+                                <ue_BennOwned></ue_BennOwned>
+                                <ue_CustTrackingEmail>jonathan@whiteslandingmarina.com</ue_CustTrackingEmail>
+                            </Test_Verenia_BoatHeader>
+                             <Test_Verenia_BoatLine>
+                                                <Item>
+                                                    <ItemID>
+                                                        <ID>014220</ID>
+                                                    </ItemID>
+                                                </Item>
+                                                <Quantity unitCode="EA">1</Quantity>
+                                                <WarrantyClaimNo/>
+                                                <WarrantyClaimLineID/>
+                                                <UnitPrice>275.00</UnitPrice>
+                                                <ShippingInstructions/>
+                                                <PartsWebOrderNo>WP0523751-02</PartsWebOrderNo>
+                                                <ue_LastRecord>1</ue_LastRecord>
+                                                <ue_Dealer_Comments/>
+                                                <ue_Details_Sublet_Comments/>
+                                                <ue_Item_Desc>REMOTE CLARION W/LCD
+42-MW1</ue_Item_Desc>
+                                                <ue_RGA>0</ue_RGA>
+                                                <ue_RGA_Date></ue_RGA_Date>
+                                                <ue_Estimated_Shipping_Date>2026-04-17</ue_Estimated_Shipping_Date>
+                                                <ue_TransactionId>WP0523751-02</ue_TransactionId>
+                                                <ue_Alternate_Shipping_Location></ue_Alternate_Shipping_Location>
+                                            </Test_Verenia_BoatLine></Test_Verenia_Boat>
+                </DataArea>
+                </ProcessTest_Verenia_Boat>
