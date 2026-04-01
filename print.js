@@ -109,8 +109,16 @@ if (!hasAnswer('PRINT_PHOTO', 'PRINT_PHOTO')) {
     // CPQ boats: use Liquifire image — already loaded in window.cpqLhsData by getunregisteredboats.js
     if (window.isCPQBoat) {
         if (window.cpqLhsData && window.cpqLhsData.image_url) {
-            imgUrl = window.cpqLhsData.image_url;
-            console.log('Using Liquifire image from cpqLhsData:', imgUrl);
+            var candidateUrl = window.cpqLhsData.image_url;
+            // Validate it's a real boat render — furniture-only URLs have view[] (empty) and asset[furn_m_std]
+            var isBoatImage = candidateUrl.indexOf('view[side]') !== -1 ||
+                              candidateUrl.indexOf('view[orthographic]') !== -1;
+            if (isBoatImage) {
+                imgUrl = candidateUrl;
+                console.log('Using Liquifire image from cpqLhsData:', imgUrl);
+            } else {
+                console.log('Liquifire URL for', serial, 'is not a boat render (furniture-only) — falling back to legacy image');
+            }
         } else {
             console.log('No Liquifire image in cpqLhsData for', serial);
         }
