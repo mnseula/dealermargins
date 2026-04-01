@@ -880,6 +880,9 @@ if (tableClone) {
             }
         }
     });
+    // Remove write-in rows from DOM capture — they will be re-added from window.writeInItems below
+    tableClone.querySelectorAll('tr.writein-row').forEach(function(row) { row.remove(); });
+
     // Apply description edits from window.descEdits (keyed by rowKey)
     if (window.descEdits) {
         tableClone.querySelectorAll('.desc-editable[data-rowkey]').forEach(function(span) {
