@@ -882,6 +882,11 @@ if (tableClone) {
     });
     // Strip eye button elements so they don't appear in print output
     tableClone.querySelectorAll('.row-eye-btn').forEach(function(btn) { btn.remove(); });
+    // Strip contenteditable and dashed outlines from write-in rows
+    tableClone.querySelectorAll('[contenteditable]').forEach(function(el) {
+        el.removeAttribute('contenteditable');
+        el.style.outline = '';
+    });
     includedTableHtml = tableClone.outerHTML;
 }
 

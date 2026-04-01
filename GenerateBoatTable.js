@@ -316,6 +316,36 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         '</div>';
     $('div[data-ref="INCLUDED/INCLUDED_OPTIONS"]').append(checkboxHtml);
 
+    // Write-in item button
+    $('#writeInItemContainer').remove();
+    var writeInHtml = '<div id="writeInItemContainer" style="margin-top: 6px; margin-bottom: 4px;">' +
+        '<button id="addWriteInItem" style="font-family: Calibri; font-size: 13px; cursor: pointer; padding: 3px 10px;">+ Add write-in item</button>' +
+        '</div>';
+    $('div[data-ref="INCLUDED/INCLUDED_OPTIONS"]').append(writeInHtml);
+
+    $('#addWriteInItem').off('click').on('click', function() {
+        var writeInCount = $('#included tbody tr.writein-row').length + 1;
+        var rowKey = 'writein-' + Date.now();
+        var newRow = '<tr class="writein-row">' +
+            '<td><span class="row-eye-btn" data-rowkey="' + rowKey + '" title="Click to strike out" style="cursor:pointer;margin-right:5px;font-size:14px;vertical-align:middle;user-select:none">&#128065;</span>' +
+            '<span contenteditable="true" style="min-width:120px;display:inline-block;outline:1px dashed #aaa;padding:1px 3px;" data-placeholder="Write item description">Write item description</span></td>' +
+            '<td contenteditable="true" style="outline:1px dashed #aaa;min-width:40px;padding:1px 3px;"></td>' +
+            '<td align="center" contenteditable="true" style="outline:1px dashed #aaa;min-width:20px;padding:1px 3px;">1</td>' +
+            '<td type="DC" align="right" contenteditable="true" style="outline:1px dashed #aaa;min-width:50px;padding:1px 3px;"></td>' +
+            '<td type="MS" align="right" contenteditable="true" style="outline:1px dashed #aaa;min-width:50px;padding:1px 3px;"></td>' +
+            '<td type="SP" align="right" contenteditable="true" style="outline:1px dashed #aaa;min-width:50px;padding:1px 3px;"></td>' +
+            '</tr>';
+        $('#included tbody').append(newRow);
+        // Apply current column visibility to new row
+        var newRowEl = $('#included tbody tr.writein-row').last();
+        newRowEl.find('[type="SP"],[type="MS"],[type="DC"]').hide();
+        if (hasAnswer('PRICING_TYPE', 'MSRP')) { newRowEl.find('[type="MS"]').show(); }
+        else if (hasAnswer('PRICING_TYPE', 'SELLING_PRICE')) { newRowEl.find('[type="SP"]').show(); }
+        else if (hasAnswer('PRICING_TYPE', 'DEALER_COST')) { newRowEl.find('[type="DC"]').show(); }
+        // Focus description
+        newRowEl.find('[contenteditable]').first().focus();
+    });
+
     // Handler: hide unselected ("No...") items
     $('#hideUnselectedOptions').on('change', function() {
         var hideUnselected = $(this).prop('checked');
