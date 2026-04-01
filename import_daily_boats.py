@@ -1201,11 +1201,16 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
     if not new_boats:
         # Update all fields for existing boats — handles re-invoice to a different dealer
         # as well as same-day re-run scenario.
+        # NOTE: InvoiceNo and InvoiceDateYYYYMMDD are NOT overwritten here.
+        # The boat invoice is captured correctly on first insert. Overwriting it
+        # can cause the wrong invoice to be stored when the engine is invoiced
+        # on a later date (engine invoice number overwrites boat invoice number),
+        # which breaks the window sticker tool by hiding all boat data.
         update_sql = """
             UPDATE {table}
             SET ERP_OrderNo          = %s,
-                InvoiceNo            = %s,
-                InvoiceDateYYYYMMDD  = %s,
+                InvoiceNo            = CASE WHEN (InvoiceNo IS NULL OR InvoiceNo = '') THEN %s ELSE InvoiceNo END,
+                InvoiceDateYYYYMMDD  = CASE WHEN (InvoiceDateYYYYMMDD IS NULL OR InvoiceDateYYYYMMDD = '') THEN %s ELSE InvoiceDateYYYYMMDD END,
                 DealerNumber         = %s,
                 DealerName           = %s,
                 DealerCity           = %s,
