@@ -932,6 +932,44 @@ if (tableClone) {
 
 wsContents += "    <div id=\"includedoptions\">" + includedTableHtml + "<\/div>";
 
+// Add write-in item prices to totals
+var writeInMS = 0, writeInSP = 0, writeInDC = 0;
+if (window.writeInItems && window.writeInItems.length > 0) {
+    window.writeInItems.forEach(function(item) {
+        if (window.struckRows && window.struckRows.has(item.rowKey)) return;
+        var qty = parseFloat(item.qty) || 1;
+        writeInMS += (parseFloat((item.ms || '').replace(/[$,]/g, '')) || 0) * qty;
+        writeInSP += (parseFloat((item.sp || '').replace(/[$,]/g, '')) || 0) * qty;
+        writeInDC += (parseFloat((item.dc || '').replace(/[$,]/g, '')) || 0) * qty;
+    });
+}
+var taxRate = (tax !== '1') ? Number(tax) / 100 : 0;
+function addWriteIn(base, extra) { return CurrencyFormat2(Number(String(base).replace(/[$,]/g, '')) + extra); }
+if (hasAnswer('PRICING_TYPE', 'SELLING_PRICE') && writeInSP !== 0) {
+    actualtotal = (Number(actualtotal) + writeInSP).toFixed(2);
+    if (tax !== '1') { totaltax = addWriteIn(totaltax, writeInSP * taxRate); }
+    totaldue = addWriteIn(totaldue, writeInSP + writeInSP * taxRate);
+} else if (hasAnswer('PRICING_TYPE', 'MSRP') && writeInMS !== 0) {
+    actualtotal = (Number(actualtotal) + writeInMS).toFixed(2);
+    if (tax !== '1') { totaltax = addWriteIn(totaltax, writeInMS * taxRate); }
+    totaldue = addWriteIn(totaldue, writeInMS + writeInMS * taxRate);
+} else if (hasAnswer('PRICING_TYPE', 'DEALER_COST') && writeInDC !== 0) {
+    actualtotal = (Number(actualtotal) + writeInDC).toFixed(2);
+    if (tax !== '1') { totaltax = addWriteIn(totaltax, writeInDC * taxRate); }
+    totaldue = addWriteIn(totaldue, writeInDC + writeInDC * taxRate);
+} else if (hasAnswer('PRICING_TYPE', 'BOTH')) {
+    if (writeInMS !== 0) {
+        actualtotalMS = (Number(actualtotalMS) + writeInMS).toFixed(2);
+        if (tax !== '1') { totaltaxMS = addWriteIn(totaltaxMS, writeInMS * taxRate); }
+        totaldueMS = addWriteIn(totaldueMS, writeInMS + writeInMS * taxRate);
+    }
+    if (writeInSP !== 0) {
+        actualtotalSP = (Number(actualtotalSP) + writeInSP).toFixed(2);
+        if (tax !== '1') { totaltaxSP = addWriteIn(totaltaxSP, writeInSP * taxRate); }
+        totaldueSP = addWriteIn(totaldueSP, writeInSP + writeInSP * taxRate);
+    }
+}
+
 if (!hasAnswer('HIDE_DIO', 'YES')) {  //allow the dios to be filled out, but not print.
     wsContents += "    <div id=\"diotitle\" class=\"title\">DEALER INSTALLED OPTIONS<\/div>";
     wsContents += "    <div id=\"dealerinstalledoptions\">" + dioVar + "<\/div>";
