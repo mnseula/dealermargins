@@ -377,7 +377,7 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         descSpan.className = 'desc-editable';
         descSpan.contentEditable = 'true';
         descSpan.setAttribute('data-rowkey', rowKey);
-        descSpan.style.cssText = 'min-width:120px;display:inline-block;outline:1px dashed #aaa;padding:1px 3px;';
+        descSpan.style.cssText = 'min-width:120px;display:inline-block;padding:1px 3px;';
         descSpan.textContent = '';
         descSpan.addEventListener('input', function() { item.desc = this.textContent; window.descEdits[rowKey] = this.textContent; });
         tdDesc.appendChild(eyeSpan);
@@ -387,7 +387,7 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         // Item # cell
         var tdItem = document.createElement('td');
         tdItem.contentEditable = 'true';
-        tdItem.style.cssText = 'outline:1px dashed #aaa;min-width:40px;padding:1px 3px;';
+        tdItem.style.cssText = 'min-width:40px;padding:1px 3px;';
         tdItem.addEventListener('input', function() { item.itemno = this.textContent; });
         tr.appendChild(tdItem);
 
@@ -395,35 +395,32 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         var tdQty = document.createElement('td');
         tdQty.contentEditable = 'true';
         tdQty.align = 'center';
-        tdQty.style.cssText = 'outline:1px dashed #aaa;min-width:20px;padding:1px 3px;';
+        tdQty.style.cssText = 'min-width:20px;padding:1px 3px;';
         tdQty.textContent = '1';
         tdQty.addEventListener('input', function() { item.qty = this.textContent; });
         tr.appendChild(tdQty);
 
-        // Price cells — always visible on write-in rows so dealer can enter a price
-        var priceFields = { DC: null, MS: null, SP: null };
+        // Price cells
         ['DC', 'MS', 'SP'].forEach(function(type) {
             var td = document.createElement('td');
             td.setAttribute('type', type);
             td.contentEditable = 'true';
             td.align = 'right';
-            td.style.cssText = 'outline:1px dashed #aaa;min-width:50px;padding:1px 3px;';
+            td.style.cssText = 'min-width:50px;padding:1px 3px;';
             td.addEventListener('input', (function(t) { return function() { item[t.toLowerCase()] = this.textContent; }; })(type));
-            priceFields[type] = td;
             tr.appendChild(td);
         });
 
         $('#included tbody').append(tr);
 
-        // Match visibility of price columns to current pricing type, but always show at least one
+        // Show exactly the columns that match the selected pricing type
         var $newRow = $(tr);
         $newRow.find('[type="DC"],[type="MS"],[type="SP"]').hide();
-        if (hasAnswer('PRICING_TYPE', 'MSRP') || hasAnswer('PRICING_TYPE', 'BOTH')) { $newRow.find('[type="MS"]').show(); }
-        if (hasAnswer('PRICING_TYPE', 'SELLING_PRICE') || hasAnswer('PRICING_TYPE', 'BOTH')) { $newRow.find('[type="SP"]').show(); }
-        if (hasAnswer('PRICING_TYPE', 'DEALER_COST')) { $newRow.find('[type="DC"]').show(); }
-        if ($newRow.find('[type="DC"]:visible,[type="MS"]:visible,[type="SP"]:visible').length === 0) {
-            $newRow.find('[type="MS"]').show();
-        }
+        if (hasAnswer('PRICING_TYPE', 'MSRP'))               { $newRow.find('[type="MS"]').show(); }
+        else if (hasAnswer('PRICING_TYPE', 'SELLING_PRICE')) { $newRow.find('[type="SP"]').show(); }
+        else if (hasAnswer('PRICING_TYPE', 'BOTH'))          { $newRow.find('[type="MS"],[type="SP"]').show(); }
+        else if (hasAnswer('PRICING_TYPE', 'DEALER_COST'))   { $newRow.find('[type="DC"]').show(); }
+        // NO_PRICES: no price columns shown
 
         descSpan.focus();
     });
