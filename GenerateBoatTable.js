@@ -270,11 +270,18 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
 
     // Make item descriptions editable in-place
     $('#included tbody tr td:first-child').each(function() {
-        $(this).contents().filter(function() { return this.nodeType === 3; }).each(function() {
-            var text = this.nodeValue;
-            if (text.trim()) {
-                $(this).replaceWith('<span class="desc-editable" contenteditable="true" style="outline:none;cursor:text;" title="Click to edit description">' + text + '</span>');
-            }
+        var td = this;
+        // Walk text nodes directly — avoid innerHTML manipulation to prevent escaping issues
+        var textNodes = [];
+        $(td).contents().each(function() { if (this.nodeType === 3 && this.nodeValue.trim()) { textNodes.push(this); } });
+        textNodes.forEach(function(node) {
+            var span = document.createElement('span');
+            span.className = 'desc-editable';
+            span.contentEditable = 'true';
+            span.style.cssText = 'outline:none;cursor:text;';
+            span.title = 'Click to edit description';
+            span.textContent = node.nodeValue;
+            node.parentNode.replaceChild(span, node);
         });
     });
 
@@ -334,27 +341,67 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         '</div>';
     $('div[data-ref="INCLUDED/INCLUDED_OPTIONS"]').append(writeInHtml);
 
-    $('#addWriteInItem').off('click').on('click', function() {
-        var writeInCount = $('#included tbody tr.writein-row').length + 1;
+    // Use event delegation so the handler survives any re-renders of the container
+    $('div[data-ref="INCLUDED/INCLUDED_OPTIONS"]').off('click.writein').on('click.writein', '#addWriteInItem', function() {
         var rowKey = 'writein-' + Date.now();
-        var newRow = '<tr class="writein-row">' +
-            '<td><span class="row-eye-btn" data-rowkey="' + rowKey + '" title="Click to strike out" style="cursor:pointer;margin-right:5px;font-size:14px;vertical-align:middle;user-select:none">&#128065;</span>' +
-            '<span contenteditable="true" style="min-width:120px;display:inline-block;outline:1px dashed #aaa;padding:1px 3px;" data-placeholder="Write item description">Write item description</span></td>' +
-            '<td contenteditable="true" style="outline:1px dashed #aaa;min-width:40px;padding:1px 3px;"></td>' +
-            '<td align="center" contenteditable="true" style="outline:1px dashed #aaa;min-width:20px;padding:1px 3px;">1</td>' +
-            '<td type="DC" align="right" contenteditable="true" style="outline:1px dashed #aaa;min-width:50px;padding:1px 3px;"></td>' +
-            '<td type="MS" align="right" contenteditable="true" style="outline:1px dashed #aaa;min-width:50px;padding:1px 3px;"></td>' +
-            '<td type="SP" align="right" contenteditable="true" style="outline:1px dashed #aaa;min-width:50px;padding:1px 3px;"></td>' +
-            '</tr>';
-        $('#included tbody').append(newRow);
-        // Apply current column visibility to new row
-        var newRowEl = $('#included tbody tr.writein-row').last();
-        newRowEl.find('[type="SP"],[type="MS"],[type="DC"]').hide();
-        if (hasAnswer('PRICING_TYPE', 'MSRP')) { newRowEl.find('[type="MS"]').show(); }
-        else if (hasAnswer('PRICING_TYPE', 'SELLING_PRICE')) { newRowEl.find('[type="SP"]').show(); }
-        else if (hasAnswer('PRICING_TYPE', 'DEALER_COST')) { newRowEl.find('[type="DC"]').show(); }
-        // Focus description
-        newRowEl.find('[contenteditable]').first().focus();
+        var tr = document.createElement('tr');
+        tr.className = 'writein-row';
+
+        // Description cell
+        var tdDesc = document.createElement('td');
+        var eyeSpan = document.createElement('span');
+        eyeSpan.className = 'row-eye-btn';
+        eyeSpan.setAttribute('data-rowkey', rowKey);
+        eyeSpan.setAttribute('title', 'Click to strike out');
+        eyeSpan.style.cssText = 'cursor:pointer;margin-right:5px;font-size:14px;vertical-align:middle;user-select:none';
+        eyeSpan.innerHTML = '&#128065;';
+        var descSpan = document.createElement('span');
+        descSpan.className = 'desc-editable';
+        descSpan.contentEditable = 'true';
+        descSpan.style.cssText = 'min-width:120px;display:inline-block;outline:1px dashed #aaa;padding:1px 3px;';
+        descSpan.textContent = 'Write item description';
+        tdDesc.appendChild(eyeSpan);
+        tdDesc.appendChild(descSpan);
+        tr.appendChild(tdDesc);
+
+        // Item # cell
+        var tdItem = document.createElement('td');
+        tdItem.contentEditable = 'true';
+        tdItem.style.cssText = 'outline:1px dashed #aaa;min-width:40px;padding:1px 3px;';
+        tr.appendChild(tdItem);
+
+        // Qty cell
+        var tdQty = document.createElement('td');
+        tdQty.contentEditable = 'true';
+        tdQty.align = 'center';
+        tdQty.style.cssText = 'outline:1px dashed #aaa;min-width:20px;padding:1px 3px;';
+        tdQty.textContent = '1';
+        tr.appendChild(tdQty);
+
+        // Price cells — always visible on write-in rows so dealer can enter a price
+        ['DC', 'MS', 'SP'].forEach(function(type) {
+            var td = document.createElement('td');
+            td.setAttribute('type', type);
+            td.contentEditable = 'true';
+            td.align = 'right';
+            td.style.cssText = 'outline:1px dashed #aaa;min-width:50px;padding:1px 3px;';
+            tr.appendChild(td);
+        });
+
+        $('#included tbody').append(tr);
+
+        // Match visibility of price columns to current pricing type, but always show at least one
+        var $newRow = $(tr);
+        $newRow.find('[type="DC"],[type="MS"],[type="SP"]').hide();
+        if (hasAnswer('PRICING_TYPE', 'MSRP') || hasAnswer('PRICING_TYPE', 'BOTH')) { $newRow.find('[type="MS"]').show(); }
+        if (hasAnswer('PRICING_TYPE', 'SELLING_PRICE') || hasAnswer('PRICING_TYPE', 'BOTH')) { $newRow.find('[type="SP"]').show(); }
+        if (hasAnswer('PRICING_TYPE', 'DEALER_COST')) { $newRow.find('[type="DC"]').show(); }
+        // If no pricing type matched (e.g. NO_PRICES), still show MSRP so there's somewhere to enter a price
+        if ($newRow.find('[type="DC"]:visible,[type="MS"]:visible,[type="SP"]:visible').length === 0) {
+            $newRow.find('[type="MS"]').show();
+        }
+
+        descSpan.focus();
     });
 
     // Handler: hide unselected ("No...") items
