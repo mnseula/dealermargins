@@ -112,7 +112,8 @@ if (!hasAnswer('PRINT_PHOTO', 'PRINT_PHOTO')) {
             var candidateUrl = window.cpqLhsData.image_url;
             // Validate it's a real boat render — furniture-only URLs have view[] (empty) and asset[furn_m_std]
             var isBoatImage = candidateUrl.indexOf('view[side]') !== -1 ||
-                              candidateUrl.indexOf('view[orthographic]') !== -1;
+                              candidateUrl.indexOf('view[orthographic]') !== -1 ||
+                              candidateUrl.indexOf('view[3qtr]') !== -1;
             if (isBoatImage) {
                 imgUrl = candidateUrl;
                 console.log('Using Liquifire image from cpqLhsData:', imgUrl);
