@@ -268,6 +268,16 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     }
     if (!window.struckRows) { window.struckRows = new Set(); }
 
+    // Make item descriptions editable in-place
+    $('#included tbody tr td:first-child').each(function() {
+        $(this).contents().filter(function() { return this.nodeType === 3; }).each(function() {
+            var text = this.nodeValue;
+            if (text.trim()) {
+                $(this).replaceWith('<span class="desc-editable" contenteditable="true" style="outline:none;cursor:text;" title="Click to edit description">' + text + '</span>');
+            }
+        });
+    });
+
     // Re-apply previously struck rows after re-render
     $('#included tbody tr').each(function() {
         var eyeBtn = $(this).find('.row-eye-btn');
