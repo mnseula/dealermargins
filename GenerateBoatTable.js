@@ -264,25 +264,38 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         window.struckRows = new Set();
         window.strikeZeroPriceOptions = false;
         window.hideUnselectedBoatOptions = false;
+        window.descEdits = {};       // {rowKey: newText} for edited descriptions
+        window.writeInItems = [];    // [{rowKey, desc, itemno, qty, dc, ms, sp}]
         window.generatorLastSerial = currentSerial;
     }
     if (!window.struckRows) { window.struckRows = new Set(); }
+    if (!window.descEdits) { window.descEdits = {}; }
+    if (!window.writeInItems) { window.writeInItems = []; }
 
-    // Make item descriptions editable in-place
-    $('#included tbody tr td:first-child').each(function() {
-        var td = this;
-        // Walk text nodes directly — avoid innerHTML manipulation to prevent escaping issues
+    // Make item descriptions editable in-place; tag each span with its rowKey so
+    // print.js can apply edits from window.descEdits without relying on DOM capture
+    $('#included tbody tr').each(function() {
+        var rowKey = $(this).find('.row-eye-btn').attr('data-rowkey') || '';
+        var td = $(this).find('td:first-child')[0];
+        if (!td) return;
         var textNodes = [];
         $(td).contents().each(function() { if (this.nodeType === 3 && this.nodeValue.trim()) { textNodes.push(this); } });
         textNodes.forEach(function(node) {
             var span = document.createElement('span');
             span.className = 'desc-editable';
             span.contentEditable = 'true';
+            span.setAttribute('data-rowkey', rowKey);
             span.style.cssText = 'outline:none;cursor:text;';
             span.title = 'Click to edit description';
-            span.textContent = node.nodeValue;
+            // Re-apply any previously saved edit for this row
+            span.textContent = (window.descEdits[rowKey] !== undefined) ? window.descEdits[rowKey] : node.nodeValue;
             node.parentNode.replaceChild(span, node);
         });
+    });
+
+    // Save description edits to window.descEdits so print.js can pick them up
+    $('#included').on('input.descedit', '.desc-editable[data-rowkey]', function() {
+        window.descEdits[$(this).attr('data-rowkey')] = this.textContent;
     });
 
     // Re-apply previously struck rows after re-render
@@ -344,6 +357,11 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     // Use event delegation so the handler survives any re-renders of the container
     $('div[data-ref="INCLUDED/INCLUDED_OPTIONS"]').off('click.writein').on('click.writein', '#addWriteInItem', function() {
         var rowKey = 'writein-' + Date.now();
+
+        // Register item in window.writeInItems — print.js reads from here, not the DOM
+        var item = { rowKey: rowKey, desc: '', itemno: '', qty: '1', dc: '', ms: '', sp: '' };
+        window.writeInItems.push(item);
+
         var tr = document.createElement('tr');
         tr.className = 'writein-row';
 
@@ -358,8 +376,10 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         var descSpan = document.createElement('span');
         descSpan.className = 'desc-editable';
         descSpan.contentEditable = 'true';
+        descSpan.setAttribute('data-rowkey', rowKey);
         descSpan.style.cssText = 'min-width:120px;display:inline-block;outline:1px dashed #aaa;padding:1px 3px;';
-        descSpan.textContent = 'Write item description';
+        descSpan.textContent = '';
+        descSpan.addEventListener('input', function() { item.desc = this.textContent; window.descEdits[rowKey] = this.textContent; });
         tdDesc.appendChild(eyeSpan);
         tdDesc.appendChild(descSpan);
         tr.appendChild(tdDesc);
@@ -368,6 +388,7 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         var tdItem = document.createElement('td');
         tdItem.contentEditable = 'true';
         tdItem.style.cssText = 'outline:1px dashed #aaa;min-width:40px;padding:1px 3px;';
+        tdItem.addEventListener('input', function() { item.itemno = this.textContent; });
         tr.appendChild(tdItem);
 
         // Qty cell
@@ -376,15 +397,19 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         tdQty.align = 'center';
         tdQty.style.cssText = 'outline:1px dashed #aaa;min-width:20px;padding:1px 3px;';
         tdQty.textContent = '1';
+        tdQty.addEventListener('input', function() { item.qty = this.textContent; });
         tr.appendChild(tdQty);
 
         // Price cells — always visible on write-in rows so dealer can enter a price
+        var priceFields = { DC: null, MS: null, SP: null };
         ['DC', 'MS', 'SP'].forEach(function(type) {
             var td = document.createElement('td');
             td.setAttribute('type', type);
             td.contentEditable = 'true';
             td.align = 'right';
             td.style.cssText = 'outline:1px dashed #aaa;min-width:50px;padding:1px 3px;';
+            td.addEventListener('input', (function(t) { return function() { item[t.toLowerCase()] = this.textContent; }; })(type));
+            priceFields[type] = td;
             tr.appendChild(td);
         });
 
@@ -396,7 +421,6 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         if (hasAnswer('PRICING_TYPE', 'MSRP') || hasAnswer('PRICING_TYPE', 'BOTH')) { $newRow.find('[type="MS"]').show(); }
         if (hasAnswer('PRICING_TYPE', 'SELLING_PRICE') || hasAnswer('PRICING_TYPE', 'BOTH')) { $newRow.find('[type="SP"]').show(); }
         if (hasAnswer('PRICING_TYPE', 'DEALER_COST')) { $newRow.find('[type="DC"]').show(); }
-        // If no pricing type matched (e.g. NO_PRICES), still show MSRP so there's somewhere to enter a price
         if ($newRow.find('[type="DC"]:visible,[type="MS"]:visible,[type="SP"]:visible').length === 0) {
             $newRow.find('[type="MS"]').show();
         }

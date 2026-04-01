@@ -880,9 +880,49 @@ if (tableClone) {
             }
         }
     });
+    // Apply description edits from window.descEdits (keyed by rowKey)
+    if (window.descEdits) {
+        tableClone.querySelectorAll('.desc-editable[data-rowkey]').forEach(function(span) {
+            var key = span.getAttribute('data-rowkey');
+            if (key && window.descEdits[key] !== undefined) {
+                span.textContent = window.descEdits[key];
+            }
+        });
+    }
+
+    // Append write-in items from window.writeInItems
+    if (window.writeInItems && window.writeInItems.length > 0) {
+        var tbody = tableClone.querySelector('tbody');
+        if (tbody) {
+            window.writeInItems.forEach(function(item) {
+                // Skip struck write-in rows
+                if (window.struckRows && window.struckRows.has(item.rowKey)) return;
+                var tr = document.createElement('tr');
+                var tdDesc = document.createElement('td');
+                tdDesc.textContent = item.desc || '';
+                tr.appendChild(tdDesc);
+                var tdItem = document.createElement('td');
+                tdItem.textContent = item.itemno || '';
+                tr.appendChild(tdItem);
+                var tdQty = document.createElement('td');
+                tdQty.align = 'center';
+                tdQty.textContent = item.qty || '1';
+                tr.appendChild(tdQty);
+                ['DC', 'MS', 'SP'].forEach(function(type) {
+                    var td = document.createElement('td');
+                    td.setAttribute('type', type);
+                    td.align = 'right';
+                    td.textContent = item[type.toLowerCase()] || '';
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+        }
+    }
+
     // Strip eye button elements so they don't appear in print output
     tableClone.querySelectorAll('.row-eye-btn').forEach(function(btn) { btn.remove(); });
-    // Strip contenteditable and dashed outlines from write-in rows
+    // Strip contenteditable and dashed outlines
     tableClone.querySelectorAll('[contenteditable]').forEach(function(el) {
         el.removeAttribute('contenteditable');
         el.style.outline = '';
