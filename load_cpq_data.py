@@ -2,10 +2,10 @@
 Load Complete CPQ Data from Infor APIs to MySQL Database
 
 This script:
-1. Fetches model prices from OptionList API → Loads to Series, Models, ModelPricing
-2. Fetches performance data from Matrix APIs → Loads to PerformancePackages, ModelPerformance
-3. Fetches standard features from Matrix APIs → Loads to StandardFeatures, ModelStandardFeatures
-4. Fetches dealer margins from API → Loads to Dealers, DealerMargins
+1. Fetches model prices from OptionList API -> Loads to Series, Models, ModelPricing
+2. Fetches performance data from Matrix APIs -> Loads to PerformancePackages, ModelPerformance
+3. Fetches standard features from Matrix APIs -> Loads to StandardFeatures, ModelStandardFeatures
+4. Fetches dealer margins from API -> Loads to Dealers, DealerMargins
 
 Complete one-stop data loader for all CPQ tables.
 Designed to run via JAMS scheduler for automated data synchronization.
@@ -95,7 +95,7 @@ def get_token(environment: str = "PRD") -> Optional[str]:
             response.raise_for_status()
             return response.json().get('access_token')
         except requests.exceptions.RequestException as e:
-            print(f"⚠️  Token attempt {attempt}/{MAX_RETRIES} failed: {e}")
+            print(f"[WARN]  Token attempt {attempt}/{MAX_RETRIES} failed: {e}")
             if attempt < MAX_RETRIES:
                 time.sleep(attempt * 5)
 
@@ -105,7 +105,7 @@ def get_token(environment: str = "PRD") -> Optional[str]:
 
 def fetch_model_prices(token: str) -> List[Dict]:
     """Fetch all models with pricing from OptionList API"""
-    print("\n📋 Fetching model prices from OptionList API...")
+    print("\n[>>] Fetching model prices from OptionList API...")
 
     try:
         headers = {'Authorization': f'Bearer {token}', 'Accept': 'application/json'}
@@ -145,16 +145,16 @@ def fetch_model_prices(token: str) -> List[Dict]:
                         'engine_configuration': custom_props.get('EngineConfiguration', '')
                     })
 
-        print(f"✅ Fetched {len(models)} models with pricing")
+        print(f"[OK] Fetched {len(models)} models with pricing")
         return models
 
     except Exception as e:
-        print(f"❌ Error fetching model prices: {e}")
+        print(f"[ERROR] Error fetching model prices: {e}")
         return []
 
 def load_model_prices_to_db(cursor, models: List[Dict]):
     """Load model prices into database"""
-    print(f"\n💾 Loading {len(models)} models to database...")
+    print(f"\n[>>] Loading {len(models)} models to database...")
 
     success = 0
     errors = 0
@@ -240,9 +240,9 @@ def load_model_prices_to_db(cursor, models: List[Dict]):
 
         except Exception as e:
             errors += 1
-            print(f"⚠️  Error loading model {model.get('model_id', 'unknown')}: {e}")
+            print(f"[WARN]  Error loading model {model.get('model_id', 'unknown')}: {e}")
 
-    print(f"✅ Loaded {success} models, {errors} errors")
+    print(f"[OK] Loaded {success} models, {errors} errors")
     return success, errors
 
 # ==================== STEP 2: PERFORMANCE DATA ====================
@@ -260,12 +260,12 @@ def fetch_performance_data(token: str, series: str) -> List[Dict]:
         return details
 
     except Exception as e:
-        print(f"⚠️  Error fetching performance for {series}: {e}")
+        print(f"[WARN]  Error fetching performance for {series}: {e}")
         return []
 
 def load_performance_to_db(cursor, series: str, perf_data: List[Dict]):
     """Load performance data to database using CSV bulk loading"""
-    print(f"  📝 Preparing performance data for {series}...")
+    print(f"  [>>] Preparing performance data for {series}...")
 
     # Collect unique packages and performance records
     packages = set()
@@ -294,7 +294,7 @@ def load_performance_to_db(cursor, series: str, perf_data: List[Dict]):
     if not perf_records:
         return 0, 0
 
-    print(f"  📊 {len(packages)} packages, {len(perf_records)} performance records")
+    print(f"  [>>] {len(packages)} packages, {len(perf_records)} performance records")
 
     # Write CSVs
     packages_csv = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv', newline='')
@@ -328,7 +328,7 @@ def load_performance_to_db(cursor, series: str, perf_data: List[Dict]):
         )""")
 
         # Bulk load (convert Windows paths to forward slashes for MySQL)
-        print(f"  ⚡ Bulk loading performance packages...")
+        print(f"  [>>] Bulk loading performance packages...")
         packages_path = packages_csv.name.replace('\\', '/')
         perf_path = perf_csv.name.replace('\\', '/')
         cursor.execute(f"LOAD DATA LOCAL INFILE '{packages_path}' INTO TABLE temp_packages FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n'")
@@ -341,7 +341,7 @@ def load_performance_to_db(cursor, series: str, perf_data: List[Dict]):
             ON DUPLICATE KEY UPDATE package_name = VALUES(package_name), updated_at = NOW()
         """)
 
-        print(f"  ⚡ Bulk loading model performance...")
+        print(f"  [>>] Bulk loading model performance...")
         cursor.execute("""
             INSERT INTO ModelPerformance (
                 model_id, perf_package_id, year,
@@ -374,7 +374,7 @@ def load_performance_to_db(cursor, series: str, perf_data: List[Dict]):
         cursor.execute("DROP TEMPORARY TABLE temp_packages")
         cursor.execute("DROP TEMPORARY TABLE temp_perf")
 
-        print(f"  ✅ Loaded {success} performance records")
+        print(f"  [OK] Loaded {success} performance records")
         return success, 0
 
     finally:
@@ -383,7 +383,7 @@ def load_performance_to_db(cursor, series: str, perf_data: List[Dict]):
 
 def update_models_with_performance_data(cursor, perf_data: List[Dict]):
     """Update Models table with pontoon_gauge, fuel_capacity, tube_length, deck_length from base performance package"""
-    print(f"  🔄 Updating Models with base performance data...")
+    print(f"  [>>] Updating Models with base performance data...")
     
     # Group performance records by model_id
     model_perf = {}
@@ -435,9 +435,9 @@ def update_models_with_performance_data(cursor, perf_data: List[Dict]):
         
         except Exception as e:
             errors += 1
-            print(f"  ⚠️  Error updating model {model_id}: {e}")
+            print(f"  [WARN]  Error updating model {model_id}: {e}")
     
-    print(f"  ✅ Updated {updated} models with performance data ({errors} errors)")
+    print(f"  [OK] Updated {updated} models with performance data ({errors} errors)")
     return updated, errors
 
 # ==================== STEP 3: STANDARD FEATURES ====================
@@ -455,12 +455,12 @@ def fetch_standard_features(token: str, series: str) -> List[Dict]:
         return details
 
     except Exception as e:
-        print(f"⚠️  Error fetching standards for {series}: {e}")
+        print(f"[WARN]  Error fetching standards for {series}: {e}")
         return []
 
 def load_standards_to_db(cursor, series: str, standards_data: List[Dict], all_model_ids: Set[str]):
     """Load standard features to database using CSV bulk loading"""
-    print(f"  📝 Preparing standard features for {series}...")
+    print(f"  [>>] Preparing standard features for {series}...")
 
     # Collect features and model-feature links
     features = []
@@ -489,7 +489,7 @@ def load_standards_to_db(cursor, series: str, standards_data: List[Dict], all_mo
     if not features:
         return 0, 0
 
-    print(f"  📊 {len(features)} features, {len(model_features)} model-feature links")
+    print(f"  [>>] {len(features)} features, {len(model_features)} model-feature links")
 
     # Write CSVs
     features_csv = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv', newline='')
@@ -522,7 +522,7 @@ def load_standards_to_db(cursor, series: str, standards_data: List[Dict], all_mo
         """)
 
         # Bulk load (convert Windows paths to forward slashes for MySQL)
-        print(f"  ⚡ Bulk loading standard features...")
+        print(f"  [>>] Bulk loading standard features...")
         features_path = features_csv.name.replace('\\', '/')
         model_features_path = model_features_csv.name.replace('\\', '/')
         cursor.execute(f"LOAD DATA LOCAL INFILE '{features_path}' INTO TABLE temp_features FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\\n'")
@@ -539,7 +539,7 @@ def load_standards_to_db(cursor, series: str, standards_data: List[Dict], all_mo
                 updated_at = NOW()
         """)
 
-        print(f"  ⚡ Bulk loading model-feature links...")
+        print(f"  [>>] Bulk loading model-feature links...")
         # Insert model-feature links (join with StandardFeatures to get feature_id)
         cursor.execute("""
             INSERT INTO ModelStandardFeatures (model_id, feature_id, year, is_standard)
@@ -553,7 +553,7 @@ def load_standards_to_db(cursor, series: str, standards_data: List[Dict], all_mo
         cursor.execute("DROP TEMPORARY TABLE temp_features")
         cursor.execute("DROP TEMPORARY TABLE temp_model_features")
 
-        print(f"  ✅ Loaded {len(features)} features, {len(model_features)} links")
+        print(f"  [OK] Loaded {len(features)} features, {len(model_features)} links")
         return len(features), 0
 
     finally:
@@ -578,12 +578,12 @@ def fetch_dealer_margins(token: str) -> List[Dict]:
         data = response.json()
         margins = data.get('items', [])
 
-        print(f"   ✓ Fetched {len(margins):,} margin records from CPQ API")
+        print(f"   [OK] Fetched {len(margins):,} margin records from CPQ API")
 
         return margins
 
     except Exception as e:
-        print(f"⚠️  Error fetching dealer margins: {e}")
+        print(f"[WARN]  Error fetching dealer margins: {e}")
         return []
 
 def load_dealer_margins_to_db(cursor, margins: List[Dict]):
@@ -596,7 +596,7 @@ def load_dealer_margins_to_db(cursor, margins: List[Dict]):
     margins_loaded = 0
     errors = 0
 
-    print("  📝 Preparing data for bulk loading...")
+    print("  [>>] Preparing data for bulk loading...")
 
     # Deduplicate margins by dealer_id + series_id + effective_date
     unique_margins = {}
@@ -635,8 +635,8 @@ def load_dealer_margins_to_db(cursor, margins: List[Dict]):
             'year': MODEL_YEAR
         }
 
-    print(f"  📊 Deduplicated: {len(margins)} → {len(unique_margins)} unique margins")
-    print(f"  📊 Found {len(dealers)} unique dealers, {len(series_set)} unique series")
+    print(f"  [>>] Deduplicated: {len(margins)} -> {len(unique_margins)} unique margins")
+    print(f"  [>>] Found {len(dealers)} unique dealers, {len(series_set)} unique series")
 
     # Create temp CSV files
     dealers_csv = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='_dealers.csv', newline='')
@@ -644,14 +644,14 @@ def load_dealer_margins_to_db(cursor, margins: List[Dict]):
 
     try:
         # Write dealers CSV
-        print("  💾 Writing dealers to CSV...")
+        print("  [>>] Writing dealers to CSV...")
         dealer_writer = csv.writer(dealers_csv)
         for dealer_id, dealer_name in dealers.items():
             dealer_writer.writerow([dealer_id, dealer_name, 1])  # active=1
         dealers_csv.close()
 
         # Write margins CSV
-        print("  💾 Writing margins to CSV...")
+        print("  [>>] Writing margins to CSV...")
         margin_writer = csv.writer(margins_csv)
         for margin in unique_margins.values():
             margin_writer.writerow([
@@ -670,7 +670,7 @@ def load_dealer_margins_to_db(cursor, margins: List[Dict]):
         margins_csv.close()
 
         # Create temporary tables
-        print("  🔧 Creating temporary tables...")
+        print("  [>>] Creating temporary tables...")
         cursor.execute("""
             CREATE TEMPORARY TABLE temp_dealers (
                 dealer_id VARCHAR(20),
@@ -695,7 +695,7 @@ def load_dealer_margins_to_db(cursor, margins: List[Dict]):
         """)
 
         # Bulk load into temp tables (convert Windows paths to forward slashes for MySQL)
-        print("  ⚡ Bulk loading dealers into temp table...")
+        print("  [>>] Bulk loading dealers into temp table...")
         dealers_path = dealers_csv.name.replace('\\', '/')
         margins_path = margins_csv.name.replace('\\', '/')
 
@@ -707,7 +707,7 @@ def load_dealer_margins_to_db(cursor, margins: List[Dict]):
             (dealer_id, dealer_name, active)
         """)
 
-        print("  ⚡ Bulk loading margins into temp table...")
+        print("  [>>] Bulk loading margins into temp table...")
         cursor.execute(f"""
             LOAD DATA LOCAL INFILE '{margins_path}'
             INTO TABLE temp_margins
@@ -718,7 +718,7 @@ def load_dealer_margins_to_db(cursor, margins: List[Dict]):
         """)
 
         # Insert from temp tables with ON DUPLICATE KEY UPDATE
-        print("  🔄 Inserting dealers with upsert...")
+        print("  [>>] Inserting dealers with upsert...")
         cursor.execute("""
             INSERT INTO Dealers (dealer_id, dealer_name, active)
             SELECT dealer_id, dealer_name, active FROM temp_dealers
@@ -727,18 +727,18 @@ def load_dealer_margins_to_db(cursor, margins: List[Dict]):
                 updated_at = NOW()
         """)
         dealers_loaded = len(dealers)
-        print(f"  ✅ Loaded {dealers_loaded} dealers")
+        print(f"  [OK] Loaded {dealers_loaded} dealers")
 
         # Ensure all series exist before inserting margins (foreign key requirement)
-        print("  🔄 Ensuring all series exist...")
+        print("  [>>] Ensuring all series exist...")
         cursor.execute("""
             INSERT INTO Series (series_id, series_name, active)
             SELECT DISTINCT series_id, series_id, TRUE FROM temp_margins
             ON DUPLICATE KEY UPDATE updated_at = NOW()
         """)
-        print(f"  ✅ Ensured {len(series_set)} series exist")
+        print(f"  [OK] Ensured {len(series_set)} series exist")
 
-        print("  🔄 Inserting dealer margins with upsert...")
+        print("  [>>] Inserting dealer margins with upsert...")
         cursor.execute("""
             INSERT INTO DealerMargins (
                 dealer_id, series_id, base_boat_margin, engine_margin, options_margin,
@@ -759,7 +759,7 @@ def load_dealer_margins_to_db(cursor, margins: List[Dict]):
                 updated_at = NOW()
         """)
         margins_loaded = len(unique_margins)
-        print(f"  ✅ Loaded {margins_loaded} dealer margins")
+        print(f"  [OK] Loaded {margins_loaded} dealer margins")
 
         # Drop temp tables
         cursor.execute("DROP TEMPORARY TABLE temp_dealers")
@@ -787,14 +787,14 @@ def main():
     start_time = time.time()
 
     # Get tokens (PRD only - all endpoints now use PRD environment)
-    print("\n🔐 Obtaining API tokens...")
+    print("\n[KEY] Obtaining API tokens...")
     token_prd = get_token("PRD")
 
     if not token_prd:
-        print("❌ Failed to obtain API token. Exiting.")
+        print("[ERROR] Failed to obtain API token. Exiting.")
         return
 
-    print("✅ Token obtained successfully")
+    print("[OK] Token obtained successfully")
 
     # STEP 1: Fetch and load model prices
     print("\n" + "=" * 80)
@@ -803,22 +803,22 @@ def main():
 
     models = fetch_model_prices(token_prd)
     if not models:
-        print("❌ No models fetched. Exiting.")
+        print("[ERROR] No models fetched. Exiting.")
         return
 
     # Extract unique series
     unique_series = sorted(set(m['series'] for m in models if m['series']))
-    print(f"📊 Found {len(unique_series)} unique series: {', '.join(unique_series)}")
+    print(f"[>>] Found {len(unique_series)} unique series: {', '.join(unique_series)}")
 
     # Get all model IDs for later use
     all_model_ids = set(m['model_id'] for m in models)
 
     # Connect to database
     try:
-        print(f"\n🔌 Connecting to database...")
+        print(f"\n[>>] Connecting to database...")
         connection = mysql.connector.connect(**DB_CONFIG)
         cursor = connection.cursor()
-        print("✅ Connected to database")
+        print("[OK] Connected to database")
 
         # Load model prices
         models_success, models_errors = load_model_prices_to_db(cursor, models)
@@ -834,7 +834,7 @@ def main():
 
         all_perf_data = []
         for series in unique_series:
-            print(f"\n📊 Processing series: {series}")
+            print(f"\n[>>] Processing series: {series}")
             perf_data = fetch_performance_data(token_prd, series)
             if perf_data:
                 print(f"   Fetched {len(perf_data)} performance records")
@@ -844,14 +844,14 @@ def main():
                 all_perf_data.extend(perf_data)
                 connection.commit()
 
-        print(f"\n✅ Performance data loaded: {total_perf_success} records, {total_perf_errors} errors")
+        print(f"\n[OK] Performance data loaded: {total_perf_success} records, {total_perf_errors} errors")
 
         # Update Models with base performance data (pontoon_gauge, fuel_capacity)
         if all_perf_data:
-            print("\n🔄 Updating Models with base performance package data...")
+            print("\n[>>] Updating Models with base performance package data...")
             updated, perf_update_errors = update_models_with_performance_data(cursor, all_perf_data)
             connection.commit()
-            print(f"✅ Updated {updated} models with performance specs")
+            print(f"[OK] Updated {updated} models with performance specs")
 
         # STEP 3: Fetch and load standard features
         print("\n" + "=" * 80)
@@ -862,7 +862,7 @@ def main():
         total_std_errors = 0
 
         for series in unique_series:
-            print(f"\n📊 Processing series: {series}")
+            print(f"\n[>>] Processing series: {series}")
             standards_data = fetch_standard_features(token_prd, series)
             if standards_data:
                 print(f"   Fetched {len(standards_data)} standard feature records")
@@ -871,23 +871,23 @@ def main():
                 total_std_errors += errors
                 connection.commit()
 
-        print(f"\n✅ Standard features loaded: {total_std_success} records, {total_std_errors} errors")
+        print(f"\n[OK] Standard features loaded: {total_std_success} records, {total_std_errors} errors")
 
         # STEP 4: Fetch and load dealer margins
         print("\n" + "=" * 80)
         print("STEP 4: DEALER MARGINS")
         print("=" * 80)
 
-        print("\n📋 Fetching dealer margins from API...")
+        print("\n[>>] Fetching dealer margins from API...")
         margins = fetch_dealer_margins(token_prd)
 
         if margins:
             print(f"   Fetched {len(margins)} dealer margin records")
             dealers_count, margins_count, margins_errors = load_dealer_margins_to_db(cursor, margins)
             connection.commit()
-            print(f"\n✅ Dealer margins loaded: {dealers_count} dealers, {margins_count} margin records, {margins_errors} errors")
+            print(f"\n[OK] Dealer margins loaded: {dealers_count} dealers, {margins_count} margin records, {margins_errors} errors")
         else:
-            print("⚠️  No dealer margins fetched")
+            print("[WARN]  No dealer margins fetched")
             dealers_count = 0
             margins_count = 0
             margins_errors = 0
@@ -908,10 +908,10 @@ def main():
         # Close database connection
         cursor.close()
         connection.close()
-        print("\n✅ Database connection closed")
+        print("\n[OK] Database connection closed")
 
     except Error as e:
-        print(f"\n❌ Database error: {e}")
+        print(f"\n[ERROR] Database error: {e}")
         return
 
     # Summary
@@ -920,18 +920,18 @@ def main():
     print("\n" + "=" * 80)
     print("LOAD COMPLETE - SUMMARY")
     print("=" * 80)
-    print(f"✅ Models loaded:           {models_success} ({models_errors} errors)")
-    print(f"✅ Performance records:     {total_perf_success} ({total_perf_errors} errors)")
-    print(f"✅ Standard features:       {total_std_success} ({total_std_errors} errors)")
-    print(f"✅ Dealer margins loaded:   {margins_count} ({margins_errors} errors)")
-    print(f"\n📊 DATABASE TOTALS:")
+    print(f"[OK] Models loaded:           {models_success} ({models_errors} errors)")
+    print(f"[OK] Performance records:     {total_perf_success} ({total_perf_errors} errors)")
+    print(f"[OK] Standard features:       {total_std_success} ({total_std_errors} errors)")
+    print(f"[OK] Dealer margins loaded:   {margins_count} ({margins_errors} errors)")
+    print(f"\n[>>] DATABASE TOTALS:")
     print(f"   Active models:           {total_models}")
     print(f"   Current pricing records: {total_active_pricing}")
     print(f"   Active dealers:          {total_dealers}")
     print(f"   Current margin configs:  {total_active_margins}")
-    print(f"\n⏱️  Total execution time:   {elapsed_time:.1f} seconds")
-    print(f"💾 Database:                {DB_CONFIG['database']}")
-    print(f"📅 Completed:               {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"\n[TIME]  Total execution time:   {elapsed_time:.1f} seconds")
+    print(f"[>>] Database:                {DB_CONFIG['database']}")
+    print(f"[DATE] Completed:               {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 80)
 
 if __name__ == "__main__":
