@@ -350,7 +350,10 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     $('#writeInItemContainer').remove();
     var writeInHtml = '<div id="writeInItemContainer" style="margin-top: 6px; margin-bottom: 4px;">' +
         '<button id="addWriteInItem" style="font-family: Calibri; font-size: 13px; cursor: pointer; padding: 3px 10px;">+ Add write-in item</button>' +
-        '<span style="font-family: Calibri; font-size: 11px; color: #888; margin-left: 10px;">For this print only &mdash; write-in items are not saved and will be gone when you navigate away.</span>' +
+        '<div style="font-family: Calibri; font-size: 11px; color: #888; margin-top: 5px; line-height: 1.6;">' +
+        'For this print only &mdash; write-in items are not saved and will be gone when you navigate away.<br>' +
+        'To show both MSRP and Sale Price on your write-in item, select <strong>Sale &amp; MSRP</strong> from the <strong>Pricing Type To Print</strong> options before adding your item.' +
+        '</div>' +
         '</div>';
     $('div[data-ref="INCLUDED/INCLUDED_OPTIONS"]').append(writeInHtml);
 
