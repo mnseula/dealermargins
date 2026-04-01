@@ -126,6 +126,7 @@ AND OrdLineSttusLastUpd NOT LIKE '3/31/2026%';
 
 - **2026-03-31**: Saved WP0523751 fix (charge parts, dealer 557300~0) — original XML split into S1/S2 as two separate `Test_Verenia_Boat` elements; S1 created Syteline order WP00945882 with line 1 (021650); S2 never created in Syteline; fix re-submits item 014220 as line 2 (WP0523751-02) under same WP0523751-S1 header to attach to WP00945882
 - **2026-03-30**: Saved WP0523856 (charge parts, dealer 557300~0, 2 lines: item 021565 qty 2 @ $1190 + item 800001 qty 2 @ $30) — multi-line order, `ue_LastRecord=0` on first line, `ue_LastRecord=1` on last line
+- **2026-04-01**: Saved WP0524059 (charge parts, dealer 559236~0 Wilson Marine, 2 lines: item 400303 qty 1 @ $2705 PT tube + item 400303 qty 1 @ $2705 STBD tube, boat ETWD7990H617 22GPDDL, PU carrier, est ship 2026-05-12) — XML was correct, no changes needed
 - **2026-03-30**: Saved WN0523811 (no charge parts, dealer 559236~0, item 021665) — XML was already correct, single line with `ue_LastRecord=1`
 - **2026-03-26**: Corrected instructions after successful Syteline acceptance
   - Multiple lines per order confirmed working
