@@ -367,6 +367,7 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
 
         var tr = document.createElement('tr');
         tr.className = 'writein-row';
+        tr.setAttribute('data-writein', 'true');
 
         // Description cell
         var tdDesc = document.createElement('td');

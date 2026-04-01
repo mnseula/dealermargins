@@ -881,7 +881,8 @@ if (tableClone) {
         }
     });
     // Remove write-in rows from DOM capture — they will be re-added from window.writeInItems below
-    tableClone.querySelectorAll('tr.writein-row').forEach(function(row) { row.remove(); });
+    // Use both class and data attribute to ensure removal regardless of EOS serialization quirks
+    tableClone.querySelectorAll('tr.writein-row, tr[data-writein="true"]').forEach(function(row) { row.remove(); });
 
     // Apply description edits from window.descEdits (keyed by rowKey)
     if (window.descEdits) {
@@ -916,6 +917,10 @@ if (tableClone) {
                     td.setAttribute('type', type);
                     td.align = 'right';
                     td.textContent = item[type.toLowerCase()] || '';
+                    // Match column visibility to pricing type so write-in rows stay aligned
+                    if (type === 'DC' && !hasAnswer('PRICING_TYPE', 'DEALER_COST')) { td.style.display = 'none'; }
+                    if (type === 'MS' && !hasAnswer('PRICING_TYPE', 'MSRP') && !hasAnswer('PRICING_TYPE', 'BOTH')) { td.style.display = 'none'; }
+                    if (type === 'SP' && !hasAnswer('PRICING_TYPE', 'SELLING_PRICE') && !hasAnswer('PRICING_TYPE', 'BOTH')) { td.style.display = 'none'; }
                     tr.appendChild(td);
                 });
                 tbody.appendChild(tr);
