@@ -340,7 +340,8 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         'Strike out $0 options' +
         '</label>' +
         '<div style="margin-top: 8px; font-family: Calibri; font-size: 11px; color: #888; line-height: 1.5;">' +
-        '&#128065; Click the eye icon next to any item to strike it out &mdash; it will stay visible here so you have a record, but it will <strong>not</strong> appear on the printed window sticker. ' +
+        '<strong>Hide unselected boat options</strong> removes any option line that begins with <em>NO&nbsp;</em> or <em>NO-</em> (e.g. &ldquo;NO ARCH&rdquo;, &ldquo;NO-VINYL DECAL&rdquo;) from both the screen and the printed PDF.' +
+        '<br>&#128065; Click the eye icon next to any item to strike it out &mdash; it will stay visible here so you have a record, but it will <strong>not</strong> appear on the printed window sticker. ' +
         'Use the checkboxes above to strike out entire groups at once. Click the eye again to undo.' +
         '</div>' +
         '</div>';
