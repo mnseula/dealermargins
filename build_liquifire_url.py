@@ -444,6 +444,14 @@ def main():
                     url = fallback_url
                     break
 
+        # Fallback: try view[side] with cat[pon] for models without a 3qtr asset
+        if not ok:
+            side_url = url.replace('cat[3qtr],', 'cat[pon],').replace(',view[3qtr]', ',view[side]')
+            ok, size = test_url(side_url)
+            if ok:
+                print(f'  {serial} ({model}): using fallback view[side]')
+                url = side_url
+
         if not ok:
             print(f'  {serial} ({model}): FAIL — URL did not render')
             print(f'    {url[:100]}...')
