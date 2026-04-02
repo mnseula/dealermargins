@@ -873,7 +873,8 @@ if (tableClone) {
         if (window.hideUnselectedBoatOptions) {
             var firstTd = row.querySelector('td:first-child');
             if (firstTd) {
-                var desc = firstTd.textContent.trim().toUpperCase();
+                var descSpan = firstTd.querySelector('.desc-editable');
+                var desc = (descSpan ? descSpan.textContent : firstTd.textContent).trim().toUpperCase();
                 if (desc.startsWith('NO ') || desc.startsWith('NO-')) {
                     row.remove();
                     return;

@@ -436,7 +436,8 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         $('#included tbody tr').each(function() {
             var firstTd = $(this).find('td:first');
             if (firstTd.length > 0) {
-                var desc = firstTd.text().trim().toUpperCase();
+                var descSpan = firstTd.find('.desc-editable');
+                var desc = (descSpan.length ? descSpan.text() : firstTd.text()).trim().toUpperCase();
                 if (desc.startsWith('NO ') || desc.startsWith('NO-')) {
                     $(this).toggle(!hideUnselected);
                 }

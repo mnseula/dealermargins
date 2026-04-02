@@ -89,6 +89,22 @@ def detect_model_year(serial: str) -> int:
         return datetime.now().year
 
 
+def load_rep_names() -> dict:
+    """Return {slsman_int: SalesRepName} from Syteline_RepNames.xlsx on the network share."""
+    import pandas as pd
+    path = r'\\elk1itsqvp001\qlik\Common\SourceData-Excel\Syteline_RepNames.xlsx'
+    try:
+        df = pd.read_excel(path, usecols=['slsman', 'SalesRepName'], engine='openpyxl')
+        return {
+            int(row.slsman): str(row.SalesRepName)
+            for row in df.itertuples(index=False)
+            if pd.notna(row.slsman) and pd.notna(row.SalesRepName)
+        }
+    except Exception as e:
+        log(f"WARNING: Could not load rep names from network share ({e}) — ParentRepName will be blank", "WARNING")
+        return {}
+
+
 def get_model_year_2digit(serial: str) -> str:
     """Return 2-digit model year string from last 2 chars of serial."""
     if serial and len(serial) >= 2 and serial[-2:].isdigit():
@@ -366,7 +382,7 @@ def build_serial_master_query(db: str) -> str:
         coi.qty_invoiced                        AS Quantity,
         coi.config_id                           AS ConfigId,
         co.external_confirmation_ref            AS SoNumber,
-        ''                                      AS ParentRepName
+        co.slsman                               AS SlsMan
     FROM [{db}].[dbo].[coitem_mst] coi
     LEFT JOIN [{db}].[dbo].[serial_mst] ser
         ON coi.co_num = ser.ref_num
@@ -1648,6 +1664,8 @@ def main():
             boatoptions_colors = fetch_color_attrs_from_boatoptions(serials, mysql_conn_bo)
             mysql_conn_bo.close()
 
+            rep_names = load_rep_names()
+
             # Fetch Liquifire image URLs from CPQ for CPQ boats.
             # Use ERP_OrderNo (co_num = SO00936xxx) as the CPQ ExternalId — not
             # external_confirmation_ref, which can be a CPQ-generated ref like SOORE000001.
@@ -1721,7 +1739,7 @@ def main():
                     'BaseVinyl':       (cfg.get('BaseVinyl') or boat.get('BaseVinyl') or bo_colors.get('BaseVinyl') or '').strip(),
                     'ColorPackage':    color_package,
                     'TrimAccent':      trim_accent,
-                    'ParentRepName':   (boat.get('ParentRepName') or '').strip(),
+                    'ParentRepName':   rep_names.get(boat.get('SlsMan')) or '',
                     'Presold':         'Y' if boat.get('Presold') in (1, True, 'Y', 'y') else 'N',
                     'Quantity':        int(boat.get('Quantity') or 1),
                     'LiquifireImageUrl': cpq_image_urls.get(str(boat.get('ERP_OrderNo', '')),
