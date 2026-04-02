@@ -25,6 +25,7 @@ import urllib3
 import pymssql
 import mysql.connector
 import load_cpq_data
+import build_liquifire_url
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -1183,6 +1184,89 @@ def sweep_missing_liquifire_urls(mysql_conn, lookback_days: int = 180) -> int:
     return updated
 
 
+def sweep_missing_liquifire_urls_matrix(mysql_conn, lookback_days: int = 180) -> int:
+    """
+    Step 1e: Fallback for CPQ boats that still have no LiquifireImageUrl after
+    Step 1d (CPQ order no longer in PRD).  Builds the URL from CPQ color
+    matrices + BoatOptions26 config data using build_liquifire_url.py.
+    """
+    cursor = mysql_conn.cursor()
+    cursor.execute(f"""
+        SELECT DISTINCT bo.BoatSerialNo
+        FROM {MYSQL_DB}.BoatOptions26 bo
+        JOIN {MYSQL_DB}.SerialNumberMaster snm ON snm.Boat_SerialNo = bo.BoatSerialNo
+        WHERE bo.ConfigID IS NOT NULL AND bo.ConfigID != ''
+          AND bo.BoatModelNo IS NOT NULL AND bo.BoatModelNo NOT IN ('', 'Base Boat')
+          AND (snm.LiquifireImageUrl IS NULL OR snm.LiquifireImageUrl = '')
+          AND snm.InvoiceDateYYYYMMDD >= DATE_FORMAT(
+                CURDATE() - INTERVAL {lookback_days} DAY, '%Y%m%d') + 0
+    """)
+    serials = [r[0] for r in cursor.fetchall()]
+    cursor.close()
+
+    if not serials:
+        log("Step 1e: No CPQ boats still missing Liquifire URLs — matrix fallback not needed")
+        return 0
+
+    log(f"Step 1e: {len(serials)} boat(s) still missing Liquifire URL — building from CPQ matrices...")
+    try:
+        token = build_liquifire_url.get_trn_token()
+        matrices = build_liquifire_url.load_matrices(token)
+    except Exception as exc:
+        log(f"Step 1e: Failed to load CPQ matrices — {exc}", "ERROR")
+        return 0
+
+    bo_cursor = mysql_conn.cursor()
+    updated = 0
+    for serial in serials:
+        try:
+            config, model, series = build_liquifire_url.get_boat_config(bo_cursor, serial)
+            if not model:
+                log(f"  {serial}: no model in BoatOptions26 — skipped")
+                continue
+
+            url = build_liquifire_url.build_url(serial, config, model, series, matrices)
+            if not url:
+                log(f"  {serial} ({model}): could not build URL — skipped")
+                continue
+
+            ok, size = build_liquifire_url.test_url(url)
+
+            # Year fallback: try next model years if current asset missing
+            if not ok and len(model) >= 2 and model[:2].isdigit():
+                year = int(model[:2])
+                for try_year in range(year + 1, year + 4):
+                    fallback_model = f'{try_year:02d}{model[2:]}'
+                    fallback_url = url.replace(f'asset[{model}]', f'asset[{fallback_model}]')
+                    ok, size = build_liquifire_url.test_url(fallback_url)
+                    if ok:
+                        log(f"  {serial} ({model}): using fallback asset [{fallback_model}]")
+                        url = fallback_url
+                        break
+
+            if not ok:
+                log(f"  {serial} ({model}): URL did not render — skipped")
+                continue
+
+            cursor2 = mysql_conn.cursor()
+            cursor2.execute(
+                f"UPDATE {MYSQL_DB}.SerialNumberMaster SET LiquifireImageUrl = %s WHERE Boat_SerialNo = %s",
+                (url, serial)
+            )
+            mysql_conn.commit()
+            cursor2.close()
+            log(f"  {serial} ({model}): stored ({size:,} bytes)")
+            updated += 1
+
+        except Exception as exc:
+            log(f"  {serial}: error — {exc}", "WARNING")
+            continue
+
+    bo_cursor.close()
+    log(f"Step 1e: Built and stored Liquifire URLs for {updated} boat(s)", "SUCCESS")
+    return updated
+
+
 # ============================================================================
 # STEP 2 — SERIAL NUMBER MASTER LOAD
 # ============================================================================
@@ -1497,6 +1581,13 @@ def main():
             log("STEP 1d: SWEEP — CPQ BOATS MISSING LIQUIFIRE IMAGE (180-DAY WINDOW)")
             log("=" * 60)
             sweep_missing_liquifire_urls(mysql_conn, lookback_days=180)
+
+            # ── STEP 1e: Matrix fallback for boats CPQ PRD couldn't resolve ──
+            print()
+            log("=" * 60)
+            log("STEP 1e: SWEEP — LIQUIFIRE MATRIX FALLBACK (180-DAY WINDOW)")
+            log("=" * 60)
+            sweep_missing_liquifire_urls_matrix(mysql_conn, lookback_days=180)
             mysql_conn.close()
         else:
             log("No line items found for today.", "WARNING")
