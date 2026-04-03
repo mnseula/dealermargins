@@ -1608,9 +1608,9 @@ def main():
             # ── STEP 1d: Sweep CPQ boats missing Liquifire image URLs ────────
             print()
             log("=" * 60)
-            log("STEP 1d: SWEEP — CPQ BOATS MISSING LIQUIFIRE IMAGE (180-DAY WINDOW)")
+            log("STEP 1d: SWEEP — CPQ BOATS MISSING LIQUIFIRE IMAGE (14-DAY WINDOW)")
             log("=" * 60)
-            sweep_missing_liquifire_urls(mysql_conn, lookback_days=180)
+            sweep_missing_liquifire_urls(mysql_conn, lookback_days=14)
 
             # ── STEP 1e: Matrix fallback for boats CPQ PRD couldn't resolve ──
             print()
