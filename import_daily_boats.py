@@ -90,19 +90,49 @@ def detect_model_year(serial: str) -> int:
 
 
 def load_rep_names() -> dict:
-    """Return {slsman_int: SalesRepName} from Syteline_RepNames.xlsx on the network share."""
+    """Return ({slsman_int: SalesRepName}, {state: SalesRepName}) from Syteline_RepNames.xlsx
+    on the network share, plus a state-based fallback built from SalesRepMaster in MySQL.
+    """
     import pandas as pd
     path = r'\\elk1itsqvp001\qlik\Common\SourceData-Excel\Syteline_RepNames.xlsx'
     try:
-        df = pd.read_excel(path, usecols=['slsman', 'SalesRepName'], engine='openpyxl')
-        return {
-            int(row.slsman): str(row.SalesRepName)
+        df = pd.read_excel(path, sheet_name='Names', usecols=['slsman', 'SalesRepName'],
+                           engine='openpyxl')
+        slsman_map = {
+            int(row.slsman): str(row.SalesRepName).strip()
             for row in df.itertuples(index=False)
             if pd.notna(row.slsman) and pd.notna(row.SalesRepName)
         }
     except Exception as e:
-        log(f"WARNING: Could not load rep names from network share ({e}) — ParentRepName will be blank", "WARNING")
-        return {}
+        log(f"WARNING: Could not load rep names from network share ({e}) — ParentRepName will use state fallback only", "WARNING")
+        slsman_map = {}
+
+    # Build state -> SalesRepName fallback from SalesRepMaster in MySQL.
+    # Territory field contains comma-separated state abbreviations.
+    state_map = {}
+    try:
+        fb_conn = mysql.connector.connect(**MYSQL_CONFIG)
+        fb_cur = fb_conn.cursor()
+        fb_cur.execute("""
+            SELECT RepNo, Territory FROM SalesRepMaster
+            WHERE Brand = 'BEN' AND Active = 'Y'
+              AND ParentRepName NOT LIKE '%DO NOT USE%'
+              AND Territory IS NOT NULL AND Territory != ''
+        """)
+        for rep_no, territory in fb_cur.fetchall():
+            rep_name = slsman_map.get(int(rep_no))
+            if not rep_name:
+                continue
+            for state in territory.replace(',', ' ').split():
+                state = state.strip().upper()
+                if len(state) == 2:
+                    state_map[state] = rep_name
+        fb_cur.close()
+        fb_conn.close()
+    except Exception as e:
+        log(f"WARNING: Could not build state fallback map ({e})", "WARNING")
+
+    return slsman_map, state_map
 
 
 def get_model_year_2digit(serial: str) -> str:
@@ -1664,12 +1694,8 @@ def main():
             boatoptions_colors = fetch_color_attrs_from_boatoptions(serials, mysql_conn_bo)
             mysql_conn_bo.close()
 
-            rep_names = load_rep_names()
-            log(f"Loaded {len(rep_names)} rep names from Syteline_RepNames.xlsx")
-            for boat in raw_boats:
-                slsman = boat.get('SlsMan')
-                rep = rep_names.get(int(slsman)) if slsman not in (None, '', 0) else None
-                log(f"  {boat.get('BoatSerialNo')} slsman={repr(slsman)} ({type(slsman).__name__}) -> rep={repr(rep)}")
+            rep_names, state_rep_map = load_rep_names()
+            log(f"Loaded {len(rep_names)} rep names, {len(state_rep_map)} state mappings from Syteline_RepNames.xlsx")
 
             # Fetch Liquifire image URLs from CPQ for CPQ boats.
             # Use ERP_OrderNo (co_num = SO00936xxx) as the CPQ ExternalId — not
@@ -1744,7 +1770,11 @@ def main():
                     'BaseVinyl':       (cfg.get('BaseVinyl') or boat.get('BaseVinyl') or bo_colors.get('BaseVinyl') or '').strip(),
                     'ColorPackage':    color_package,
                     'TrimAccent':      trim_accent,
-                    'ParentRepName':   rep_names.get(int(boat['SlsMan'])) if boat.get('SlsMan') not in (None, '', 0) else '',
+                    'ParentRepName':   (
+                        (rep_names.get(int(boat['SlsMan'])) if boat.get('SlsMan') not in (None, '', 0) else None)
+                        or state_rep_map.get((boat.get('DealerState') or '').strip().upper())
+                        or ''
+                    ),
                     'Presold':         'Y' if boat.get('Presold') in (1, True, 'Y', 'y') else 'N',
                     'Quantity':        int(boat.get('Quantity') or 1),
                     'LiquifireImageUrl': cpq_image_urls.get(str(boat.get('ERP_OrderNo', '')),
