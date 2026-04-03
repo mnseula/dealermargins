@@ -1364,7 +1364,7 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
     csv_file = tempfile.NamedTemporaryFile(
         mode='w', delete=False, suffix='_snm.csv', newline='')
     try:
-        writer = csv.writer(csv_file)
+        writer = csv.writer(csv_file, lineterminator='\n')
         for b in new_boats:
             writer.writerow([
                 b.get('SN_MY', ''),         b.get('BoatSerialNo', ''),
