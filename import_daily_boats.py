@@ -1665,6 +1665,11 @@ def main():
             mysql_conn_bo.close()
 
             rep_names = load_rep_names()
+            log(f"Loaded {len(rep_names)} rep names from Syteline_RepNames.xlsx")
+            for boat in raw_boats:
+                slsman = boat.get('SlsMan')
+                rep = rep_names.get(int(slsman)) if slsman not in (None, '', 0) else None
+                log(f"  {boat.get('BoatSerialNo')} slsman={repr(slsman)} ({type(slsman).__name__}) -> rep={repr(rep)}")
 
             # Fetch Liquifire image URLs from CPQ for CPQ boats.
             # Use ERP_OrderNo (co_num = SO00936xxx) as the CPQ ExternalId — not
@@ -1739,7 +1744,7 @@ def main():
                     'BaseVinyl':       (cfg.get('BaseVinyl') or boat.get('BaseVinyl') or bo_colors.get('BaseVinyl') or '').strip(),
                     'ColorPackage':    color_package,
                     'TrimAccent':      trim_accent,
-                    'ParentRepName':   rep_names.get(boat.get('SlsMan')) or '',
+                    'ParentRepName':   rep_names.get(int(boat['SlsMan'])) if boat.get('SlsMan') not in (None, '', 0) else '',
                     'Presold':         'Y' if boat.get('Presold') in (1, True, 'Y', 'y') else 'N',
                     'Quantity':        int(boat.get('Quantity') or 1),
                     'LiquifireImageUrl': cpq_image_urls.get(str(boat.get('ERP_OrderNo', '')),
