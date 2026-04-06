@@ -1249,6 +1249,16 @@ def sweep_missing_liquifire_urls_matrix(mysql_conn, lookback_days: int = 180) ->
             OR snm.LiquifireImageUrl LIKE '%asset[furn\\_%'
             OR snm.LiquifireImageUrl LIKE '%view[]%'
             OR snm.LiquifireImageUrl LIKE '%asset[]%'
+            -- CPQ PRD sometimes returns a URL whose asset year predates the boat model year.
+            -- The furniture params make it render large enough to pass the >20KB check but
+            -- the hull is wrong (shows only deck/tube). Catch by comparing asset year in the
+            -- URL against the first 2 chars of BoatModelNo.
+            OR (
+                bo.BoatModelNo REGEXP '^[0-9]{2}'
+                AND snm.LiquifireImageUrl REGEXP 'asset\\\\[[0-9]{2}'
+                AND CAST(SUBSTRING(bo.BoatModelNo, 1, 2) AS UNSIGNED) <>
+                    CAST(REGEXP_SUBSTR(snm.LiquifireImageUrl, 'asset\\\\[([0-9]{2})', 1, 1, '', 1) AS UNSIGNED)
+            )
           )
           AND snm.InvoiceDateYYYYMMDD >= DATE_FORMAT(
                 CURDATE() - INTERVAL {lookback_days} DAY, '%Y%m%d') + 0
