@@ -1257,7 +1257,8 @@ def sweep_missing_liquifire_urls_matrix(mysql_conn, lookback_days: int = 180) ->
                 bo.BoatModelNo REGEXP '^[0-9]{2}'
                 AND snm.LiquifireImageUrl REGEXP 'asset\\\\[[0-9]{2}'
                 AND CAST(SUBSTRING(bo.BoatModelNo, 1, 2) AS UNSIGNED) <>
-                    CAST(REGEXP_SUBSTR(snm.LiquifireImageUrl, 'asset\\\\[([0-9]{2})', 1, 1, '', 1) AS UNSIGNED)
+                    CAST(SUBSTRING(snm.LiquifireImageUrl,
+                        LOCATE('asset[', snm.LiquifireImageUrl) + 6, 2) AS UNSIGNED)
             )
           )
           AND snm.InvoiceDateYYYYMMDD >= DATE_FORMAT(
