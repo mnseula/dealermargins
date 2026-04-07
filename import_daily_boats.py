@@ -552,7 +552,7 @@ def fetch_color_attrs_from_boatoptions(serial_numbers: list, mysql_conn) -> dict
                 FROM {MYSQL_DB}.{table}
                 WHERE BoatSerialNo IN ({placeholders})
                     AND (
-                        CfgName = 'baseVinyl'
+                        CfgName IN ('baseVinyl','panelColor','accentPanelColor','trim','anodizing')
                         OR ItemDesc1 LIKE 'PANEL ACCENT%'
                         OR ItemDesc1 LIKE 'TRIM ACCENT%'
                         OR ItemDesc1 LIKE 'BASE VINYL%'
@@ -597,9 +597,17 @@ def fetch_color_attrs_from_boatoptions(serial_numbers: list, mysql_conn) -> dict
                     serial_colors[serial]['TrimAccent'] = desc
                 elif cat == 'ACC' and itemno_upper.startswith('EXTERIOR COLOR'):
                     serial_colors[serial]['ColorPackage'] = desc
-                # CPQ boats: CfgName='baseVinyl' → ItemDesc1 is already the clean value
+                # CPQ boats: CfgName → ItemDesc1 is already the clean human-readable value
                 elif cfgname == 'basevinyl':
                     serial_colors[serial]['BaseVinyl'] = desc
+                elif cfgname == 'panelcolor':
+                    serial_colors[serial]['PanelColor'] = desc
+                elif cfgname == 'accentpanelcolor':
+                    serial_colors[serial]['AccentPanel'] = desc
+                elif cfgname == 'trim':
+                    serial_colors[serial]['TrimAccent'] = desc
+                elif cfgname == 'anodizing':
+                    serial_colors[serial]['ColorPackage'] = desc
                 # Legacy boats: ItemDesc1 includes category prefix — strip it
                 elif 'BASE VINYL' in desc_upper or 'VINYL BASE' in desc_upper or mct == 'A0V':
                     for prefix in ('BASE VINYL', 'VINYL BASE'):
