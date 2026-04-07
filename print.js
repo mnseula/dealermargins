@@ -882,12 +882,19 @@ if (tableClone) {
             }
         }
         // Struck rows are excluded from the window sticker entirely (covers $0 struck via checkbox too)
+        // Primary check: key in window.struckRows
         if (window.struckRows && window.struckRows.size > 0) {
             var eyeBtn = row.querySelector('.row-eye-btn');
             if (eyeBtn && window.struckRows.has(eyeBtn.getAttribute('data-rowkey'))) {
                 row.remove();
                 return;
             }
+        }
+        // Fallback: remove any row whose cells are visually struck (line-through inline style)
+        // This catches cases where struckRows state was lost but the DOM still reflects the strike
+        if (row.querySelector('td[style*="line-through"]')) {
+            row.remove();
+            return;
         }
     });
     // Remove write-in rows from DOM capture — they will be re-added from window.writeInItems below
