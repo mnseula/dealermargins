@@ -669,10 +669,17 @@ def _normalize_liquifire_url(url: str, item_no: str = '') -> str:
             cpq_model = m.group(1)
         url = f"{_LIQUIFIRE_BASE}?set=cat[pon],asset[],view[]&call=url[file:PS/main]&sink"
 
-    candidates = [
-        _re.sub(r'cat\[[^\]]*\]', 'cat[orthographic]', url),
-        _re.sub(r'cat\[[^\]]*\]', 'cat[pon]', url),
-    ]
+    # If the CPQ URL is a furniture swatch (asset[furn_*]) and we have an item_no,
+    # skip the original-URL candidates entirely — they'll just render a furniture image
+    # that happens to be large enough to pass the >20KB size check.
+    is_furn_url = 'asset[furn_' in url
+    if is_furn_url and item_no:
+        candidates = []
+    else:
+        candidates = [
+            _re.sub(r'cat\[[^\]]*\]', 'cat[orthographic]', url),
+            _re.sub(r'cat\[[^\]]*\]', 'cat[pon]', url),
+        ]
     if item_no:
         # Keep all color params from the CPQ URL but fix asset and view —
         # handles cases where CPQ returns a furniture swatch (asset[furn_*], view[])
