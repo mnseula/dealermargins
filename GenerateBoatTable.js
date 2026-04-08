@@ -258,28 +258,44 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     // Row-strikethrough: reset state when navigating to a new boat
     var currentSerial = getValue('BOAT_INFO', 'HULL_NO') || '';
     var lsStruckKey = 'bennington_struckRows_' + currentSerial;
+    console.log('Generate - currentSerial:', currentSerial, 'lsStruckKey:', lsStruckKey);
+    console.log('Generate - window.struckRows before reset:', window.struckRows ? Array.from(window.struckRows) : 'undefined');
+    console.log('Generate - window.generatorLastSerial:', window.generatorLastSerial);
 
     //Append and Set and Make Read Only
     $('div[data-ref="INCLUDED/INCLUDED_OPTIONS"]').append(table);
     
     // Set the localStorage key on all eye buttons (cannot rely on closure in EOS sandbox)
     $('.row-eye-btn[data-lskey="pending"]').attr('data-lskey', lsStruckKey);
+    console.log('Generate - Set data-lskey on', $('.row-eye-btn[data-lskey="' + lsStruckKey + '"]').length, 'buttons');
 
     if (!window.generatorLastSerial || window.generatorLastSerial !== currentSerial) {
+        console.log('Generate - Serial changed or first run, resetting state');
         window.struckRows = new Set();
         window.strikeZeroPriceOptions = false;
         window.hideUnselectedBoatOptions = false;
         window.descEdits = {};       // {rowKey: newText} for edited descriptions
         window.writeInItems = [];    // [{rowKey, desc, itemno, qty, dc, ms, sp}]
         window.generatorLastSerial = currentSerial;
+    } else {
+        console.log('Generate - Same serial, preserving state');
     }
     if (!window.struckRows) { window.struckRows = new Set(); }
     // Restore struck rows from localStorage if in-memory state was lost (EOS re-renders before print)
     if (window.struckRows.size === 0) {
+        console.log('Generate - Attempting to restore from localStorage, key:', lsStruckKey);
         try {
             var saved = localStorage.getItem(lsStruckKey);
-            if (saved) { window.struckRows = new Set(JSON.parse(saved)); }
-        } catch(e) {}
+            console.log('Generate - localStorage value:', saved);
+            if (saved) { 
+                window.struckRows = new Set(JSON.parse(saved));
+                console.log('Generate - Restored struckRows:', Array.from(window.struckRows));
+            }
+        } catch(e) { 
+            console.log('Generate - Error restoring from localStorage:', e);
+        }
+    } else {
+        console.log('Generate - struckRows already has data:', Array.from(window.struckRows));
     }
     if (!window.descEdits) { window.descEdits = {}; }
     if (!window.writeInItems) { window.writeInItems = []; }
