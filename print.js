@@ -861,36 +861,69 @@ wsContents += "    <div id=\"overheadimg\"> " + img + "<\/div>";
 
 wsContents += "    <div class=\"title\">INCLUDED OPTIONS <\/div>";
 
-// Restore struckRows from EOS state — EOS re-renders GenerateBoatTable multiple times
-// between the user clicking Print and print.js executing, wiping window.struckRows each cycle.
-if (!window.struckRows || window.struckRows.size === 0) {
-    var lsKey = 'bennington_struckRows_' + serial;
-    var savedStruck = null;
+// Struck rows: Check DOM data-struck attributes directly (most reliable)
+// Also check window.struckRows and multiple persistence mechanisms as fallback
+console.log('=== STRUCK ROWS PRINT DEBUG ===');
+var includedEl = document.getElementById('included');
+console.log('document.getElementById("included"):', includedEl ? 'FOUND' : 'NULL');
+
+// Try to restore struckRows from multiple persistence mechanisms
+var struckFromPersistence = null;
+try {
+    struckFromPersistence = getValue('EXTRAS', 'STRUCK_ROWS');
+    console.log('print.js - EXTRAS/STRUCK_ROWS:', struckFromPersistence);
+} catch(e) {
+    console.log('print.js - Error reading EXTRAS/STRUCK_ROWS:', e);
+}
+if (!struckFromPersistence) {
     try {
-        savedStruck = getValue('STRIKE_STATE', lsKey);
-        console.log('Print - EOS state value:', savedStruck);
+        var currentSerial = getValue('BOAT_INFO', 'HULL_NO') || '';
+        var lsKey = 'bennington_struckRows_' + currentSerial;
+        struckFromPersistence = sessionStorage.getItem(lsKey);
+        console.log('print.js - sessionStorage:', struckFromPersistence);
     } catch(e) {
-        console.log('Print - Error reading EOS state:', e);
+        console.log('print.js - Error reading sessionStorage:', e);
     }
-    // Fallback to localStorage
-    if (!savedStruck) {
-        try {
-            savedStruck = localStorage.getItem(lsKey);
-            console.log('Print - localStorage value:', savedStruck);
-        } catch(e) {}
-    }
-    if (savedStruck) {
-        try {
-            window.struckRows = new Set(JSON.parse(savedStruck));
-            console.log('Restored struckRows from saved state:', JSON.stringify(Array.from(window.struckRows)));
-        } catch(e) {}
+}
+if (!struckFromPersistence) {
+    try {
+        var currentSerial = getValue('BOAT_INFO', 'HULL_NO') || '';
+        var lsKey = 'bennington_struckRows_' + currentSerial;
+        struckFromPersistence = localStorage.getItem(lsKey);
+        console.log('print.js - localStorage:', struckFromPersistence);
+    } catch(e) {}
+}
+
+// Restore to window.struckRows if we found data
+if (struckFromPersistence && (!window.struckRows || window.struckRows.size === 0)) {
+    try {
+        var parsed = JSON.parse(struckFromPersistence);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+            window.struckRows = new Set(parsed);
+            console.log('print.js - Restored struckRows from persistence:', Array.from(window.struckRows));
+        }
+    } catch(e) {
+        console.log('print.js - Error parsing struck data:', e);
     }
 }
 
-// Clone the table and apply active filters before printing
-var includedEl = document.getElementById('included');
-console.log('=== STRUCK ROWS PRINT DEBUG ===');
-console.log('document.getElementById("included"):', includedEl ? 'FOUND' : 'NULL');
+// Also restore hideUnselectedBoatOptions from persistence
+var hideUnselectedVal = null;
+try {
+    hideUnselectedVal = getValue('EXTRAS', 'HIDE_UNSELECTED');
+} catch(e) {}
+if (!hideUnselectedVal) {
+    try {
+        hideUnselectedVal = sessionStorage.getItem('bennington_hideUnselected');
+    } catch(e) {}
+}
+if (hideUnselectedVal === 'true') {
+    window.hideUnselectedBoatOptions = true;
+    console.log('print.js - Restored hideUnselectedBoatOptions = true');
+} else if (hideUnselectedVal === 'false') {
+    window.hideUnselectedBoatOptions = false;
+}
+
 console.log('window.struckRows:', window.struckRows ? JSON.stringify(Array.from(window.struckRows)) : 'undefined');
 var includedTableHtml = includedEl ? includedEl.outerHTML : '';
 var tempDiv = document.createElement('div');
