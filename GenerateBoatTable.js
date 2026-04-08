@@ -331,7 +331,7 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
             row.find('td').css({ 'text-decoration': 'line-through', 'color': '#aaa' });
             $(this).css({ 'text-decoration': 'line-through', 'opacity': '0.35' }).attr('title', 'Click to restore');
         }
-        try { localStorage.setItem('bennington_struckRows_' + (getValue('BOAT_INFO', 'HULL_NO') || ''), JSON.stringify(Array.from(window.struckRows))); } catch(e) {}
+        try { localStorage.setItem(lsStruckKey, JSON.stringify(Array.from(window.struckRows))); } catch(e) {}
     });
 
     // ALL BOATS: Add checkboxes for unselected options (CPQ only) and $0 strikethrough
