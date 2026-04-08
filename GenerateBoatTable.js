@@ -279,17 +279,6 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         window.generatorLastSerial = currentSerial;
     } else {
         console.log('Generate - Same serial, preserving state');
-        // Restore hideUnselectedBoatOptions from persistence
-        var hideUnselectedVal = null;
-        try { hideUnselectedVal = getValue('EXTRAS', 'HIDE_UNSELECTED'); } catch(e) {}
-        if (!hideUnselectedVal) {
-            try { hideUnselectedVal = sessionStorage.getItem('bennington_hideUnselected'); } catch(e) {}
-        }
-        if (hideUnselectedVal === 'true') {
-            window.hideUnselectedBoatOptions = true;
-        } else if (hideUnselectedVal === 'false') {
-            window.hideUnselectedBoatOptions = false;
-        }
     }
     
     // Ensure struckRows is always a Set
@@ -327,36 +316,34 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     });
 
     // Re-apply previously struck rows after re-render
-    // Try multiple persistence mechanisms in order of reliability
-    var reapplyStruckData = null;
-    
-    // 1. Try EXTRAS list
-    try {
-        reapplyStruckData = getValue('EXTRAS', 'STRUCK_ROWS');
-    } catch(e) {}
-    
-    // 2. Try sessionStorage
-    if (!reapplyStruckData) {
+    // Only restore from storage if window.struckRows is empty AND storage has data
+    // EOS clears sessionStorage/localStorage between runs, so in-memory state is more reliable
+    if (!window.struckRows || window.struckRows.size === 0) {
+        var reapplyStruckData = null;
+        
+        // Try sessionStorage first
         try {
             reapplyStruckData = sessionStorage.getItem(lsStruckKey);
         } catch(e) {}
-    }
-    
-    // 3. Fallback to localStorage
-    if (!reapplyStruckData) {
-        try {
-            reapplyStruckData = localStorage.getItem(lsStruckKey);
-        } catch(e) {}
-    }
-    
-    if (reapplyStruckData) {
-        try {
-            var struckArray = JSON.parse(reapplyStruckData);
-            if (Array.isArray(struckArray) && struckArray.length > 0) {
-                window.struckRows = new Set(struckArray);
-                console.log('Re-applied struckRows from persistence:', Array.from(window.struckRows));
-            }
-        } catch(e) {}
+        
+        // Fallback to localStorage
+        if (!reapplyStruckData) {
+            try {
+                reapplyStruckData = localStorage.getItem(lsStruckKey);
+            } catch(e) {}
+        }
+        
+        if (reapplyStruckData && reapplyStruckData !== '[]') {
+            try {
+                var struckArray = JSON.parse(reapplyStruckData);
+                if (Array.isArray(struckArray) && struckArray.length > 0) {
+                    window.struckRows = new Set(struckArray);
+                    console.log('Re-applied struckRows from storage:', Array.from(window.struckRows));
+                }
+            } catch(e) {}
+        }
+    } else {
+        console.log('Keeping existing struckRows in memory:', Array.from(window.struckRows));
     }
     
     $('#included tbody tr').each(function() {
@@ -389,30 +376,13 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         console.log('struckRows:', Array.from(window.struckRows));
         var struckJson = JSON.stringify(Array.from(window.struckRows));
         
-        // Save to multiple locations for redundancy
-        // 1. EXTRAS list (EOS state that accepts arbitrary fields)
-        try {
-            setValue('EXTRAS', 'STRUCK_ROWS', struckJson);
-            console.log('Saved to EXTRAS/STRUCK_ROWS:', struckJson);
-        } catch(e) {
-            console.log('EXTRAS save error:', e);
-        }
-        
-        // 2. sessionStorage (might survive EOS clears)
+        // Save to browser storage (EOS clears these between runs, but try anyway)
         try { 
             sessionStorage.setItem(lsKey, struckJson);
-            console.log('Saved to sessionStorage:', lsKey, sessionStorage.getItem(lsKey));
-        } catch(e) { 
-            console.log('sessionStorage save error:', e);
-        }
-        
-        // 3. localStorage as fallback
+        } catch(e) {}
         try { 
             localStorage.setItem(lsKey, struckJson);
-            console.log('Saved to localStorage:', lsKey, localStorage.getItem(lsKey));
-        } catch(e2) { 
-            console.log('localStorage save error:', e2);
-        }
+        } catch(e) {}
     });
 
     // ALL BOATS: Add checkboxes for unselected options (CPQ only) and $0 strikethrough
@@ -528,11 +498,6 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     $('#hideUnselectedOptions').on('change', function() {
         var hideUnselected = $(this).prop('checked');
         window.hideUnselectedBoatOptions = hideUnselected;
-        // Persist the checkbox state
-        try {
-            setValue('EXTRAS', 'HIDE_UNSELECTED', hideUnselected ? 'true' : 'false');
-        } catch(e) {}
-        try { sessionStorage.setItem('bennington_hideUnselected', hideUnselected ? 'true' : 'false'); } catch(e) {}
         $('#included tbody tr').each(function() {
             var firstTd = $(this).find('td:first');
             if (firstTd.length > 0) {
@@ -559,7 +524,6 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
                 var spVal = parseFloat(spTd.text().trim()) || 0;
                 if (msVal === 0 && spVal === 0) {
                     var key = eyeBtn.attr('data-rowkey');
-                    var lsKey = eyeBtn.attr('data-lskey');
                     if (strikeZero) {
                         window.struckRows.add(key);
                         $(this).attr('data-struck', 'true');
@@ -571,13 +535,6 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
                         $(this).find('td').css({ 'text-decoration': '', 'color': '' });
                         eyeBtn.css({ 'text-decoration': '', 'opacity': '' }).attr('title', 'Click to strike out');
                     }
-                    // Save to multiple persistence mechanisms
-                    var struckJson = JSON.stringify(Array.from(window.struckRows));
-                    try {
-                        setValue('EXTRAS', 'STRUCK_ROWS', struckJson);
-                    } catch(e) {}
-                    try { sessionStorage.setItem(lsKey, struckJson); } catch(e) {}
-                    try { localStorage.setItem(lsKey, struckJson); } catch(e) {}
                 }
             }
         });
