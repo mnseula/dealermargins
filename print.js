@@ -861,6 +861,18 @@ wsContents += "    <div id=\"overheadimg\"> " + img + "<\/div>";
 
 wsContents += "    <div class=\"title\">INCLUDED OPTIONS <\/div>";
 
+// Restore struckRows from localStorage — EOS re-renders GenerateBoatTable multiple times
+// between the user clicking Print and print.js executing, wiping window.struckRows each cycle.
+if (!window.struckRows || window.struckRows.size === 0) {
+    try {
+        var lsSaved = localStorage.getItem('bennington_struckRows_' + serial);
+        if (lsSaved) {
+            window.struckRows = new Set(JSON.parse(lsSaved));
+            console.log('Restored struckRows from localStorage:', JSON.stringify(Array.from(window.struckRows)));
+        }
+    } catch(e) {}
+}
+
 // Clone the table and apply active filters before printing
 var includedEl = document.getElementById('included');
 console.log('=== STRUCK ROWS PRINT DEBUG ===');

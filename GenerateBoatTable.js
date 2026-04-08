@@ -260,6 +260,7 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
 
     // Row-strikethrough: reset state when navigating to a new boat
     var currentSerial = getValue('BOAT_INFO', 'HULL_NO') || '';
+    var lsStruckKey = 'bennington_struckRows_' + currentSerial;
     if (!window.generatorLastSerial || window.generatorLastSerial !== currentSerial) {
         window.struckRows = new Set();
         window.strikeZeroPriceOptions = false;
@@ -269,6 +270,13 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         window.generatorLastSerial = currentSerial;
     }
     if (!window.struckRows) { window.struckRows = new Set(); }
+    // Restore struck rows from localStorage if in-memory state was lost (EOS re-renders before print)
+    if (window.struckRows.size === 0) {
+        try {
+            var saved = localStorage.getItem(lsStruckKey);
+            if (saved) { window.struckRows = new Set(JSON.parse(saved)); }
+        } catch(e) {}
+    }
     if (!window.descEdits) { window.descEdits = {}; }
     if (!window.writeInItems) { window.writeInItems = []; }
 
@@ -323,6 +331,7 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
             row.find('td').css({ 'text-decoration': 'line-through', 'color': '#aaa' });
             $(this).css({ 'text-decoration': 'line-through', 'opacity': '0.35' }).attr('title', 'Click to restore');
         }
+        try { localStorage.setItem('bennington_struckRows_' + (getValue('BOAT_INFO', 'HULL_NO') || ''), JSON.stringify(Array.from(window.struckRows))); } catch(e) {}
     });
 
     // ALL BOATS: Add checkboxes for unselected options (CPQ only) and $0 strikethrough
@@ -474,6 +483,7 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
                         $(this).find('td').css({ 'text-decoration': '', 'color': '' });
                         eyeBtn.css({ 'text-decoration': '', 'opacity': '' }).attr('title', 'Click to strike out');
                     }
+                    try { localStorage.setItem(lsStruckKey, JSON.stringify(Array.from(window.struckRows))); } catch(e) {}
                 }
             }
         });
