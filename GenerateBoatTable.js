@@ -259,8 +259,18 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     var currentSerial = getValue('BOAT_INFO', 'HULL_NO') || '';
     var lsStruckKey = 'bennington_struckRows_' + currentSerial;
     console.log('Generate - currentSerial:', currentSerial, 'lsStruckKey:', lsStruckKey);
-    console.log('Generate - window.struckRows before reset:', window.struckRows ? Array.from(window.struckRows) : 'undefined');
+    console.log('Generate - window.struckRows before reset:', window.struckRows);
     console.log('Generate - window.generatorLastSerial:', window.generatorLastSerial);
+
+    // ALWAYS restore from localStorage first - window object gets serialized/deserialized by EOS
+    // and Set objects become empty arrays during that process
+    var savedFromStorage = null;
+    try {
+        savedFromStorage = localStorage.getItem(lsStruckKey);
+        console.log('Generate - localStorage value:', savedFromStorage);
+    } catch(e) {
+        console.log('Generate - Error reading localStorage:', e);
+    }
 
     //Append and Set and Make Read Only
     $('div[data-ref="INCLUDED/INCLUDED_OPTIONS"]').append(table);
@@ -280,23 +290,25 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     } else {
         console.log('Generate - Same serial, preserving state');
     }
-    if (!window.struckRows) { window.struckRows = new Set(); }
-    // Restore struck rows from localStorage if in-memory state was lost (EOS re-renders before print)
-    if (window.struckRows.size === 0) {
-        console.log('Generate - Attempting to restore from localStorage, key:', lsStruckKey);
+    
+    // ALWAYS restore from localStorage - this fixes the Set serialization issue
+    if (savedFromStorage) {
         try {
-            var saved = localStorage.getItem(lsStruckKey);
-            console.log('Generate - localStorage value:', saved);
-            if (saved) { 
-                window.struckRows = new Set(JSON.parse(saved));
-                console.log('Generate - Restored struckRows:', Array.from(window.struckRows));
+            var parsed = JSON.parse(savedFromStorage);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                window.struckRows = new Set(parsed);
+                console.log('Generate - Restored struckRows from localStorage:', Array.from(window.struckRows));
             }
-        } catch(e) { 
-            console.log('Generate - Error restoring from localStorage:', e);
+        } catch(e) {
+            console.log('Generate - Error parsing localStorage:', e);
         }
-    } else {
-        console.log('Generate - struckRows already has data:', Array.from(window.struckRows));
     }
+    
+    // Ensure struckRows is always a Set
+    if (!window.struckRows || !(window.struckRows instanceof Set)) {
+        window.struckRows = new Set();
+    }
+    
     if (!window.descEdits) { window.descEdits = {}; }
     if (!window.writeInItems) { window.writeInItems = []; }
 
