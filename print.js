@@ -862,11 +862,24 @@ wsContents += "    <div id=\"overheadimg\"> " + img + "<\/div>";
 wsContents += "    <div class=\"title\">INCLUDED OPTIONS <\/div>";
 
 // Clone the table and apply active filters before printing
-var includedTableHtml = document.getElementById('included').outerHTML;
+var includedEl = document.getElementById('included');
+console.log('=== STRUCK ROWS PRINT DEBUG ===');
+console.log('document.getElementById("included"):', includedEl ? 'FOUND' : 'NULL');
+console.log('window.struckRows:', window.struckRows ? JSON.stringify(Array.from(window.struckRows)) : 'undefined');
+var includedTableHtml = includedEl ? includedEl.outerHTML : '';
 var tempDiv = document.createElement('div');
 tempDiv.innerHTML = includedTableHtml;
 var tableClone = tempDiv.querySelector('#included');
+console.log('tableClone:', tableClone ? 'FOUND' : 'NULL');
 if (tableClone) {
+    var allRows = tableClone.querySelectorAll('tbody tr');
+    console.log('Total rows in clone:', allRows.length);
+    allRows.forEach(function(r, idx) {
+        var eb = r.querySelector('.row-eye-btn');
+        var rk = eb ? eb.getAttribute('data-rowkey') : '(no eye btn)';
+        console.log('Row', idx, '| data-struck:', r.getAttribute('data-struck'), '| rowKey:', rk, '| inStruckRows:', window.struckRows ? window.struckRows.has(rk) : 'N/A');
+    });
+    console.log('=== END STRUCK ROWS DEBUG ===');
     var rows = tableClone.querySelectorAll('tbody tr');
     rows.forEach(function(row) {
         // Filter "No..." items
