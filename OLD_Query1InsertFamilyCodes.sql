@@ -1,0 +1,32 @@
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','CMP-PLASTC','FORMED/MOLDED/CNC PLASTIC & PLASTIC ASSEMBLIES, BLANK GAUGE & SWITCH PANELS, LIDS, OPTIONS, CUPHOLDERS' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','CMP-STEER','STEERING SYSTEMS, THRUSTERS,' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','CMP-CNCALU','MACHINED ALUMINUM, ALUMINUM ASSEMBLIES, PEDESTALS, BILLET PARTS' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','CMP-STNLS','STAINLESS HARDWARE, CLEATS, & STAINLESS ASSEMBLIES (RAILS, GATES, GRAB HANDLES)' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','CMP-TANKS','FUEL & WATER TANKS, PUMPS, HOSES, FITTINGS, VENTS, CARBON CANISTERS' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','CMP-WOOD','WOOD & COMPOSITE' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','CMP-LADDER','LADDERS' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','CMP-FASTNR','FASTENERS & HARDWARE' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','CMP-BADGE','GRAPHICS, BADGING, LOGOS (INCLUDES LIT BADGES)' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','CMP-WNDSHD','GLASS WINDSHIELDS & WINDSHIELD MOUNTING HARDWARE' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','CMP-PRDSUP','PRODUCTION SUPPLIES (SHRINKWRAP, PACKAGING, INK)' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','CMP-CLOSUR','HINGES, LATCHES, & SHOCKS' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','CMP-ADHTAP','ADHESIVES, TAPES, EPOXY, VHB, METHACRYLATE' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','CMP-GSKTSL','GASKETS, SEALS, SOFT TRIM, LINERS, & RUB RAILS' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','CMP-REG','REGULATORY' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','INT-FLOOR','FLOORING, HELM MATS, EVA, SEADEK, WAKULLA MAT, CARPET HELMS' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','INT-STRWHL','STEERING WHEELS' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','INT-FURN','FURNITURE COMPLETE' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','EXT-RAWALM','RAW ALUMINUM PARTS USED IN NORTH OR WEST (FLAT, EXTRUDED, SPUN,  STAMPED, LASER CUT, BOWRIDER)' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','EXT-PNTRLS','PAINTED FIBERGLASS RAILS AND BOW PODS, ALUMINUM RAILS INCLUDING AUTOMOTIVE AND ROLL COAT' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','EXT-ARCHES','PAINTED, POWDER COAT, AND CARBON ARCHES, TOP DECK, AND BIMINIS THAT COME DELIVERED ON THE ARCH' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','EXT-FBRGLS','FIBERGLASS CONSOLES (INCLUDES ROTOHELM), FB/SB PODS, TUBS (NOT RAILS), HARD SURFACE' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','EXT-COATNG','COATINGS' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','EXT-COVER','COVERS' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','EXT-BIMINI','STANDLONE REAR AND FWD BIMINI FRAMES, CANVAS, ACTUATORS, AND HARDWARE ' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','ELE-ENGRIG','ENGINE RIGGING' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','ELE-GAUGE','GAUGES, SCREENS, & SWITCHING, LOADED GAUGE & SWITCH PANELS, TRANSDUCERS, NMEA, ETHERNET, SENSORS' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','ELE-PWRDST','WIRING, BATTERY SWITCHES, FUSES, BATTERIES' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','ELE-LIGHT','LIGHTING RGB, HEADLIGHTS, NAVLIGHTS, ACCENT LIGHTS, LIT CUPHOLDER, LIT HANDLES' );
+insert into famcode_mst (site_ref,family_code,[description]) VALUES('BENN','ELE-AUDIO','AUDIO HEAD UNITS, SPEAKERS, AMPS & AMP BOARDS, SPEAKER WIRES' );
+
+/*STRING OR BINARY DATA WOULD BE TRUNCATED. DESCRIPTION IS CAPPED AT 40 Characters for family codes*/
