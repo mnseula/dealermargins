@@ -123,7 +123,7 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
             //At the end here is where we should do the skips
         } else if (mct !== 'ENGINES' && inc !== '1' && mct !== 'PRE-RIG' && mct !== 'Disc - Selling') {
             var rowKey = (itemno + '_' + desc).replace(/"/g, '&quot;');
-            rows = rows + '<tr><td><span class="row-eye-btn" data-rowkey="' + rowKey + '" title="Click to strike out" style="cursor:pointer;margin-right:5px;font-size:14px;vertical-align:middle;user-select:none">👁</span>' + escapeHtml(desc) + '</td><td>' + escapeHtml(itemno) + '</td><td align="center">' + qty + '</td><td type="DC" align="right">' + dc + '</td><td type="MS" align="right">' + msrp + '</td><td type="SP" align="right">' + sp + '</td></tr>';
+            rows = rows + '<tr><td><span class="row-eye-btn" data-rowkey="' + rowKey + '" data-lskey="pending" title="Click to strike out" style="cursor:pointer;margin-right:5px;font-size:14px;vertical-align:middle;user-select:none">👁</span>' + escapeHtml(desc) + '</td><td>' + escapeHtml(itemno) + '</td><td align="center">' + qty + '</td><td type="DC" align="right">' + dc + '</td><td type="MS" align="right">' + msrp + '</td><td type="SP" align="right">' + sp + '</td></tr>';
             rowstotal_SP = rowstotal_SP + Number(sp);
             rowstotal_MS = rowstotal_MS + Number(msrp);
         } else {
@@ -257,6 +257,9 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
 
     //Append and Set and Make Read Only
     $('div[data-ref="INCLUDED/INCLUDED_OPTIONS"]').append(table);
+    
+    // Set the localStorage key on all eye buttons (cannot rely on closure in EOS sandbox)
+    $('.row-eye-btn[data-lskey="pending"]').attr('data-lskey', lsStruckKey);
 
     // Row-strikethrough: reset state when navigating to a new boat
     var currentSerial = getValue('BOAT_INFO', 'HULL_NO') || '';
@@ -318,7 +321,10 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
 
     // Handler: toggle strikethrough and eye icon style
     $('#included').on('click', '.row-eye-btn', function() {
+        console.log('Eye button clicked - handler firing');
         var key = $(this).attr('data-rowkey');
+        var lsKey = $(this).attr('data-lskey');
+        console.log('rowKey:', key, 'lsKey:', lsKey);
         var row = $(this).closest('tr');
         if (window.struckRows.has(key)) {
             window.struckRows.delete(key);
@@ -331,7 +337,13 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
             row.find('td').css({ 'text-decoration': 'line-through', 'color': '#aaa' });
             $(this).css({ 'text-decoration': 'line-through', 'opacity': '0.35' }).attr('title', 'Click to restore');
         }
-        try { localStorage.setItem(lsStruckKey, JSON.stringify(Array.from(window.struckRows))); } catch(e) {}
+        console.log('struckRows:', Array.from(window.struckRows));
+        try { 
+            localStorage.setItem(lsKey, JSON.stringify(Array.from(window.struckRows)));
+            console.log('Saved to localStorage:', lsKey, localStorage.getItem(lsKey));
+        } catch(e) { 
+            console.log('localStorage error:', e);
+        }
     });
 
     // ALL BOATS: Add checkboxes for unselected options (CPQ only) and $0 strikethrough
@@ -387,6 +399,7 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         var eyeSpan = document.createElement('span');
         eyeSpan.className = 'row-eye-btn';
         eyeSpan.setAttribute('data-rowkey', rowKey);
+        eyeSpan.setAttribute('data-lskey', lsStruckKey);
         eyeSpan.setAttribute('title', 'Click to strike out');
         eyeSpan.style.cssText = 'cursor:pointer;margin-right:5px;font-size:14px;vertical-align:middle;user-select:none';
         eyeSpan.innerHTML = '&#128065;';
@@ -472,6 +485,7 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
                 var spVal = parseFloat(spTd.text().trim()) || 0;
                 if (msVal === 0 && spVal === 0) {
                     var key = eyeBtn.attr('data-rowkey');
+                    var lsKey = eyeBtn.attr('data-lskey');
                     if (strikeZero) {
                         window.struckRows.add(key);
                         $(this).attr('data-struck', 'true');
@@ -483,7 +497,7 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
                         $(this).find('td').css({ 'text-decoration': '', 'color': '' });
                         eyeBtn.css({ 'text-decoration': '', 'opacity': '' }).attr('title', 'Click to strike out');
                     }
-                    try { localStorage.setItem(lsStruckKey, JSON.stringify(Array.from(window.struckRows))); } catch(e) {}
+                    try { localStorage.setItem(lsKey, JSON.stringify(Array.from(window.struckRows))); } catch(e) {}
                 }
             }
         });
