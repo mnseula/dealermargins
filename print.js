@@ -861,11 +861,33 @@ wsContents += "    <div id=\"overheadimg\"> " + img + "<\/div>";
 
 wsContents += "    <div class=\"title\">INCLUDED OPTIONS <\/div>";
 
-// Struck rows: Check DOM data-struck attributes and window.struckRows
-// EOS clears sessionStorage/localStorage between runs, so we rely on in-memory state
+// Struck rows: Check window.name first (persists across EOS context resets), then window.struckRows
 console.log('=== STRUCK ROWS PRINT DEBUG ===');
 var includedEl = document.getElementById('included');
 console.log('document.getElementById("included"):', includedEl ? 'FOUND' : 'NULL');
+
+// Try to restore from window.name
+var currentSerialForPrint = getValue('BOAT_INFO', 'HULL_NO') || '';
+var benningtonStatePrint = {};
+try {
+    if (window.name && window.name.startsWith('bennington_')) {
+        benningtonStatePrint = JSON.parse(window.name.substring(11)) || {};
+    }
+} catch(e) {}
+console.log('print.js - window.name state:', benningtonStatePrint);
+
+if (benningtonStatePrint[currentSerialForPrint]) {
+    var savedDataPrint = benningtonStatePrint[currentSerialForPrint];
+    if (savedDataPrint.struckRows && Array.isArray(savedDataPrint.struckRows) && savedDataPrint.struckRows.length > 0) {
+        window.struckRows = new Set(savedDataPrint.struckRows);
+        console.log('print.js - Restored struckRows from window.name:', Array.from(window.struckRows));
+    }
+    if (savedDataPrint.hideUnselected !== undefined) {
+        window.hideUnselectedBoatOptions = savedDataPrint.hideUnselected;
+        console.log('print.js - Restored hideUnselectedBoatOptions:', window.hideUnselectedBoatOptions);
+    }
+}
+
 console.log('window.struckRows:', window.struckRows ? JSON.stringify(Array.from(window.struckRows)) : 'undefined');
 console.log('window.hideUnselectedBoatOptions:', window.hideUnselectedBoatOptions);
 var includedTableHtml = includedEl ? includedEl.outerHTML : '';

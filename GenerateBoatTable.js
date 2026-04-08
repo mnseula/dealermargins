@@ -269,14 +269,37 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     $('.row-eye-btn[data-lskey="pending"]').attr('data-lskey', lsStruckKey);
     console.log('Generate - Set data-lskey on', $('.row-eye-btn[data-lskey="' + lsStruckKey + '"]').length, 'buttons');
 
+    // Try to restore from window.name (persists across EOS context resets)
+    var benningtonState = {};
+    try {
+        if (window.name && window.name.startsWith('bennington_')) {
+            benningtonState = JSON.parse(window.name.substring(11)) || {};
+        }
+    } catch(e) {
+        benningtonState = {};
+    }
+    console.log('Generate - window.name state:', benningtonState);
+    
     if (!window.generatorLastSerial || window.generatorLastSerial !== currentSerial) {
         console.log('Generate - Serial changed or first run, resetting state');
         window.struckRows = new Set();
         window.strikeZeroPriceOptions = false;
         window.hideUnselectedBoatOptions = false;
-        window.descEdits = {};       // {rowKey: newText} for edited descriptions
-        window.writeInItems = [];    // [{rowKey, desc, itemno, qty, dc, ms, sp}]
+        window.descEdits = {};
+        window.writeInItems = [];
         window.generatorLastSerial = currentSerial;
+        
+        // Restore from window.name for this serial
+        if (benningtonState[currentSerial]) {
+            var savedData = benningtonState[currentSerial];
+            if (savedData.struckRows && Array.isArray(savedData.struckRows)) {
+                window.struckRows = new Set(savedData.struckRows);
+                console.log('Generate - Restored struckRows from window.name:', Array.from(window.struckRows));
+            }
+            if (savedData.hideUnselected !== undefined) {
+                window.hideUnselectedBoatOptions = savedData.hideUnselected;
+            }
+        }
     } else {
         console.log('Generate - Same serial, preserving state');
     }
@@ -288,6 +311,24 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     
     if (!window.descEdits) { window.descEdits = {}; }
     if (!window.writeInItems) { window.writeInItems = []; }
+
+    // Helper function to save state to window.name (persists across EOS context resets)
+    window.saveBenningtonState = function() {
+        var benningtonState = {};
+        try {
+            if (window.name && window.name.startsWith('bennington_')) {
+                benningtonState = JSON.parse(window.name.substring(11)) || {};
+            }
+        } catch(e) {
+            benningtonState = {};
+        }
+        benningtonState[currentSerial] = {
+            struckRows: Array.from(window.struckRows || []),
+            hideUnselected: window.hideUnselectedBoatOptions || false
+        };
+        window.name = 'bennington_' + JSON.stringify(benningtonState);
+        console.log('Saved to window.name:', window.name);
+    };
 
     // Make item descriptions editable in-place; tag each span with its rowKey so
     // print.js can apply edits from window.descEdits without relying on DOM capture
@@ -374,15 +415,11 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
             $(this).css({ 'text-decoration': 'line-through', 'opacity': '0.35' }).attr('title', 'Click to restore');
         }
         console.log('struckRows:', Array.from(window.struckRows));
-        var struckJson = JSON.stringify(Array.from(window.struckRows));
         
-        // Save to browser storage (EOS clears these between runs, but try anyway)
-        try { 
-            sessionStorage.setItem(lsKey, struckJson);
-        } catch(e) {}
-        try { 
-            localStorage.setItem(lsKey, struckJson);
-        } catch(e) {}
+        // Save to window.name (persists across EOS context resets)
+        if (window.saveBenningtonState) {
+            window.saveBenningtonState();
+        }
     });
 
     // ALL BOATS: Add checkboxes for unselected options (CPQ only) and $0 strikethrough
