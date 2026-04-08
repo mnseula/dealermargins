@@ -339,6 +339,18 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     });
 
     // Re-apply previously struck rows after re-render
+    // IMPORTANT: Read from localStorage here since window.struckRows may have been reset
+    var savedStruck = null;
+    try {
+        savedStruck = localStorage.getItem(lsStruckKey);
+        if (savedStruck) {
+            var struckArray = JSON.parse(savedStruck);
+            if (Array.isArray(struckArray) && struckArray.length > 0) {
+                window.struckRows = new Set(struckArray);
+            }
+        }
+    } catch(e) {}
+    
     $('#included tbody tr').each(function() {
         var eyeBtn = $(this).find('.row-eye-btn');
         if (eyeBtn.length && window.struckRows.has(eyeBtn.attr('data-rowkey'))) {
