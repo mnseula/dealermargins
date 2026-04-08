@@ -255,15 +255,16 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     }
 
 
+    // Row-strikethrough: reset state when navigating to a new boat
+    var currentSerial = getValue('BOAT_INFO', 'HULL_NO') || '';
+    var lsStruckKey = 'bennington_struckRows_' + currentSerial;
+
     //Append and Set and Make Read Only
     $('div[data-ref="INCLUDED/INCLUDED_OPTIONS"]').append(table);
     
     // Set the localStorage key on all eye buttons (cannot rely on closure in EOS sandbox)
     $('.row-eye-btn[data-lskey="pending"]').attr('data-lskey', lsStruckKey);
 
-    // Row-strikethrough: reset state when navigating to a new boat
-    var currentSerial = getValue('BOAT_INFO', 'HULL_NO') || '';
-    var lsStruckKey = 'bennington_struckRows_' + currentSerial;
     if (!window.generatorLastSerial || window.generatorLastSerial !== currentSerial) {
         window.struckRows = new Set();
         window.strikeZeroPriceOptions = false;
