@@ -302,6 +302,7 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     $('#included tbody tr').each(function() {
         var eyeBtn = $(this).find('.row-eye-btn');
         if (eyeBtn.length && window.struckRows.has(eyeBtn.attr('data-rowkey'))) {
+            $(this).attr('data-struck', 'true');
             $(this).find('td').css({ 'text-decoration': 'line-through', 'color': '#aaa' });
             eyeBtn.css({ 'text-decoration': 'line-through', 'opacity': '0.35' }).attr('title', 'Click to restore');
         }
@@ -313,10 +314,12 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         var row = $(this).closest('tr');
         if (window.struckRows.has(key)) {
             window.struckRows.delete(key);
+            row.removeAttr('data-struck');
             row.find('td').css({ 'text-decoration': '', 'color': '' });
             $(this).css({ 'text-decoration': '', 'opacity': '' }).attr('title', 'Click to strike out');
         } else {
             window.struckRows.add(key);
+            row.attr('data-struck', 'true');
             row.find('td').css({ 'text-decoration': 'line-through', 'color': '#aaa' });
             $(this).css({ 'text-decoration': 'line-through', 'opacity': '0.35' }).attr('title', 'Click to restore');
         }
@@ -462,10 +465,12 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
                     var key = eyeBtn.attr('data-rowkey');
                     if (strikeZero) {
                         window.struckRows.add(key);
+                        $(this).attr('data-struck', 'true');
                         $(this).find('td').css({ 'text-decoration': 'line-through', 'color': '#aaa' });
                         eyeBtn.css({ 'text-decoration': 'line-through', 'opacity': '0.35' }).attr('title', 'Click to restore');
                     } else {
                         window.struckRows.delete(key);
+                        $(this).removeAttr('data-struck');
                         $(this).find('td').css({ 'text-decoration': '', 'color': '' });
                         eyeBtn.css({ 'text-decoration': '', 'opacity': '' }).attr('title', 'Click to strike out');
                     }
