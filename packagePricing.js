@@ -10,7 +10,7 @@ DOWNLOAD DATE: 2025-10-06T19:13:25.076Z
 -------------------------*/
 
 
-window.loadPackagePricing = window.loadPackagePricing || function (serialYear, serial, snmInvoiceNo, engineERPNo) {
+window.loadPackagePricing = window.loadPackagePricing || function (serialYear, serial, snmInvoiceNo, engineERPNo, applyToNo) {
     console.log('Loading Variables');
 
 
@@ -54,6 +54,20 @@ window.loadPackagePricing = window.loadPackagePricing || function (serialYear, s
 
         // Try loading from the correct year's table
         window.boatoptions = loadByListName(boatOptionsTable, whereClause);
+
+        // Fallback: if invoice filter returned 0 rows, try ApplyToNo (re-invoice scenario)
+        // This happens when a boat is credited and re-invoiced — BoatOptions rows stay under the original invoice.
+        if (window.boatoptions.length === 0 && applyToNo && applyToNo !== '' && applyToNo !== snmInvoiceNo) {
+            var applyToWhereClause = whereClause.replace(
+                "InvoiceNo = '" + snmInvoiceNo + "'",
+                "InvoiceNo = '" + applyToNo + "'"
+            );
+            console.log('Invoice filter returned 0 rows — trying ApplyToNo fallback:', applyToNo);
+            window.boatoptions = loadByListName(boatOptionsTable, applyToWhereClause);
+            if (window.boatoptions.length > 0) {
+                console.log('✅ ApplyToNo fallback successful: loaded', window.boatoptions.length, 'records');
+            }
+        }
 
         // Fallback for 2026 boats: if BoatOptions26 returns 0 records, try BoatOptions25
         if (serialYear == 26 && window.boatoptions.length === 0) {

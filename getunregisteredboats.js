@@ -88,6 +88,7 @@ function bindSelect() {
 
         var snmRec = sStatement('SEL_ONE_SER_NO_MST', ([serial]));
         var snmInvoiceNo = snmRec[0].InvoiceNo.trim();
+        var snmApplyToNo = (snmRec[0].ApplyToNo || '').trim();
         var boatinvoiceno = snmInvoiceNo; //boatmodel[0].InvoiceNo;
         var engineRec = sStatement('SEL_ONE_ENG_SER_NO_MST', ([serial]));
 
@@ -114,7 +115,7 @@ function bindSelect() {
 
         setValue('BOAT_INFO', 'BOAT_INVOICE_NO', boatinvoiceno);
 
-        loadPackagePricing(model_year, serial, snmInvoiceNo, engineERPNo);
+        loadPackagePricing(model_year, serial, snmInvoiceNo, engineERPNo, snmApplyToNo);
 
         if (model === "22GFSDN") { model = "22GFSAPGDN"; }
         if (model === "22GSDN") { model = "22GSAPGDN"; }
