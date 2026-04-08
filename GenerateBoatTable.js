@@ -262,14 +262,20 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     console.log('Generate - window.struckRows before reset:', window.struckRows);
     console.log('Generate - window.generatorLastSerial:', window.generatorLastSerial);
 
-    // ALWAYS restore from localStorage first - window object gets serialized/deserialized by EOS
-    // and Set objects become empty arrays during that process
-    var savedFromStorage = null;
+    // ALWAYS restore from EOS state first (localStorage gets cleared by EOS between runs)
+    var savedFromEOS = null;
     try {
-        savedFromStorage = localStorage.getItem(lsStruckKey);
-        console.log('Generate - localStorage value:', savedFromStorage);
+        savedFromEOS = getValue('STRIKE_STATE', lsStruckKey);
+        console.log('Generate - EOS state value:', savedFromEOS);
     } catch(e) {
-        console.log('Generate - Error reading localStorage:', e);
+        console.log('Generate - Error reading EOS state:', e);
+    }
+    // Fallback to localStorage if EOS state is empty
+    if (!savedFromEOS) {
+        try {
+            savedFromEOS = localStorage.getItem(lsStruckKey);
+            console.log('Generate - localStorage value:', savedFromEOS);
+        } catch(e) {}
     }
 
     //Append and Set and Make Read Only
@@ -291,16 +297,16 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
         console.log('Generate - Same serial, preserving state');
     }
     
-    // ALWAYS restore from localStorage - this fixes the Set serialization issue
-    if (savedFromStorage) {
+    // ALWAYS restore from saved state - this fixes the Set serialization issue
+    if (savedFromEOS) {
         try {
-            var parsed = JSON.parse(savedFromStorage);
+            var parsed = JSON.parse(savedFromEOS);
             if (Array.isArray(parsed) && parsed.length > 0) {
                 window.struckRows = new Set(parsed);
-                console.log('Generate - Restored struckRows from localStorage:', Array.from(window.struckRows));
+                console.log('Generate - Restored struckRows from saved state:', Array.from(window.struckRows));
             }
         } catch(e) {
-            console.log('Generate - Error parsing localStorage:', e);
+            console.log('Generate - Error parsing saved state:', e);
         }
     }
     
@@ -339,17 +345,25 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
     });
 
     // Re-apply previously struck rows after re-render
-    // IMPORTANT: Read from localStorage here since window.struckRows may have been reset
+    // IMPORTANT: Read from EOS state here since localStorage gets cleared by EOS between runs
     var savedStruck = null;
     try {
-        savedStruck = localStorage.getItem(lsStruckKey);
-        if (savedStruck) {
+        savedStruck = getValue('STRIKE_STATE', lsStruckKey);
+    } catch(e) {}
+    // Fallback to localStorage
+    if (!savedStruck) {
+        try {
+            savedStruck = localStorage.getItem(lsStruckKey);
+        } catch(e) {}
+    }
+    if (savedStruck) {
+        try {
             var struckArray = JSON.parse(savedStruck);
             if (Array.isArray(struckArray) && struckArray.length > 0) {
                 window.struckRows = new Set(struckArray);
             }
-        }
-    } catch(e) {}
+        } catch(e) {}
+    }
     
     $('#included tbody tr').each(function() {
         var eyeBtn = $(this).find('.row-eye-btn');
@@ -379,11 +393,19 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
             $(this).css({ 'text-decoration': 'line-through', 'opacity': '0.35' }).attr('title', 'Click to restore');
         }
         console.log('struckRows:', Array.from(window.struckRows));
-        try { 
-            localStorage.setItem(lsKey, JSON.stringify(Array.from(window.struckRows)));
-            console.log('Saved to localStorage:', lsKey, localStorage.getItem(lsKey));
-        } catch(e) { 
-            console.log('localStorage error:', e);
+        // Use EOS setValue for persistence (localStorage gets cleared by EOS between runs)
+        try {
+            setValue('STRIKE_STATE', lsKey, JSON.stringify(Array.from(window.struckRows)));
+            console.log('Saved to EOS state:', lsKey, JSON.stringify(Array.from(window.struckRows)));
+        } catch(e) {
+            console.log('EOS state save error:', e);
+            // Fallback to localStorage
+            try { 
+                localStorage.setItem(lsKey, JSON.stringify(Array.from(window.struckRows)));
+                console.log('Saved to localStorage:', lsKey, localStorage.getItem(lsKey));
+            } catch(e2) { 
+                console.log('localStorage error:', e2);
+            }
         }
     });
 
@@ -538,7 +560,12 @@ window.GenerateBoatTable = window.GenerateBoatTable || function (boattable) {
                         $(this).find('td').css({ 'text-decoration': '', 'color': '' });
                         eyeBtn.css({ 'text-decoration': '', 'opacity': '' }).attr('title', 'Click to strike out');
                     }
-                    try { localStorage.setItem(lsKey, JSON.stringify(Array.from(window.struckRows))); } catch(e) {}
+                    // Use EOS state for persistence
+                    try {
+                        setValue('STRIKE_STATE', lsKey, JSON.stringify(Array.from(window.struckRows)));
+                    } catch(e) {
+                        try { localStorage.setItem(lsKey, JSON.stringify(Array.from(window.struckRows))); } catch(e) {}
+                    }
                 }
             }
         });

@@ -861,16 +861,30 @@ wsContents += "    <div id=\"overheadimg\"> " + img + "<\/div>";
 
 wsContents += "    <div class=\"title\">INCLUDED OPTIONS <\/div>";
 
-// Restore struckRows from localStorage — EOS re-renders GenerateBoatTable multiple times
+// Restore struckRows from EOS state — EOS re-renders GenerateBoatTable multiple times
 // between the user clicking Print and print.js executing, wiping window.struckRows each cycle.
 if (!window.struckRows || window.struckRows.size === 0) {
+    var lsKey = 'bennington_struckRows_' + serial;
+    var savedStruck = null;
     try {
-        var lsSaved = localStorage.getItem('bennington_struckRows_' + serial);
-        if (lsSaved) {
-            window.struckRows = new Set(JSON.parse(lsSaved));
-            console.log('Restored struckRows from localStorage:', JSON.stringify(Array.from(window.struckRows)));
-        }
-    } catch(e) {}
+        savedStruck = getValue('STRIKE_STATE', lsKey);
+        console.log('Print - EOS state value:', savedStruck);
+    } catch(e) {
+        console.log('Print - Error reading EOS state:', e);
+    }
+    // Fallback to localStorage
+    if (!savedStruck) {
+        try {
+            savedStruck = localStorage.getItem(lsKey);
+            console.log('Print - localStorage value:', savedStruck);
+        } catch(e) {}
+    }
+    if (savedStruck) {
+        try {
+            window.struckRows = new Set(JSON.parse(savedStruck));
+            console.log('Restored struckRows from saved state:', JSON.stringify(Array.from(window.struckRows)));
+        } catch(e) {}
+    }
 }
 
 // Clone the table and apply active filters before printing
