@@ -392,6 +392,8 @@ def build_serial_master_query(db: str) -> str:
         coi.co_num                              AS ERP_OrderNo,
         LEFT(coi.Uf_BENN_BoatWebOrderNumber, 30) AS WebOrderNo,
         iim.inv_num                             AS InvoiceNo,
+        LEFT(LTRIM(RTRIM(ISNULL(iim.apply_num, iim.inv_num))), 30) AS ApplyToNo,
+        LEFT(co.orig_order_type, 1)             AS OrigOrderType,
         CASE WHEN iim.tax_date IS NOT NULL
             THEN CONVERT(INT, CONVERT(VARCHAR(8), iim.tax_date, 112))
             ELSE NULL
@@ -1380,6 +1382,8 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
             UPDATE {table}
             SET ERP_OrderNo          = %s,
                 InvoiceNo            = CASE WHEN (InvoiceNo IS NULL OR InvoiceNo = '') THEN %s ELSE InvoiceNo END,
+                ApplyToNo            = CASE WHEN (ApplyToNo IS NULL OR ApplyToNo = '') THEN %s ELSE ApplyToNo END,
+                OrigOrderType        = CASE WHEN (OrigOrderType IS NULL OR OrigOrderType = '') THEN %s ELSE OrigOrderType END,
                 InvoiceDateYYYYMMDD  = CASE WHEN (InvoiceDateYYYYMMDD IS NULL OR InvoiceDateYYYYMMDD = '') THEN %s ELSE InvoiceDateYYYYMMDD END,
                 DealerNumber         = %s,
                 DealerName           = %s,
@@ -1398,8 +1402,8 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
             WHERE Boat_SerialNo = %s
         """
         update_data = [
-            (b['ERP_OrderNo'], b['InvoiceNo'], b['InvoiceDate'],
-             b['DealerNumber'], b['DealerName'], b['DealerCity'],
+            (b['ERP_OrderNo'], b['InvoiceNo'], b['ApplyToNo'], b['OrigOrderType'],
+             b['InvoiceDate'], b['DealerNumber'], b['DealerName'], b['DealerCity'],
              b['DealerState'], b['DealerZip'], b['DealerCountry'],
              b['WebOrderNo'], b['Presold'],
              b['PanelColor'],    b['PanelColor'],
@@ -1427,6 +1431,7 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
                 b.get('BoatItemNo', ''),     b.get('Series', ''),
                 b.get('BoatDesc1', ''),      b.get('SerialModelYear', ''),
                 b.get('ERP_OrderNo', ''),    b.get('InvoiceNo', ''),
+                b.get('ApplyToNo', ''),      b.get('OrigOrderType', 'O'),
                 b.get('InvoiceDate', ''),    b.get('DealerNumber', ''),
                 b.get('DealerName', ''),     b.get('DealerCity', ''),
                 b.get('DealerState', ''),    b.get('DealerZip', ''),
@@ -1445,7 +1450,8 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
             CREATE TEMPORARY TABLE temp_snm (
                 SN_MY VARCHAR(4), Boat_SerialNo VARCHAR(50), BoatItemNo VARCHAR(50),
                 Series VARCHAR(20), BoatDesc1 VARCHAR(255), SerialModelYear VARCHAR(4),
-                ERP_OrderNo VARCHAR(30), InvoiceNo VARCHAR(30), InvoiceDate VARCHAR(20),
+                ERP_OrderNo VARCHAR(30), InvoiceNo VARCHAR(30), ApplyToNo VARCHAR(30),
+                OrigOrderType VARCHAR(1), InvoiceDate VARCHAR(20),
                 DealerNumber VARCHAR(20), DealerName VARCHAR(100), DealerCity VARCHAR(50),
                 DealerState VARCHAR(10), DealerZip VARCHAR(20), DealerCountry VARCHAR(50),
                 WebOrderNo VARCHAR(30), Active INT, ProdNo VARCHAR(50),
@@ -1468,16 +1474,16 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
         insert_sql = """
             INSERT IGNORE INTO {table} (
                 SN_MY, Boat_SerialNo, BoatItemNo, Series, BoatDesc1, SerialModelYear,
-                ERP_OrderNo, InvoiceNo, InvoiceDateYYYYMMDD, DealerNumber, DealerName,
-                DealerCity, DealerState, DealerZip, DealerCountry, WebOrderNo, Active,
-                ProdNo, BenningtonOwned, PanelColor, AccentPanel, BaseVinyl,
+                ERP_OrderNo, InvoiceNo, ApplyToNo, OrigOrderType, InvoiceDateYYYYMMDD,
+                DealerNumber, DealerName, DealerCity, DealerState, DealerZip, DealerCountry,
+                WebOrderNo, Active, ProdNo, BenningtonOwned, PanelColor, AccentPanel, BaseVinyl,
                 ColorPackage, TrimAccent, Presold, Quantity, LiquifireImageUrl, ParentRepName
             )
             SELECT
                 SN_MY, Boat_SerialNo, BoatItemNo, Series, BoatDesc1, SerialModelYear,
-                ERP_OrderNo, InvoiceNo, InvoiceDate, DealerNumber, DealerName,
-                DealerCity, DealerState, DealerZip, DealerCountry, WebOrderNo, Active,
-                ProdNo, BenningtonOwned, PanelColor, AccentPanel, BaseVinyl,
+                ERP_OrderNo, InvoiceNo, ApplyToNo, OrigOrderType, InvoiceDate,
+                DealerNumber, DealerName, DealerCity, DealerState, DealerZip, DealerCountry,
+                WebOrderNo, Active, ProdNo, BenningtonOwned, PanelColor, AccentPanel, BaseVinyl,
                 ColorPackage, TrimAccent, Presold, Quantity, LiquifireImageUrl, ParentRepName
             FROM temp_snm
         """
@@ -1495,6 +1501,8 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
             UPDATE {table}
             SET ERP_OrderNo          = %s,
                 InvoiceNo            = %s,
+                ApplyToNo            = %s,
+                OrigOrderType        = %s,
                 InvoiceDateYYYYMMDD  = %s,
                 DealerNumber         = %s,
                 DealerName           = %s,
@@ -1513,8 +1521,8 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
             WHERE Boat_SerialNo = %s
         """
         update_data = [
-            (b['ERP_OrderNo'], b['InvoiceNo'], b['InvoiceDate'],
-             b['DealerNumber'], b['DealerName'], b['DealerCity'],
+            (b['ERP_OrderNo'], b['InvoiceNo'], b['ApplyToNo'], b['OrigOrderType'],
+             b['InvoiceDate'], b['DealerNumber'], b['DealerName'], b['DealerCity'],
              b['DealerState'], b['DealerZip'], b['DealerCountry'],
              b['WebOrderNo'], b['Presold'],
              b['PanelColor'],    b['PanelColor'],
@@ -1845,6 +1853,8 @@ def main():
                     'SerialModelYear': get_full_model_year(sn_my),
                     'ERP_OrderNo':     (boat.get('ERP_OrderNo') or '').strip(),
                     'InvoiceNo':       (boat.get('InvoiceNo') or '').strip(),
+                    'ApplyToNo':       (boat.get('ApplyToNo') or '').strip(),
+                    'OrigOrderType':   (boat.get('OrigOrderType') or 'O').strip(),
                     'InvoiceDate':     boat.get('InvoiceDate') or '',
                     'DealerNumber':    (boat.get('DealerNumber') or '').strip().lstrip('0'),
                     'DealerName':      (boat.get('DealerName') or '').strip(),
