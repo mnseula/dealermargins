@@ -1538,6 +1538,70 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
         cursor.close()
 
 
+def reconcile_snm_invoices(boats: List[Dict], conn) -> int:
+    """
+    After loading SNM, verify each boat's InvoiceNo in SNM matches an InvoiceNo
+    in BoatOptions{YY} for the same serial.
+
+    When a boat is re-invoiced in Syteline, the SNM query picks up the new
+    inv_num and overwrites InvoiceNo in SerialNumberMaster. But the BoatOptions
+    import (Step 1) already ran under the original invoice, so BoatOptions still
+    has the old InvoiceNo. The window sticker tool then finds 0 records because
+    it filters BoatOptions by the SNM invoice.
+
+    Fix: if SNM's InvoiceNo doesn't appear in BoatOptions for that serial,
+    update SNM to use the invoice that BoatOptions actually has.
+    """
+    if not boats:
+        return 0
+
+    cursor = conn.cursor()
+    fixed = 0
+
+    for boat in boats:
+        serial     = boat.get('BoatSerialNo')
+        snm_invoice = (boat.get('InvoiceNo') or '').strip()
+        if not serial or not snm_invoice:
+            continue
+
+        model_year = detect_model_year(serial)
+        bo_table   = get_table_for_year(model_year)
+
+        # Check which invoice(s) BoatOptions actually has for this serial
+        try:
+            cursor.execute(
+                f"SELECT InvoiceNo, COUNT(*) AS cnt FROM {bo_table} "
+                "WHERE BoatSerialNo = %s AND InvoiceNo IS NOT NULL AND InvoiceNo != '' "
+                "GROUP BY InvoiceNo ORDER BY cnt DESC",
+                (serial,)
+            )
+            bo_rows = cursor.fetchall()
+        except Exception:
+            continue  # Table may not exist for this year
+
+        if not bo_rows:
+            continue  # No BoatOptions records yet — boat imported today, nothing to reconcile
+
+        bo_invoices = [row[0] for row in bo_rows]
+        if snm_invoice in bo_invoices:
+            continue  # SNM invoice matches BoatOptions — all good
+
+        # SNM invoice not found in BoatOptions — use the invoice with the most BO rows
+        bo_invoice = bo_rows[0][0]
+        cursor.execute(
+            "UPDATE SerialNumberMaster SET InvoiceNo = %s "
+            "WHERE Boat_SerialNo = %s AND InvoiceNo = %s",
+            (bo_invoice, serial, snm_invoice)
+        )
+        if cursor.rowcount > 0:
+            log(f"  Re-invoice reconciled {serial}: SNM had {snm_invoice} → corrected to {bo_invoice} (from BoatOptions)", "WARNING")
+            fixed += 1
+
+    conn.commit()
+    cursor.close()
+    return fixed
+
+
 def load_registration_status(boats: List[Dict], conn) -> Tuple[int, int]:
     if not boats:
         return 0, 0
@@ -1610,7 +1674,7 @@ def main():
 
     bo_results: dict = {}
     raw_boats:  list = []
-    snm_inserted = snm_skipped = reg_inserted = reg_skipped = 0
+    snm_inserted = snm_skipped = reg_inserted = reg_skipped = snm_reconciled = 0
 
     try:
         # ── STEP 0: CPQ Data ─────────────────────────────────────────────────
@@ -1812,6 +1876,9 @@ def main():
             ensure_snm_image_column(mysql_conn)
             snm_inserted, snm_skipped = load_serial_master(prepared, mysql_conn)
             reg_inserted, reg_skipped = load_registration_status(prepared, mysql_conn)
+            snm_reconciled = reconcile_snm_invoices(prepared, mysql_conn)
+            if snm_reconciled:
+                log(f"Invoice reconciliation: corrected {snm_reconciled} boat(s) where SNM invoice didn't match BoatOptions", "WARNING")
 
             # Update SerialNumberMaster with Liquifire URLs for all boats with SO order numbers.
             # This covers both CPQ-configured boats and OrigOrderType='O' boats which EOS may
@@ -1866,6 +1933,7 @@ def main():
         lines.append(f"  Boats found today:        {len(raw_boats)}")
         lines.append(f"  SerialNumberMaster:       {snm_inserted} inserted, {snm_skipped} already existed")
         lines.append(f"  RegistrationStatus:       {reg_inserted} inserted, {reg_skipped} already existed")
+        lines.append(f"  Invoice reconciled:       {snm_reconciled if prepared else 0} boat(s) corrected")
 
         # ── DEALER TABLE ────────────────────────────────────────────────────
         if prepared:
