@@ -1437,7 +1437,8 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
                 b.get('DealerState', ''),    b.get('DealerZip', ''),
                 b.get('DealerCountry', ''),  b.get('WebOrderNo', ''),
                 1,
-                b.get('ProdNo', ''),         b.get('BenningtonOwned', ''),
+                b.get('ProdNo', ''),         b.get('BenningtonOwned', 0),
+                0,
                 b.get('PanelColor', ''),     b.get('AccentPanel', ''),
                 b.get('BaseVinyl', ''),      b.get('ColorPackage', ''),
                 b.get('TrimAccent', ''),     b.get('Presold', 'N'),
@@ -1455,7 +1456,8 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
                 DealerNumber VARCHAR(20), DealerName VARCHAR(100), DealerCity VARCHAR(50),
                 DealerState VARCHAR(10), DealerZip VARCHAR(20), DealerCountry VARCHAR(50),
                 WebOrderNo VARCHAR(30), Active INT, ProdNo VARCHAR(50),
-                BenningtonOwned VARCHAR(10), PanelColor VARCHAR(100),
+                BenningtonOwned INT, SN_ID INT,
+                PanelColor VARCHAR(100),
                 AccentPanel VARCHAR(100), BaseVinyl VARCHAR(100),
                 ColorPackage VARCHAR(100), TrimAccent VARCHAR(100),
                 Presold VARCHAR(1), Quantity INT,
@@ -1476,14 +1478,14 @@ def load_serial_master(boats: List[Dict], conn) -> Tuple[int, int]:
                 SN_MY, Boat_SerialNo, BoatItemNo, Series, BoatDesc1, SerialModelYear,
                 ERP_OrderNo, InvoiceNo, ApplyToNo, OrigOrderType, InvoiceDateYYYYMMDD,
                 DealerNumber, DealerName, DealerCity, DealerState, DealerZip, DealerCountry,
-                WebOrderNo, Active, ProdNo, BenningtonOwned, PanelColor, AccentPanel, BaseVinyl,
+                WebOrderNo, Active, ProdNo, BenningtonOwned, SN_ID, PanelColor, AccentPanel, BaseVinyl,
                 ColorPackage, TrimAccent, Presold, Quantity, LiquifireImageUrl, ParentRepName
             )
             SELECT
                 SN_MY, Boat_SerialNo, BoatItemNo, Series, BoatDesc1, SerialModelYear,
                 ERP_OrderNo, InvoiceNo, ApplyToNo, OrigOrderType, InvoiceDate,
                 DealerNumber, DealerName, DealerCity, DealerState, DealerZip, DealerCountry,
-                WebOrderNo, Active, ProdNo, BenningtonOwned, PanelColor, AccentPanel, BaseVinyl,
+                WebOrderNo, Active, ProdNo, BenningtonOwned, SN_ID, PanelColor, AccentPanel, BaseVinyl,
                 ColorPackage, TrimAccent, Presold, Quantity, LiquifireImageUrl, ParentRepName
             FROM temp_snm
         """
@@ -1864,7 +1866,7 @@ def main():
                     'DealerCountry':   (boat.get('DealerCountry') or '').strip(),
                     'WebOrderNo':      (boat.get('WebOrderNo') or '').strip(),
                     'ProdNo':          str(boat.get('ProdNo') or '').strip(),
-                    'BenningtonOwned': boat.get('BenningtonOwned') or '',
+                    'BenningtonOwned': 1 if boat.get('BenningtonOwned') in (1, True, 'Y', 'y', '1') else 0,
                     'PanelColor':      panel_color,
                     'AccentPanel':     accent_panel,
                     'BaseVinyl':       (cfg.get('BaseVinyl') or boat.get('BaseVinyl') or bo_colors.get('BaseVinyl') or '').strip(),
