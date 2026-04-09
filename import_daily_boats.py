@@ -90,12 +90,9 @@ def detect_model_year(serial: str) -> int:
 
 
 def load_rep_names() -> dict:
-    """Return ({slsman_int: SalesRepName}, {dealer_no_stripped: SalesRepName}, {state: SalesRepName})
-    from Syteline_RepNames.xlsx on the network share, the Update_Tables.dealerlist table,
-    and a state-based fallback built from SalesRepMaster in MySQL.
-
-    Dealer numbers are normalized (all leading zeros stripped) so that
-    '000000383953', '00383953', and '383953' all resolve to the same key.
+    """Return ({slsman_int: SalesRepName}, {state: SalesRepName})
+    from Syteline_RepNames.xlsx on the network share and a state-based fallback
+    built from SalesRepMaster in MySQL.
     """
     import pandas as pd
     path = r'\\elk1itsqvp001\qlik\Common\SourceData-Excel\Syteline_RepNames.xlsx'
@@ -108,29 +105,8 @@ def load_rep_names() -> dict:
             if pd.notna(row.slsman) and pd.notna(row.SalesRepName)
         }
     except Exception as e:
-        log(f"WARNING: Could not load rep names from network share ({e}) — ParentRepName will use dealer/state fallback only", "WARNING")
+        log(f"WARNING: Could not load rep names from network share ({e}) — ParentRepName will use state fallback only", "WARNING")
         slsman_map = {}
-
-    # Build dealer_no -> SalesRepName map from Update_Tables.dealerlist.
-    # Normalize DlrNo by stripping all leading zeros so any zero-padding variant matches.
-    dealer_map = {}
-    try:
-        dl_conn = mysql.connector.connect(
-            host=MYSQL_CONFIG['host'], port=MYSQL_CONFIG['port'],
-            database='Update_Tables', user=MYSQL_CONFIG['user'],
-            password=MYSQL_CONFIG['password']
-        )
-        dl_cur = dl_conn.cursor()
-        dl_cur.execute("SELECT DlrNo, SalesPerson FROM dealerlist WHERE SalesPerson IS NOT NULL AND SalesPerson != ''")
-        for dlr_no, sales_person in dl_cur.fetchall():
-            key = str(dlr_no or '').lstrip('0')
-            if key:
-                dealer_map[key] = str(sales_person).strip()
-        dl_cur.close()
-        dl_conn.close()
-        log(f"Loaded {len(dealer_map)} dealer→rep mappings from Update_Tables.dealerlist")
-    except Exception as e:
-        log(f"WARNING: Could not load dealer rep map from dealerlist ({e})", "WARNING")
 
     # Build state -> SalesRepName fallback from SalesRepMaster in MySQL.
     # Territory field contains comma-separated state abbreviations.
@@ -157,7 +133,7 @@ def load_rep_names() -> dict:
     except Exception as e:
         log(f"WARNING: Could not build state fallback map ({e})", "WARNING")
 
-    return slsman_map, dealer_map, state_map
+    return slsman_map, state_map
 
 
 def get_model_year_2digit(serial: str) -> str:
@@ -1819,8 +1795,8 @@ def main():
             boatoptions_colors = fetch_color_attrs_from_boatoptions(serials, mysql_conn_bo)
             mysql_conn_bo.close()
 
-            rep_names, dealer_rep_map, state_rep_map = load_rep_names()
-            log(f"Loaded {len(rep_names)} rep names, {len(dealer_rep_map)} dealer mappings, {len(state_rep_map)} state mappings")
+            rep_names, state_rep_map = load_rep_names()
+            log(f"Loaded {len(rep_names)} rep names, {len(state_rep_map)} state mappings")
 
             # Fetch Liquifire image URLs from CPQ for CPQ boats.
             # Use ERP_OrderNo (co_num = SO00936xxx) as the CPQ ExternalId — not
@@ -1899,7 +1875,6 @@ def main():
                     'TrimAccent':      trim_accent,
                     'ParentRepName':   (
                         (rep_names.get(int(boat['SlsMan'])) if boat.get('SlsMan') not in (None, '', 0) else None)
-                        or dealer_rep_map.get((boat.get('DealerNumber') or '').strip().lstrip('0'))
                         or state_rep_map.get((boat.get('DealerState') or '').strip().upper())
                         or ''
                     ),
