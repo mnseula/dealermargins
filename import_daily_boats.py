@@ -1669,6 +1669,45 @@ def load_registration_status(boats: List[Dict], conn) -> Tuple[int, int]:
 
 
 # ============================================================================
+# FALLBACK: build minimal SNM records from BoatOptions rows
+# Used when the serial master MSSQL query fails (e.g. bad column name).
+# Boats are inserted without dealer info so at least EOS can find them.
+# A manual backfill via backfill_snm_by_serials.py should follow.
+# ============================================================================
+
+def _build_fallback_boats_from_bo_rows(bo_rows: list) -> list:
+    """
+    Build minimal boat dicts from BoatOptions rows when the SNM MSSQL query fails.
+    Groups by BoatSerialNo, takes the first row per HIN. Dealer fields are blank.
+    """
+    seen: dict = {}
+    for row in bo_rows:
+        serial = (row.get('BoatSerialNo') or '').strip()
+        if not serial or serial in seen:
+            continue
+        seen[serial] = {
+            'BoatSerialNo':    serial,
+            'BoatItemNo':      (row.get('BoatModelNo') or '').strip(),
+            'Series':          (row.get('Series') or row.get('C_Series') or '').strip(),
+            'BoatDesc1':       '',
+            'ERP_OrderNo':     (row.get('ERP_OrderNo') or '').strip(),
+            'InvoiceNo':       (row.get('InvoiceNo') or '').strip(),
+            'ApplyToNo':       (row.get('ApplyToNo') or '').strip(),
+            'OrigOrderType':   (row.get('Orig_Ord_Type') or 'O').strip(),
+            'InvoiceDate':     row.get('InvoiceDate') or '',
+            'WebOrderNo':      (row.get('WebOrderNo') or '').strip(),
+            'SoNumber':        (row.get('external_confirmation_ref') or '').strip(),
+            'DealerNumber': '', 'DealerName': '', 'DealerCity': '',
+            'DealerState':  '', 'DealerZip':  '', 'DealerCountry': '',
+            'ProdNo': '', 'BenningtonOwned': 0, 'PanelColor': '',
+            'BaseVinyl': '', 'Presold': 'N', 'Quantity': 1,
+            'ConfigId': row.get('ConfigID') or row.get('ConfigId'),
+            'SlsMan': None,
+        }
+    return list(seen.values())
+
+
+# ============================================================================
 # MAIN
 # ============================================================================
 
@@ -1760,14 +1799,25 @@ def main():
         log("=" * 60)
 
         log(f"Connecting to MSSQL ({MSSQL_CONFIG['server']})...")
-        mssql_conn = pymssql.connect(**MSSQL_CONFIG)
-        cursor = mssql_conn.cursor(as_dict=True)
-        log("Connected. Extracting today's invoiced boats...", "SUCCESS")
-        cursor.execute(build_serial_master_query(MSSQL_DB))
-        raw_boats = cursor.fetchall()
-        log(f"Extracted {len(raw_boats)} boats from MSSQL", "SUCCESS")
-        cursor.close()
-        mssql_conn.close()
+        try:
+            mssql_conn = pymssql.connect(**MSSQL_CONFIG)
+            cursor = mssql_conn.cursor(as_dict=True)
+            log("Connected. Extracting today's invoiced boats...", "SUCCESS")
+            cursor.execute(build_serial_master_query(MSSQL_DB))
+            raw_boats = cursor.fetchall()
+            log(f"Extracted {len(raw_boats)} boats from MSSQL", "SUCCESS")
+            cursor.close()
+            mssql_conn.close()
+        except Exception as snm_query_err:
+            log(f"CRITICAL: Serial master query failed — {snm_query_err}", "ERROR")
+            log("Falling back to BoatOptions rows for minimal SNM insert. "
+                "Dealer fields will be blank. Run backfill_snm_by_serials.py to complete.", "ERROR")
+            try:
+                cursor.close()
+                mssql_conn.close()
+            except Exception:
+                pass
+            raw_boats = _build_fallback_boats_from_bo_rows(boat_option_rows)
 
         # Deduplicate by BoatSerialNo — MSSQL can return the same HIN twice when a boat
         # has multiple invoice records (e.g., partial invoicing or correction invoices).
