@@ -1998,17 +1998,25 @@ def main():
         lines.append(f"  RegistrationStatus:       {reg_inserted} inserted, {reg_skipped} already existed")
         lines.append(f"  Invoice reconciled:       {snm_reconciled if prepared else 0} boat(s) corrected")
 
-        # ── DEALER TABLE ────────────────────────────────────────────────────
+        # ── BOATS BY DEALER ─────────────────────────────────────────────────
         if prepared:
-            lines.append(f"\n{'-' * 100}")
-            lines.append(f"  {'Serial':<15} {'Dealer#':<10} {'Dealer Name':<42} {'City':<22} {'State'}")
-            lines.append(f"  {'-'*15} {'-'*10} {'-'*42} {'-'*22} {'-'*5}")
-            for b in sorted(prepared, key=lambda x: x['BoatSerialNo']):
-                lines.append(
-                    f"  {b['BoatSerialNo']:<15} {b['DealerNumber']:<10} "
-                    f"{b['DealerName']:<42} {b['DealerCity']:<22} {b['DealerState']}"
-                )
-            lines.append(f"{'-' * 100}")
+            from collections import defaultdict
+            dealer_groups: dict = defaultdict(list)
+            for b in prepared:
+                key = (b['DealerName'] or '(unknown)', b['DealerNumber'] or '',
+                       b['DealerCity'] or '', b['DealerState'] or '')
+                dealer_groups[key].append(b['BoatSerialNo'])
+
+            lines.append(f"\n{'─' * 80}")
+            lines.append("  BOATS BY DEALER")
+            lines.append(f"{'─' * 80}")
+            for (dname, dnum, dcity, dstate), hins in sorted(dealer_groups.items()):
+                hins_sorted = sorted(hins)
+                location = f"{dcity}, {dstate}" if dcity and dstate else (dcity or dstate or '')
+                lines.append(f"  {dname} ({dnum})  —  {location}  —  {len(hins_sorted)} boat(s)")
+                for hin in hins_sorted:
+                    lines.append(f"    {hin}")
+            lines.append(f"{'─' * 80}")
 
         lines.append(f"\nCompleted: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         lines.append("=" * 80)
