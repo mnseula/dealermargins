@@ -647,7 +647,16 @@ import re as _re
 _LIQUIFIRE_BASE = "https://polarismarine.liquifire.com/polarismarine"
 
 def _is_valid_liquifire_image(url: str) -> bool:
-    """Returns True if the URL yields a real image (JPEG, >10KB)."""
+    """Returns True if the URL yields a real boat image (JPEG, >10KB).
+    Also rejects URLs that have only furn* params with no hull color params
+    (ppn/ap1/tube) — those render with a transparent hull showing tubes only.
+    """
+    # If the URL has furn params but no hull color params, the hull will be
+    # transparent — reject it so the fallback chain keeps looking.
+    has_furn_only = ('furn' in url and
+                     not any(p in url for p in ('ppn[', 'ap1[', 'tube[')))
+    if has_furn_only:
+        return False
     try:
         r = requests.get(url, verify=False, timeout=10)
         return (r.status_code == 200
