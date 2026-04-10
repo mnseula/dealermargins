@@ -197,9 +197,11 @@ def main():
     log(f"Loaded {len(rep_names)} rep names, {len(state_rep_map)} state mappings")
 
     # ── 5. Fetch Liquifire image URLs from CPQ ────────────────────────────────
-    so_numbers = [b.get('SoNumber') for b in raw_boats if str(b.get('SoNumber', '')).startswith('SO')]
-    config_id_map = {b.get('SoNumber'): b.get('ConfigId') for b in raw_boats if b.get('ConfigId')}
-    itemno_map    = {b.get('SoNumber'): b.get('BoatItemNo') for b in raw_boats if b.get('BoatItemNo')}
+    # Use ERP_OrderNo (SO00936xxx from Syteline co_num) as CPQ ExternalId —
+    # NOT SoNumber (external_confirmation_ref), which is a CPQ-generated ref like SONVU000005.
+    so_numbers = [b.get('ERP_OrderNo') for b in raw_boats if str(b.get('ERP_OrderNo', '')).startswith('SO')]
+    config_id_map = {b.get('ERP_OrderNo'): b.get('ConfigId') for b in raw_boats if b.get('ConfigId')}
+    itemno_map    = {b.get('ERP_OrderNo'): b.get('BoatItemNo') for b in raw_boats if b.get('BoatItemNo')}
     cpq_image_urls = {}
     if so_numbers:
         try:
