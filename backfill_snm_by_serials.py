@@ -47,7 +47,7 @@ def build_query_by_serials(db: str, serials: list) -> str:
         LEFT(coi.Uf_BENN_BoatWebOrderNumber, 30) AS WebOrderNo,
         iim.inv_num                             AS InvoiceNo,
         LEFT(LTRIM(RTRIM(iim.inv_num)), 30)     AS ApplyToNo,
-        LEFT(co.orig_order_type, 1)             AS OrigOrderType,
+        LEFT(co.type, 1)                        AS OrigOrderType,
         CASE WHEN iim.tax_date IS NOT NULL
             THEN CONVERT(INT, CONVERT(VARCHAR(8), iim.tax_date, 112))
             ELSE NULL
