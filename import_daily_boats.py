@@ -684,6 +684,10 @@ def _normalize_liquifire_url(url: str, item_no: str = '') -> str:
     # that render only part of the boat (deck/rails/bimini only).
     url = _re.sub(r'view\[[^\]]*\]', 'view[side]', url, count=1)
 
+    # Strip furn[furn_*] swatch param — when present alongside hull color params it
+    # causes Liquifire to return a GIF instead of the boat image.
+    url = _re.sub(r',?furn\[furn_[^\]]*\]', '', url)
+
     # If the CPQ URL is a furniture swatch (asset[furn_*]) and we have an item_no,
     # skip the original-URL candidates entirely — they'll just render a furniture image
     # that happens to be large enough to pass the >20KB size check.
