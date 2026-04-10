@@ -763,8 +763,9 @@ def _normalize_liquifire_url(url: str, item_no: str = '') -> str:
                 log(f"Liquifire year-walk (bare): {asset_to_walk} → {alt_asset}", "WARNING")
                 return bare
 
-    # Nothing worked — return the cat[pon] version as best effort
-    return _re.sub(r'cat\[[^\]]*\]', 'cat[pon]', url)
+    # Nothing worked — return the stock generic image so EOS always shows something
+    log(f"Liquifire: all fallbacks exhausted for asset[{asset_to_walk}] — using stock image", "WARNING")
+    return 'https://s3.amazonaws.com/eosstatic/images/0/5880c9a7a9d29ae43164c78f/Generic-01.jpg'
 
 
 def fetch_cpq_image_urls(so_numbers: list, config_id_map: dict = None,
