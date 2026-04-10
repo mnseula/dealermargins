@@ -733,6 +733,27 @@ def _normalize_liquifire_url(url: str, item_no: str = '') -> str:
         if _is_valid_liquifire_image(candidate):
             return candidate
 
+    # Year-walk fallback: if the asset year prefix doesn't exist in Liquifire,
+    # try nearby years (e.g. 20SL → 22SL, 24MSB → 23MSB).
+    # Walk ±1, ±2, ±3 years from the item_no year, keeping all color params.
+    asset_to_walk = item_no or cpq_model
+    m = _re.match(r'^(\d{2})(.+)$', asset_to_walk)
+    if m:
+        base_year = int(m.group(1))
+        suffix    = m.group(2)
+        for delta in [-1, 1, -2, 2, -3, 3]:
+            alt_year  = base_year + delta
+            alt_asset = f"{alt_year:02d}{suffix}"
+            alt_configured = _re.sub(r'asset\[[^\]]*\]', f'asset[{alt_asset}]', url)
+            alt_configured = _re.sub(r'cat\[[^\]]*\]', 'cat[pon]', alt_configured)
+            if _is_valid_liquifire_image(alt_configured):
+                log(f"Liquifire year-walk: {asset_to_walk} → {alt_asset}", "WARNING")
+                return alt_configured
+            bare = f"{_LIQUIFIRE_BASE}?set=cat[pon],asset[{alt_asset}],view[side]&call=url[file:PS/main]&sink"
+            if _is_valid_liquifire_image(bare):
+                log(f"Liquifire year-walk (bare): {asset_to_walk} → {alt_asset}", "WARNING")
+                return bare
+
     # Nothing worked — return the cat[pon] version as best effort
     return _re.sub(r'cat\[[^\]]*\]', 'cat[pon]', url)
 
