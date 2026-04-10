@@ -680,6 +680,10 @@ def _normalize_liquifire_url(url: str, item_no: str = '') -> str:
             cpq_model = m.group(1)
         url = f"{_LIQUIFIRE_BASE}?set=cat[pon],asset[],view[]&call=url[file:PS/main]&sink"
 
+    # Normalize view to side — CPQ sometimes returns view[3qtr] or other angles
+    # that render only part of the boat (deck/rails/bimini only).
+    url = _re.sub(r'view\[[^\]]*\]', 'view[side]', url, count=1)
+
     # If the CPQ URL is a furniture swatch (asset[furn_*]) and we have an item_no,
     # skip the original-URL candidates entirely — they'll just render a furniture image
     # that happens to be large enough to pass the >20KB size check.
