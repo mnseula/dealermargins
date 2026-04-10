@@ -5,8 +5,9 @@ were missed by the nightly JAMS run (e.g. because the pipeline crashed after
 BoatOptions loaded but before the SNM step ran).
 
 Usage:
-    python3 backfill_snm_by_serials.py ETWS2179C626 ETWS2222C626 ...
-    python3 backfill_snm_by_serials.py   # uses the hard-coded DEFAULT_SERIALS list
+    python3 backfill_snm_by_serials.py --auto          # detect boats with blank DealerName (last 7 days)
+    python3 backfill_snm_by_serials.py --auto --days 3 # same but only last 3 days
+    python3 backfill_snm_by_serials.py ETWS2179C626 ETWS2222C626 ...  # explicit HINs
 
 All field logic mirrors import_daily_boats.py exactly — no shortcuts.
 """
@@ -118,8 +119,49 @@ def log(msg, level="INFO"):
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [{level}] {msg}")
 
 
+def detect_incomplete_boats(days: int = 7) -> list:
+    """
+    Find boats in SNM that were inserted via the BoatOptions fallback —
+    identified by blank DealerName and a recent createdate.
+    These are the boats that need a full backfill from MSSQL.
+    """
+    conn = mysql.connector.connect(**idb.MYSQL_CONFIG)
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT Boat_SerialNo
+        FROM SerialNumberMaster
+        WHERE (DealerName IS NULL OR DealerName = '')
+          AND DATE(createdate) >= CURDATE() - INTERVAL %s DAY
+        ORDER BY createdate DESC
+    """, (days,))
+    serials = [row[0] for row in cur.fetchall()]
+    cur.close()
+    conn.close()
+    return serials
+
+
 def main():
-    serials = sys.argv[1:] if len(sys.argv) > 1 else DEFAULT_SERIALS
+    args = sys.argv[1:]
+
+    if '--auto' in args:
+        days = 7
+        if '--days' in args:
+            idx = args.index('--days')
+            try:
+                days = int(args[idx + 1])
+            except (IndexError, ValueError):
+                pass
+        log(f"Auto-detecting boats with blank DealerName in last {days} day(s)...")
+        serials = detect_incomplete_boats(days)
+        if not serials:
+            log("No incomplete boats found — nothing to backfill.")
+            sys.exit(0)
+        log(f"Found {len(serials)} boat(s) to backfill: {serials}")
+    elif args:
+        serials = args
+    else:
+        serials = DEFAULT_SERIALS
+
     if not serials:
         print("No serials specified.")
         sys.exit(1)

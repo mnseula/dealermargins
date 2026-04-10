@@ -1811,7 +1811,7 @@ def main():
         except Exception as snm_query_err:
             log(f"CRITICAL: Serial master query failed — {snm_query_err}", "ERROR")
             log("Falling back to BoatOptions rows for minimal SNM insert. "
-                "Dealer fields will be blank. Run backfill_snm_by_serials.py to complete.", "ERROR")
+                "Dealer fields will be blank. Run: python3 backfill_snm_by_serials.py --auto", "ERROR")
             try:
                 cursor.close()
                 mssql_conn.close()
