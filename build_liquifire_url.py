@@ -315,9 +315,8 @@ def build_url(serial, config, model, series, matrices):
     deck_opt = 'ins'
 
     params = (
-        f"cat[3qtr],asset[{model}],view[3qtr],"
+        f"cat[pon],asset[{model}],view[side],"
         f"tube[{tubes}],tubeC1[],tubeOPC1[],tubeC2[ffffff],tubeOPC2[120],"
-        f"furn[{furn_pkg}],"
         f"furnPrime[{furn_prime}],furnPrimeOPC[{furn_prime_opc}],"
         f"furnAccnt[{furn_accnt}],furnAccntOPC[{furn_accnt_opc}],"
         f"furnSecondaryAcc[{furn_sec_acc}],furnSecondaryAccOPC[{furn_sec_acc_opc}],"
@@ -444,13 +443,13 @@ def main():
                     url = fallback_url
                     break
 
-        # Fallback: try view[side] with cat[pon] for models without a 3qtr asset
+        # Fallback: try orthographic if side view fails
         if not ok:
-            side_url = url.replace('cat[3qtr],', 'cat[pon],').replace(',view[3qtr]', ',view[side]')
-            ok, size = test_url(side_url)
+            ortho_url = url.replace('cat[pon],', 'cat[orthographic],').replace(',view[side]', ',view[side]')
+            ok, size = test_url(ortho_url)
             if ok:
-                print(f'  {serial} ({model}): using fallback view[side]')
-                url = side_url
+                print(f'  {serial} ({model}): using fallback cat[orthographic]')
+                url = ortho_url
 
         if not ok:
             print(f'  {serial} ({model}): FAIL — URL did not render')
