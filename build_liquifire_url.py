@@ -160,6 +160,54 @@ PANEL_TYPE_LP = {
     'AP_UPR_SMTH': 'sm',
 }
 
+# Asset name fixes: BoatItemNo → Liquifire asset
+# SF = Special Fishing package (not in Liquifire, strip suffix)
+# A = Arch (sometimes stripped for asset matching)
+ASSET_FIXES = {
+    # SF suffix removal + year-walk
+    '20SFSF': '20SF',
+    '20SLSF': '22SL',
+    '22MFBSF': '24MFB',
+    '22MSBSF': '23MSB',
+    '22SSRSF': '22SSR',
+    '23MSBSF': '23MSB',
+    '23MSLSF': '24MSL',
+    '23SSBSF': '22SSB',
+    '23SSRSF': '22SSR',
+    '24MSLSF': '24MSL',
+    '25QSBWASF': '25QSBW',
+    '25QXFBWASF': '25QXFBW',
+    '25QXSBWASF': '25QXSBW',
+    '25RFBSF': '23RFB',
+    '25RSRSF': '25RSR',
+    # Arch suffix removal
+    '25QSBA': '25QSB',
+    # S1 series mapping
+    '22S1SR': '23SSR',
+    # Year-walk
+    '21SFC': '22SFC',
+}
+
+
+def normalize_asset(model):
+    """
+    Normalize BoatItemNo to Liquifire asset name.
+    Returns (asset_name, was_fixed).
+    """
+    if not model:
+        return model, False
+    
+    # Check explicit fixes first
+    if model in ASSET_FIXES:
+        return ASSET_FIXES[model], True
+    
+    # Strip SF suffix if present (Special Fishing package)
+    if model.endswith('SF') and len(model) > 4:
+        stripped = model[:-2]
+        return stripped, True
+    
+    return model, False
+
 
 # ── URL builder ───────────────────────────────────────────────────────────────
 
@@ -170,6 +218,9 @@ def build_url(serial, config, model, series, matrices):
     """
     if not model:
         return None
+    
+    # Normalize asset name (strip SF suffix, apply known fixes)
+    asset, _ = normalize_asset(model)
 
     bv_key = config.get('baseVinyl', '').upper()
     fa_key = config.get('furnAccent', '').upper()
@@ -315,7 +366,7 @@ def build_url(serial, config, model, series, matrices):
     deck_opt = 'ins'
 
     params = (
-        f"cat[pon],asset[{model}],view[side],"
+        f"cat[pon],asset[{asset}],view[side],"
         f"tube[{tubes}],tubeC1[],tubeOPC1[],tubeC2[ffffff],tubeOPC2[120],"
         f"furnPrime[{furn_prime}],furnPrimeOPC[{furn_prime_opc}],"
         f"furnAccnt[{furn_accnt}],furnAccntOPC[{furn_accnt_opc}],"
@@ -428,24 +479,29 @@ def main():
             continue
 
         ok, size = test_url(url)
+        
+        # Log if asset was normalized
+        normalized_asset, was_fixed = normalize_asset(model)
+        if was_fixed:
+            print(f'  {serial}: asset normalized {model} → {normalized_asset}')
 
         # Fallback: if asset[YYmodel] doesn't render, try incrementing the year
         # (e.g. 22ML → 23ML → 24ML). Liquifire may only carry current/next model year assets.
-        if not ok and len(model) >= 2 and model[:2].isdigit():
-            year = int(model[:2])
-            model_suffix = model[2:]
+        if not ok and len(normalized_asset) >= 2 and normalized_asset[:2].isdigit():
+            year = int(normalized_asset[:2])
+            model_suffix = normalized_asset[2:]
             for try_year in range(year + 1, year + 4):
-                fallback_model = f'{try_year:02d}{model_suffix}'
-                fallback_url = url.replace(f'asset[{model}]', f'asset[{fallback_model}]')
+                fallback_asset = f'{try_year:02d}{model_suffix}'
+                fallback_url = url.replace(f'asset[{normalized_asset}]', f'asset[{fallback_asset}]')
                 ok, size = test_url(fallback_url)
                 if ok:
-                    print(f'  {serial} ({model}): using fallback asset [{fallback_model}]')
+                    print(f'  {serial} ({model}): using year-walk asset [{fallback_asset}]')
                     url = fallback_url
                     break
 
         # Fallback: try orthographic if side view fails
         if not ok:
-            ortho_url = url.replace('cat[pon],', 'cat[orthographic],').replace(',view[side]', ',view[side]')
+            ortho_url = url.replace('cat[pon],', 'cat[orthographic],')
             ok, size = test_url(ortho_url)
             if ok:
                 print(f'  {serial} ({model}): using fallback cat[orthographic]')
