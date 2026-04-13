@@ -2046,16 +2046,16 @@ def main():
                        b['DealerCity'] or '', b['DealerState'] or '')
                 dealer_groups[key].append(b['BoatSerialNo'])
 
-            lines.append(f"\n{'─' * 80}")
+            lines.append(f"\n{'-' * 80}")
             lines.append("  BOATS BY DEALER")
-            lines.append(f"{'─' * 80}")
+            lines.append(f"{'-' * 80}")
             for (dname, dnum, dcity, dstate), hins in sorted(dealer_groups.items()):
                 hins_sorted = sorted(hins)
                 location = f"{dcity}, {dstate}" if dcity and dstate else (dcity or dstate or '')
-                lines.append(f"  {dname} ({dnum})  —  {location}  —  {len(hins_sorted)} boat(s)")
+                lines.append(f"  {dname} ({dnum}) -- {location} -- {len(hins_sorted)} boat(s)")
                 for hin in hins_sorted:
                     lines.append(f"    {hin}")
-            lines.append(f"{'─' * 80}")
+            lines.append(f"{'-' * 80}")
 
         lines.append(f"\nCompleted: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         lines.append("=" * 80)
