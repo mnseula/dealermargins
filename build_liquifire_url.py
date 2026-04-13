@@ -130,7 +130,7 @@ def get_boat_config(cur, serial):
     cur.execute("""
         SELECT CfgName, CfgValue, BoatModelNo, Series
         FROM BoatOptions26
-        WHERE BoatSerialNo = %s AND CfgName IS NOT NULL
+        WHERE BoatSerialNo = %s
         ORDER BY LineNo, LineSeqNo
     """, (serial,))
     config = {}
@@ -180,6 +180,8 @@ ASSET_FIXES = {
     '25QXSBWASF': '25QXSBW',
     '25RFBSF': '23RFB',
     '25RSRSF': '25RSR',
+    # MC variant → base M series (24MCSB has no Liquifire asset, use 23MSB)
+    '24MCSB': '23MSB',
     # Arch suffix removal
     '25QSBA': '25QSB',
     # S1 series → S series mapping (S1 = upgraded S, not a separate Liquifire asset)
@@ -434,16 +436,14 @@ def get_target_serials(cur, specific=None, rebuild_all=False):
             SELECT DISTINCT bo.BoatSerialNo
             FROM BoatOptions26 bo
             JOIN SerialNumberMaster snm ON snm.Boat_SerialNo = bo.BoatSerialNo
-            WHERE bo.ConfigID IS NOT NULL AND bo.ConfigID != ''
-              AND bo.BoatModelNo IS NOT NULL AND bo.BoatModelNo != 'Base Boat'
+            WHERE bo.BoatModelNo IS NOT NULL AND bo.BoatModelNo != 'Base Boat'
         """)
     else:
         cur.execute("""
             SELECT DISTINCT bo.BoatSerialNo
             FROM BoatOptions26 bo
             JOIN SerialNumberMaster snm ON snm.Boat_SerialNo = bo.BoatSerialNo
-            WHERE bo.ConfigID IS NOT NULL AND bo.ConfigID != ''
-              AND bo.BoatModelNo IS NOT NULL AND bo.BoatModelNo != 'Base Boat'
+            WHERE bo.BoatModelNo IS NOT NULL AND bo.BoatModelNo != 'Base Boat'
               AND (snm.LiquifireImageUrl IS NULL OR snm.LiquifireImageUrl = '')
         """)
     return [r[0] for r in cur.fetchall()]
