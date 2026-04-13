@@ -182,10 +182,13 @@ ASSET_FIXES = {
     '25RSRSF': '25RSR',
     # Arch suffix removal
     '25QSBA': '25QSB',
-    # S1 series mapping
+    # S1 series → S series mapping (S1 = upgraded S, not a separate Liquifire asset)
     '22S1SR': '23SSR',
-    # Year-walk
-    '21SFC': '22SFC',
+    '22S1SB': '22SSB',
+    '20S1SR': '22SSR',
+    '20S1L':  '22SL',
+    # Legacy/old model naming
+    '188SL':  '22SL',
 }
 
 
@@ -485,12 +488,15 @@ def main():
         if was_fixed:
             print(f'  {serial}: asset normalized {model} → {normalized_asset}')
 
-        # Fallback: if asset[YYmodel] doesn't render, try incrementing the year
-        # (e.g. 22ML → 23ML → 24ML). Liquifire may only carry current/next model year assets.
+        # Fallback: year-walk ±1, ±2, ±3 years (forward and backward).
+        # Liquifire only carries certain model years — e.g. 24MSB→23MSB, 23SSR→22SSR.
         if not ok and len(normalized_asset) >= 2 and normalized_asset[:2].isdigit():
             year = int(normalized_asset[:2])
             model_suffix = normalized_asset[2:]
-            for try_year in range(year + 1, year + 4):
+            for delta in [1, -1, 2, -2, 3, -3]:
+                try_year = year + delta
+                if try_year < 10:
+                    continue
                 fallback_asset = f'{try_year:02d}{model_suffix}'
                 fallback_url = url.replace(f'asset[{normalized_asset}]', f'asset[{fallback_asset}]')
                 ok, size = test_url(fallback_url)
