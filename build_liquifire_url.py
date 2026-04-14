@@ -162,6 +162,7 @@ PANEL_TYPE_LP = {
 
 # Asset name fixes: BoatItemNo → Liquifire asset
 # SF = Special Fishing package (not in Liquifire, strip suffix)
+# SE = Special Edition (not in Liquifire, strip suffix)
 # A = Arch (sometimes stripped for asset matching)
 ASSET_FIXES = {
     # SF suffix removal + year-walk
@@ -176,10 +177,41 @@ ASSET_FIXES = {
     '23SSRSF': '22SSR',
     '24MSLSF': '24MSL',
     '25QSBWASF': '25QSBW',
+    '25QXFBASF': '25QXFBW',
     '25QXFBWASF': '25QXFBW',
     '25QXSBWASF': '25QXSBW',
     '25RFBSF': '23RFB',
     '25RSRSF': '25RSR',
+    # SE suffix variants (Special Edition, no separate Liquifire asset)
+    '22MFBSE': '24MFB',
+    '23RXSBSE': '23RFB',
+    '27QXSBWAT2SE': '25QXSBW',
+    # SX series → S series (SX = upgraded S, no separate Liquifire asset)
+    '20SXSSF':    '22SSR',
+    '22SFCSF':    '22SSR',
+    '22SXSRSF':   '22SSR',
+    '23SXSAPGSF': '22SSR',
+    '23SXSBSF':   '22SSB',
+    '24SXSRSF':   '22SSR',
+    '25SXSRCSF':  '22SSR',
+    # LT series → SL (closest hull shape, no separate Liquifire asset)
+    '23LTSBASF': '22SL',
+    '25LTSBSF':  '22SL',
+    # R / RX series
+    '23RSBASF':  '23RFB',
+    '23RXFBASF': '23RFB',
+    '23RXSBSF':  '23RFB',
+    '25RSBWASF': '25RSR',
+    # LXS series
+    '26LXSSBASF': '25RSR',
+    # Large / twin-engine QX → base QX asset (no separate Liquifire asset)
+    '27QXFBWAT2SF': '25QXFBW',
+    '27QXFBWAX2SF': '25QXFBW',
+    '27RXSBWAT2SF': '25RSR',
+    '28QXFBAX1SF':  '25QXFBW',
+    '30QXFBWAX2SF': '25QXFBW',
+    '30QXSBAX2SF':  '25QXSBW',
+    '30QXSBWAX2SF': '25QXSBW',
     # MC variant → base M series (24MCSB has no Liquifire asset, use 23MSB)
     '24MCSB': '23MSB',
     # Arch suffix removal
@@ -192,6 +224,7 @@ ASSET_FIXES = {
     '20S1L':  '22SL',
     # Legacy/old model naming
     '188SL':  '22SL',
+    '188SLSF': '22SL',
 }
 
 
@@ -202,16 +235,20 @@ def normalize_asset(model):
     """
     if not model:
         return model, False
-    
+
     # Check explicit fixes first
     if model in ASSET_FIXES:
         return ASSET_FIXES[model], True
-    
-    # Strip SF suffix if present (Special Fishing package)
-    if model.endswith('SF') and len(model) > 4:
-        stripped = model[:-2]
-        return stripped, True
-    
+
+    # Strip SF/SE suffix if present (Special Fishing / Special Edition package)
+    for suffix in ('SF', 'SE'):
+        if model.endswith(suffix) and len(model) > 4:
+            stripped = model[:-2]
+            # Re-check ASSET_FIXES with the stripped name
+            if stripped in ASSET_FIXES:
+                return ASSET_FIXES[stripped], True
+            return stripped, True
+
     return model, False
 
 
