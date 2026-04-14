@@ -1916,9 +1916,9 @@ def main():
             # ── STEP 1e: Matrix fallback for boats CPQ PRD couldn't resolve ──
             print()
             log("=" * 60)
-            log("STEP 1e: SWEEP — LIQUIFIRE MATRIX FALLBACK (180-DAY WINDOW)")
+            log("STEP 1e: SWEEP — LIQUIFIRE MATRIX FALLBACK (30-DAY WINDOW)")
             log("=" * 60)
-            sweep_missing_liquifire_urls_matrix(mysql_conn, lookback_days=180)
+            sweep_missing_liquifire_urls_matrix(mysql_conn, lookback_days=30)
 
             # ── STEP 1f: Weekly force-rebuild for past 7 days (Sundays only) ──
             if datetime.now().weekday() == 6:  # 6 = Sunday
