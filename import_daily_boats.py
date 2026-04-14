@@ -1402,6 +1402,92 @@ def sweep_missing_liquifire_urls_matrix(mysql_conn, lookback_days: int = 180) ->
 
 
 # ============================================================================
+# STEP 1f — WEEKLY SWEEP: FORCE-REBUILD LIQUIFIRE URLS (PAST 7 DAYS)
+# ============================================================================
+
+def sweep_weekly_liquifire_rebuild(mysql_conn, lookback_days: int = 7) -> int:
+    """
+    Step 1f (Sundays only): Force-rebuilds Liquifire URLs for ALL boats invoiced
+    in the past 7 days, regardless of their current URL state. Catches boats that
+    received bare or wrong URLs during the week before detection logic was in place.
+    """
+    cursor = mysql_conn.cursor()
+    cursor.execute(f"""
+        SELECT DISTINCT bo.BoatSerialNo
+        FROM {MYSQL_DB}.BoatOptions26 bo
+        JOIN {MYSQL_DB}.SerialNumberMaster snm ON snm.Boat_SerialNo = bo.BoatSerialNo
+        WHERE bo.BoatModelNo IS NOT NULL AND bo.BoatModelNo NOT IN ('', 'Base Boat')
+          AND snm.InvoiceDateYYYYMMDD >= DATE_FORMAT(
+                CURDATE() - INTERVAL {lookback_days} DAY, '%Y%m%d') + 0
+    """)
+    serials = [r[0] for r in cursor.fetchall()]
+    cursor.close()
+
+    if not serials:
+        log("Step 1f: No boats in the past 7 days to rebuild")
+        return 0
+
+    log(f"Step 1f: Force-rebuilding Liquifire URLs for {len(serials)} boat(s) from past {lookback_days} days...")
+    try:
+        token = build_liquifire_url.get_trn_token()
+        matrices = build_liquifire_url.load_matrices(token)
+    except Exception as exc:
+        log(f"Step 1f: Failed to load CPQ matrices — {exc}", "ERROR")
+        return 0
+
+    bo_cursor = mysql_conn.cursor()
+    updated = 0
+    for serial in serials:
+        try:
+            config, model, series = build_liquifire_url.get_boat_config(bo_cursor, serial)
+            if not model:
+                continue
+
+            url = build_liquifire_url.build_url(serial, config, model, series, matrices)
+            if not url:
+                continue
+
+            ok, size = build_liquifire_url.test_url(url)
+
+            if not ok and len(model) >= 2 and model[:2].isdigit():
+                year = int(model[:2])
+                model_suffix = model[2:]
+                for delta in [1, -1, 2, -2, 3, -3]:
+                    try_year = year + delta
+                    if try_year < 10:
+                        continue
+                    fallback_asset = f'{try_year:02d}{model_suffix}'
+                    fallback_url = url.replace(f'asset[{model}]', f'asset[{fallback_asset}]')
+                    ok, size = build_liquifire_url.test_url(fallback_url)
+                    if ok:
+                        log(f"  {serial} ({model}): year-walk → {fallback_asset}")
+                        url = fallback_url
+                        break
+
+            if not ok:
+                log(f"  {serial} ({model}): URL did not render — skipped", "WARNING")
+                continue
+
+            cursor2 = mysql_conn.cursor()
+            cursor2.execute(
+                f"UPDATE {MYSQL_DB}.SerialNumberMaster SET LiquifireImageUrl = %s WHERE Boat_SerialNo = %s",
+                (url, serial)
+            )
+            mysql_conn.commit()
+            cursor2.close()
+            log(f"  {serial} ({model}): rebuilt ({size:,} bytes)")
+            updated += 1
+
+        except Exception as exc:
+            log(f"  {serial}: error — {exc}", "WARNING")
+            continue
+
+    bo_cursor.close()
+    log(f"Step 1f: Rebuilt Liquifire URLs for {updated} boat(s)", "SUCCESS")
+    return updated
+
+
+# ============================================================================
 # STEP 2 — SERIAL NUMBER MASTER LOAD
 # ============================================================================
 
@@ -1833,6 +1919,15 @@ def main():
             log("STEP 1e: SWEEP — LIQUIFIRE MATRIX FALLBACK (180-DAY WINDOW)")
             log("=" * 60)
             sweep_missing_liquifire_urls_matrix(mysql_conn, lookback_days=180)
+
+            # ── STEP 1f: Weekly force-rebuild for past 7 days (Sundays only) ──
+            if datetime.now().weekday() == 6:  # 6 = Sunday
+                print()
+                log("=" * 60)
+                log("STEP 1f: WEEKLY SWEEP — FORCE-REBUILD LIQUIFIRE URLS (PAST 7 DAYS)")
+                log("=" * 60)
+                sweep_weekly_liquifire_rebuild(mysql_conn, lookback_days=7)
+
             mysql_conn.close()
         else:
             log("No line items found for today.", "WARNING")
