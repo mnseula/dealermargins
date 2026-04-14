@@ -1306,6 +1306,12 @@ def sweep_missing_liquifire_urls_matrix(mysql_conn, lookback_days: int = 180) ->
             OR snm.LiquifireImageUrl LIKE '%asset[furn\\_%'
             OR snm.LiquifireImageUrl LIKE '%view[]%'
             OR snm.LiquifireImageUrl LIKE '%asset[]%'
+            -- Bare URL: has an asset but no color params (came from CPQ LastConfigurationImageLink
+            -- as a skeleton — shows only tube/deck with no furniture or panel colors).
+            OR (
+                snm.LiquifireImageUrl LIKE '%asset[%'
+                AND snm.LiquifireImageUrl NOT LIKE '%furnPrime[%'
+            )
             -- CPQ PRD sometimes returns a URL whose asset year predates the boat model year.
             -- The furniture params make it render large enough to pass the >20KB check but
             -- the hull is wrong (shows only deck/tube). Catch by comparing asset year in the
