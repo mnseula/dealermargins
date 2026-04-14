@@ -7074,7 +7074,6 @@ update item_mst set family_code = 'RES-PWRDST' where item = '028836' and site_re
 update item_mst set family_code = 'INT-PLASTC' where item = '028837' and site_ref = 'BENN';
 update item_mst set family_code = 'INT-FURN' where item = '028838' and site_ref = 'BENN';
 update item_mst set family_code = 'INT-FURN' where item = '028839' and site_ref = 'BENN';
-update item_mst set family_code = 'INT-FURN' where item = '028839 CHAISE CONVIENCE TABLE/' and site_ref = 'BENN';
 update item_mst set family_code = 'EXT-FBRGLS' where item = '028840' and site_ref = 'BENN';
 update item_mst set family_code = 'RES-PWRDST' where item = '028845' and site_ref = 'BENN';
 update item_mst set family_code = 'INT-PLASTC' where item = '028846' and site_ref = 'BENN';
@@ -7550,7 +7549,6 @@ update item_mst set family_code = 'INT-FURN' where item = '0292544-SNRF-BCH-B' a
 update item_mst set family_code = 'INT-FURN' where item = '0292545-SNRF-BCH-A' and site_ref = 'BENN';
 update item_mst set family_code = 'INT-FURN' where item = '0292545-SNRF-BCH-B' and site_ref = 'BENN';
 update item_mst set family_code = 'INT-FURN' where item = '0292546-SNRF-BCH-A' and site_ref = 'BENN';
-update item_mst set family_code = 'INT-FURN' where item = '0292546-SNRF-BCH-A -' and site_ref = 'BENN';
 update item_mst set family_code = 'INT-FURN' where item = '0292547-SNRF-BCH-A' and site_ref = 'BENN';
 update item_mst set family_code = 'INT-FURN' where item = '0292547-SNRF-BCH-B' and site_ref = 'BENN';
 update item_mst set family_code = 'INT-FURN' where item = '0292548-SNRF-BCH-A' and site_ref = 'BENN';
@@ -8029,7 +8027,6 @@ update item_mst set family_code = 'INT-FURN' where item = '0293501-SSPT-BCH-B' a
 update item_mst set family_code = 'INT-FURN' where item = '0293501-SSPT-BCH-C' and site_ref = 'BENN';
 update item_mst set family_code = 'INT-FURN' where item = '0293502-SSPT-BCH-A' and site_ref = 'BENN';
 update item_mst set family_code = 'INT-FURN' where item = '0293502-SSPT-BCH-C' and site_ref = 'BENN';
-update item_mst set family_code = 'INT-FURN' where item = '0293505-SSPT ARM-B' and site_ref = 'BENN';
 update item_mst set family_code = 'INT-FURN' where item = '0293505-SSPT-ARM-A' and site_ref = 'BENN';
 update item_mst set family_code = 'INT-FURN' where item = '0293505-SSPT-ARM-B' and site_ref = 'BENN';
 update item_mst set family_code = 'INT-FURN' where item = '0293505-SSPT-ARM-C' and site_ref = 'BENN';
@@ -8065,10 +8062,7 @@ update item_mst set family_code = 'INT-FURN' where item = '0293516-SSPT-PAD-B' a
 update item_mst set family_code = 'INT-FURN' where item = '0293517-SSPT-PAD-B' and site_ref = 'BENN';
 update item_mst set family_code = 'INT-FURN' where item = '0293518-SSPT-CVR-A' and site_ref = 'BENN';
 update item_mst set family_code = 'INT-FURN' where item = '0293518-SSPT-CVR-B' and site_ref = 'BENN';
-update item_mst set family_code = 'INT-FURN' where item = '0293519- SSPT-CUR' and site_ref = 'BENN';
 update item_mst set family_code = 'INT-FURN' where item = '0293520-SLUX-CUR' and site_ref = 'BENN';
-update item_mst set family_code = 'INT-FURN' where item = '0293521-SWRF- CUR' and site_ref = 'BENN';
-update item_mst set family_code = 'INT-FURN' where item = '0293522-SNRF- CUR' and site_ref = 'BENN';
 update item_mst set family_code = 'INT-FURN' where item = '0293670-LTPT-BCH-A' and site_ref = 'BENN';
 update item_mst set family_code = 'INT-FURN' where item = '0293671-LTPT-BCH-A' and site_ref = 'BENN';
 update item_mst set family_code = 'INT-FURN' where item = '0293674-LTPT-PAD-A' and site_ref = 'BENN';
@@ -9960,8 +9954,3 @@ update item_mst set family_code = 'RES-PWRDST' where item = '492945' and site_re
 update item_mst set family_code = 'EXT-COATNG' where item = '730098-AB' and site_ref = 'BENN';
 update item_mst set family_code = 'EXT-COATNG' where item = '730433-AB' and site_ref = 'BENN';
 update item_mst set family_code = 'EXT-COATNG' where item = '730433-AS' and site_ref = 'BENN';
-update item_mst set family_code = 'INT-FURN' where item = 'MISC ITEM' and site_ref = 'BENN';
-update item_mst set family_code = 'INT-FURN' where item = 'OC10010' and site_ref = 'BENN';
-update item_mst set family_code = 'INT-FURN' where item = 'SUNDECK PRIVACY CURTAIN' and site_ref = 'BENN';
-update item_mst set family_code = 'INT-FURN' where item = 'SWING BACK CUSH-STRAIGHT' and site_ref = 'BENN';
-update item_mst set family_code = 'EXT-COVER' where item = 'XXX' and site_ref = 'BENN';
