@@ -188,6 +188,7 @@ ASSET_FIXES = {
     '22S1SR': '23SSR',
     '22S1SB': '22SSB',
     '20S1SR': '22SSR',
+    '23S1SR': '22SSR',
     '20S1L':  '22SL',
     # Legacy/old model naming
     '188SL':  '22SL',
