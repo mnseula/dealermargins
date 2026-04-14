@@ -258,12 +258,17 @@ def build_url(serial, config, model, series, matrices):
     """
     Build a Liquifire URL for a CPQ boat from its configuration.
     Returns the URL string, or None if required data is missing.
+    If config is empty (no CPQ attributes), returns a minimal default URL.
     """
     if not model:
         return None
-    
-    # Normalize asset name (strip SF suffix, apply known fixes)
+
+    # Normalize asset name (strip SF/SE suffix, apply known fixes)
     asset, _ = normalize_asset(model)
+
+    # No CPQ config — return a minimal default URL (no color params)
+    if not config:
+        return f"{LIQUIFIRE_BASE}?set=cat[pon],asset[{asset}],view[side],tube[std]&call=url[file:PS/main]&sink"
 
     bv_key = config.get('baseVinyl', '').upper()
     fa_key = config.get('furnAccent', '').upper()
