@@ -412,12 +412,8 @@ def ship():
 
     Reads new shipments from ShipmentTrackingInfo (SHIP_UPDATE22), merges RGA
     tracking numbers onto matching lines, then marks each part order line as
-    completed with its tracking number and ship date.
-
-    Still needs SQL for:
-        PW_GET_PART_STATE_CHG_ID      — get next state-change sequence ID
-        SHIP_UPDATE_PARTS             — write tracking + status to PartsOrderLines
-        PW_ADD_STATUS_TO_TRACKER_PARTS — insert row into status tracker
+    completed with its tracking number and ship date, and logs the state change
+    to PartsOrderLine_StateChangeStatusTracker.
     """
     log_scheduler_event('SHIP')
     log.info('SHIP: start')
@@ -453,26 +449,47 @@ def ship():
             oe_number = row['ERP_OrderNo']
             ord_line_id = row['OrdLineID']
 
-            # TODO: replace remaining two blocks with real SQL once provided
             # --- PW_GET_PART_STATE_CHG_ID ---
             cursor.execute(GET_LINE_STATE_CHG_ID_SQL)
             state_chg_id = cursor.fetchone()['ID'] or 1
 
             # --- SHIP_UPDATE_PARTS ---
-            # cursor.execute(
-            #     "<SHIP_UPDATE_PARTS SQL>",
-            #     (poid, track_no, ship_date, 'completed', 'Completed',
-            #      datetime.now().strftime('%m/%d/%Y'), line_no, oe_number)
-            # )
+            cursor.execute(
+                """
+                UPDATE warrantyparts.PartsOrderLines SET
+                    OrdLineShipmentTrackingNo = %s,
+                    OrdLineActShipDate        = %s,
+                    OrdLineStatus             = %s,
+                    OrdLinePublicStatus       = %s,
+                    OrdLineSttusLastUpd       = %s,
+                    ERP_OrderNo               = %s
+                WHERE PartsOrderID = %s AND OrdLineNo = %s
+                """,
+                (track_no, ship_date, 'completed', 'Completed',
+                 datetime.now().strftime('%m/%d/%Y'), oe_number,
+                 poid, line_no)
+            )
 
             # --- PW_ADD_STATUS_TO_TRACKER_PARTS ---
-            # cursor.execute(
-            #     "<PW_ADD_STATUS_TO_TRACKER_PARTS SQL>",
-            #     (state_chg_id, ord_line_id, ord_line_id,
-            #      'PartOrderLineItem', 'completed', 'Completed', '', ship_date, '')
-            # )
+            cursor.execute(
+                """
+                INSERT INTO warrantyparts.PartsOrderLine_StateChangeStatusTracker (
+                    StateChg_ID,
+                    StateChg_EntityID,
+                    OrdLineID,
+                    StateChg_EntityType,
+                    StateChg_ChgToPublicState,
+                    StateChg_ChgToState,
+                    StateChg_UserID,
+                    StateChg_CreateDate,
+                    StateChg_DeleteDate
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (state_chg_id, ord_line_id, ord_line_id,
+                 'PartOrderLineItem', 'completed', 'Completed', '', ship_date, '')
+            )
 
-            # conn.commit()
+            conn.commit()
             email_body += (
                 f"Updated {poid} line {line_no} "
                 f"tracking {track_no} ship date {ship_date}<br>"
