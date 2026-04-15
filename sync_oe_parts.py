@@ -133,7 +133,7 @@ def check_order_in_syteline_by_partsorder(mssql_cursor, parts_order_id):
                 WHEN CHARINDEX('-', coitem_mst.Uf_BENN_PartsWebOrderNumber) > 0 
                 THEN CAST(RIGHT(FORMAT(CAST(RIGHT(coitem_mst.Uf_BENN_PartsWebOrderNumber, LEN(coitem_mst.Uf_BENN_PartsWebOrderNumber) - CHARINDEX('-', coitem_mst.Uf_BENN_PartsWebOrderNumber)) AS INT), '00'), 2) AS VARCHAR(2))
                 ELSE ''
-            END AS LineNo
+            END AS [LineNo]
         FROM [CSIPRD].[dbo].[coitem_mst]
         WHERE 
             qty_invoiced = 0 
