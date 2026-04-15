@@ -490,6 +490,7 @@ def sync_oe_parts():
                 WHERE OrdLineStatus = 'Exported'
                   AND (ERP_OrderNo IS NULL OR ERP_OrderNo = '')
                   AND OrdLineSttusLastUpd NOT LIKE '{month}/{day}/{year}%'
+                  AND OrdLineSttusLastUpd NOT LIKE '{month:02d}/{day:02d}/{year}%'
                 ORDER BY PartsOrderID DESC
             """)
         
