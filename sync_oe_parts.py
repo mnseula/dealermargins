@@ -47,7 +47,7 @@ logging.basicConfig(
     format='%(asctime)s [%(levelname)s] %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler('sync_oe_parts.log'),
+        logging.FileHandler('sync_oe_parts.log', encoding='utf-8'),
     ]
 )
 log = logging.getLogger(__name__)
@@ -577,7 +577,7 @@ def sync_oe_parts():
             order_prefix = 'WP' if claim_type == 'parts_order' else 'WN'
 
             xml_file = write_xml_file(xml_content, parts_order_id, order_prefix)
-            log.info(f'[P1] {parts_order_id}: XML submitted ({num_lines} lines) → {xml_file}')
+            log.info(f'[P1] {parts_order_id}: XML submitted ({num_lines} lines) -> {xml_file}')
 
             pending[parts_order_id] = num_lines
             stats['xml_submitted'] += 1
@@ -607,7 +607,7 @@ def sync_oe_parts():
                             mysql_cursor, parts_order_id, erp_order_no
                         )
                         commit(mysql_conn)
-                        log.info(f'[P2] {parts_order_id}: resolved → {erp_order_no} '
+                        log.info(f'[P2] {parts_order_id}: resolved -> {erp_order_no} '
                                  f'({rows_updated}/{num_lines} lines updated)')
                         resolved_this_round.append(parts_order_id)
                         stats['resolved'] += 1
