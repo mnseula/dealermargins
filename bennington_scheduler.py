@@ -367,71 +367,118 @@ def _update_serial_master_all(cursor, row: dict, existing_prod_no):
 # numbers + marks part order lines as completed.
 # ══════════════════════════════════════════════════════════════════════════════
 
+SHIP_UPDATE22_SQL = """
+    SELECT DISTINCT
+        t1.UPSTrackingNo,
+        t1.ERP_OrderNo,
+        t2.OrdLineStatus,
+        TRIM(LEADING '0' FROM t1.WebOrderNo)                              AS PartsOrderID,
+        t1.LineNo,
+        CONCAT(TRIM(LEADING '0' FROM t1.WebOrderNo), '-', t1.LineNo)     AS ShipmentID,
+        DATE_FORMAT(STR_TO_DATE(t1.ShipDate, '%%Y%%m%%d'), '%%m/%%d/%%Y') AS `date`,
+        t2.OrdLineID,
+        t1.RGA
+    FROM warrantyparts.ShipmentTrackingInfo AS t1
+    JOIN warrantyparts.PartsOrderLines      AS t2
+        ON t1.WebOrderNo = t2.PartsOrderID
+       AND t1.LineNo     = t2.OrdLineNo
+    WHERE (
+            t2.OrdLineShipmentTrackingNo IS NULL
+         OR t2.OrdLineShipmentTrackingNo = ''
+         OR (t2.OrdLineStatus = 'exported' AND LENGTH(t2.OrdLineShipmentTrackingNo) > 0)
+          )
+      AND t1.WebOrderNo  != ''
+      AND t1.LineNo      != ''
+      AND t2.PartsOrderID IS NOT NULL
+      AND t1.RGA = %s
+"""
+
+
 def ship():
     """
     Replacement for SHIP.
 
-    TODO: provide the SQL for SHIP_UPDATE22 — it reads shipped lines from Syteline
-    and returns: PartsOrderID, LineNo, OrdLineID, ERP_OrderNo, UPSTrackingNo, date, ShipmentID.
+    Reads new shipments from ShipmentTrackingInfo (SHIP_UPDATE22), merges RGA
+    tracking numbers onto matching lines, then marks each part order line as
+    completed with its tracking number and ship date.
 
-    The update logic below is complete once that query is known.
-    SQL needed:
-        SHIP_UPDATE22          (param: 'Y' for RGA lines, 'N' for normal)
-        PW_GET_PART_STATE_CHG_ID
-        SHIP_UPDATE_PARTS
-        PW_ADD_STATUS_TO_TRACKER_PARTS
+    Still needs SQL for:
+        PW_GET_PART_STATE_CHG_ID      — get next state-change sequence ID
+        SHIP_UPDATE_PARTS             — write tracking + status to PartsOrderLines
+        PW_ADD_STATUS_TO_TRACKER_PARTS — insert row into status tracker
     """
     log_scheduler_event('SHIP')
-    log.info('SHIP: start — TODO: add SHIP_UPDATE22 SQL to complete this job')
+    log.info('SHIP: start')
+    try:
+        conn = get_db()
+        cursor = conn.cursor(dictionary=True)
 
-    # Placeholder — wire up once SHIP_UPDATE22 SQL is known
-    # try:
-    #     conn = get_db()
-    #     cursor = conn.cursor(dictionary=True)
-    #
-    #     cursor.execute("<SHIP_UPDATE22 SQL>", ('N',))
-    #     new_data = cursor.fetchall()
-    #
-    #     cursor.execute("<SHIP_UPDATE22 SQL>", ('Y',))
-    #     new_data_rga = cursor.fetchall()
-    #
-    #     # Merge RGA tracking numbers onto matching non-RGA lines
-    #     data_map = {(r['PartsOrderID'], r['LineNo']): r for r in new_data}
-    #     for r in new_data_rga:
-    #         key = (r['PartsOrderID'], r['LineNo'])
-    #         if key in data_map:
-    #             data_map[key]['UPSTrackingNo'] += ',' + r['UPSTrackingNo']
-    #         else:
-    #             data_map[key] = r
-    #     actual = list(data_map.values())
-    #
-    #     email_body = ''
-    #     for row in actual:
-    #         cursor.execute("<PW_GET_PART_STATE_CHG_ID SQL>")
-    #         state_chg_id = cursor.fetchone()['ID']
-    #         cursor.execute(
-    #             "<SHIP_UPDATE_PARTS SQL>",
-    #             (row['PartsOrderID'], row['UPSTrackingNo'], row['date'],
-    #              'completed', 'Completed', datetime.now().strftime('%m/%d/%Y'),
-    #              row['LineNo'], row['ERP_OrderNo'])
-    #         )
-    #         cursor.execute(
-    #             "<PW_ADD_STATUS_TO_TRACKER_PARTS SQL>",
-    #             (state_chg_id, row['OrdLineID'], row['OrdLineID'],
-    #              'PartOrderLineItem', 'completed', 'Completed', '', row['date'], '')
-    #         )
-    #         email_body += f"Updated {row['PartsOrderID']} line {row['LineNo']} tracking {row['UPSTrackingNo']}<br>"
-    #         conn.commit()
-    #
-    #     send_email(
-    #         'ZSpringman@benningtonmarine.com, DHartsough@benningtonmarine.com, spenick@benningtonmarine.com',
-    #         email_body,
-    #         'ship update'
-    #     )
-    #     cursor.close()
-    #     conn.close()
-    # except Exception as e:
-    #     log.error(f'SHIP error: {e}')
+        cursor.execute(SHIP_UPDATE22_SQL, ('N',))
+        new_data = cursor.fetchall()
+        log.info(f'SHIP: {len(new_data)} normal lines')
+
+        cursor.execute(SHIP_UPDATE22_SQL, ('Y',))
+        new_data_rga = cursor.fetchall()
+        log.info(f'SHIP: {len(new_data_rga)} RGA lines')
+
+        # Merge RGA tracking numbers onto matching non-RGA lines
+        data_map = {(r['PartsOrderID'], r['LineNo']): r for r in new_data}
+        for r in new_data_rga:
+            key = (r['PartsOrderID'], r['LineNo'])
+            if key in data_map:
+                data_map[key]['UPSTrackingNo'] += ',' + r['UPSTrackingNo']
+            else:
+                data_map[key] = r
+        actual = list(data_map.values())
+        log.info(f'SHIP: {len(actual)} total lines to update')
+
+        email_body = ''
+        for row in actual:
+            poid      = row['PartsOrderID']
+            line_no   = row['LineNo']
+            track_no  = row['UPSTrackingNo']
+            ship_date = row['date']
+            oe_number = row['ERP_OrderNo']
+            ord_line_id = row['OrdLineID']
+
+            # TODO: replace these three blocks with real SQL once provided
+            # --- PW_GET_PART_STATE_CHG_ID ---
+            # cursor.execute("<PW_GET_PART_STATE_CHG_ID SQL>")
+            # state_chg_id = cursor.fetchone()['ID']
+
+            # --- SHIP_UPDATE_PARTS ---
+            # cursor.execute(
+            #     "<SHIP_UPDATE_PARTS SQL>",
+            #     (poid, track_no, ship_date, 'completed', 'Completed',
+            #      datetime.now().strftime('%m/%d/%Y'), line_no, oe_number)
+            # )
+
+            # --- PW_ADD_STATUS_TO_TRACKER_PARTS ---
+            # cursor.execute(
+            #     "<PW_ADD_STATUS_TO_TRACKER_PARTS SQL>",
+            #     (state_chg_id, ord_line_id, ord_line_id,
+            #      'PartOrderLineItem', 'completed', 'Completed', '', ship_date, '')
+            # )
+
+            # conn.commit()
+            email_body += (
+                f"Updated {poid} line {line_no} "
+                f"tracking {track_no} ship date {ship_date}<br>"
+            )
+            log.info(f'SHIP: {poid} line {line_no} tracking {track_no}')
+
+        if email_body:
+            send_email(
+                'ZSpringman@benningtonmarine.com, DHartsough@benningtonmarine.com, spenick@benningtonmarine.com',
+                email_body,
+                'ship update'
+            )
+
+        cursor.close()
+        conn.close()
+
+    except Exception as e:
+        log.error(f'SHIP error: {e}')
 
 
 # ══════════════════════════════════════════════════════════════════════════════
