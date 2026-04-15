@@ -730,14 +730,57 @@ def specs_compile_options():
     """
     Replacement for SPECS_COMPILE_OPTIONS.
 
-    TODO: provide SQL for:
-        SPECS_DEL_COMPILED_OPTIONS          — TRUNCATE / DELETE compiled options
-        SEL_DISCTINT_PRODNOS_IN_OPTIONS     — SELECT DISTINCT ProdNo FROM options table
-        SEL_SPECS_ALL_LIVE_BOAT_OPTIONS     — SELECT options for one ProdNo
-        INS_SPECS_OPTIONS_COMPILED          — INSERT compiled options row
+    Original EOS logic:
+      1. SPECS_DEL_COMPILED_OPTIONS — DELETE all rows from Live_Boat_Options_Compiled
+         → DELETE is permanently blocked here; we use INSERT IGNORE instead.
+         Note: stale rows (options removed from Live_Boat_Options) will persist
+         until someone manually cleans the compiled table.
+      2. SEL_DISCTINT_PRODNOS_IN_OPTIONS — SELECT DISTINCT ProdNo FROM Live_Boat_Options
+      3. For each ProdNo:
+         SEL_SPECS_ALL_LIVE_BOAT_OPTIONS — SELECT * FROM Live_Boat_Options WHERE ProdNo = ?
+      4. INS_SPECS_OPTIONS_COMPILED — INSERT row into Live_Boat_Options_Compiled
     """
     log_scheduler_event('SPECS_COMPILE_OPTIONS')
-    log.info('SPECS_COMPILE_OPTIONS: start — TODO: add SQL statements')
+    log.info('SPECS_COMPILE_OPTIONS: start')
+    try:
+        conn = get_db()
+        cursor = conn.cursor(dictionary=True)
+
+        # SEL_DISCTINT_PRODNOS_IN_OPTIONS
+        cursor.execute("SELECT DISTINCT ProdNo FROM SPECS_External.Live_Boat_Options")
+        prod_nos = [row['ProdNo'] for row in cursor.fetchall()]
+        log.info(f'SPECS_COMPILE_OPTIONS: {len(prod_nos)} distinct ProdNos')
+
+        inserted = skipped = 0
+        for prod_no in prod_nos:
+            # SEL_SPECS_ALL_LIVE_BOAT_OPTIONS
+            cursor.execute(
+                "SELECT * FROM SPECS_External.Live_Boat_Options WHERE ProdNo = %s",
+                (prod_no,)
+            )
+            options = cursor.fetchall()
+
+            for opt in options:
+                # INS_SPECS_OPTIONS_COMPILED
+                # Using INSERT IGNORE in place of the preceding DELETE so we don't
+                # create duplicates on re-runs (requires a UNIQUE key on the table).
+                execute_write(cursor,
+                    """
+                    INSERT IGNORE INTO SPECS_External.Live_Boat_Options_Compiled
+                        (ProdNo, Option_Desc, Workcenter)
+                    VALUES (%s, %s, %s)
+                    """,
+                    (opt['ProdNo'], opt['Option_Desc'], opt['Workcenter'])
+                )
+                inserted += 1
+
+        commit(conn)
+        log.info(f'SPECS_COMPILE_OPTIONS: done — {inserted} rows inserted/skipped')
+        cursor.close()
+        conn.close()
+
+    except Exception as e:
+        log.error(f'SPECS_COMPILE_OPTIONS error: {e}')
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -749,52 +792,71 @@ def boat_registration():
     """
     Replacement for BOAT_REGISTRATION.
 
-    TODO: provide SQL for:
-        LOAD_BOAT_REG_UPDATE_TABLE   — rows pending registration
-        UPDATE_BOAT_REG_UPDATE_TABLE — mark row as processed after success
+    LOAD_BOAT_REG_UPDATE_TABLE:
+        SELECT * FROM Update_Tables.boatRegistration
+        WHERE `Boats that need to be registered` != '0'
 
-    The HTTP call goes to https://node.eoscpq.com/bennington/pwregistration
-    with the boat data as JSON. Keeping that endpoint call intact.
+    UPDATE_BOAT_REG_UPDATE_TABLE:
+        UPDATE Update_Tables.boatRegistration
+        SET `Boats that need to be registered` = '0'
+        WHERE SerialNo = @PARAM1
+
+    TODO: provide the public key for the https://node.eoscpq.com/bennington/pwregistration endpoint
     """
     import requests as req
     log_scheduler_event('BOAT_REGISTRATION')
-    log.info('BOAT_REGISTRATION: start — TODO: add LOAD_BOAT_REG_UPDATE_TABLE SQL')
+    log.info('BOAT_REGISTRATION: start')
+    try:
+        conn = get_db()
+        cursor = conn.cursor(dictionary=True)
 
-    # try:
-    #     conn = get_db()
-    #     cursor = conn.cursor(dictionary=True)
-    #     cursor.execute("<LOAD_BOAT_REG_UPDATE_TABLE SQL>")
-    #     boats = cursor.fetchall()
-    #     log.info(f'BOAT_REGISTRATION: {len(boats)} boats to register')
-    #
-    #     success, failure = [], []
-    #     for boat in boats:
-    #         try:
-    #             r = req.post(
-    #                 'https://node.eoscpq.com/bennington/pwregistration',
-    #                 json={'key': '<PUBLIC_KEY>', 'data': boat},
-    #                 timeout=30
-    #             )
-    #             result = r.json()
-    #             if result.get('result'):
-    #                 cursor.execute("<UPDATE_BOAT_REG_UPDATE_TABLE SQL>", (boat['SerialNo'],))
-    #                 conn.commit()
-    #                 success.append(boat['SerialNo'])
-    #             else:
-    #                 failure.append(f"{boat['SerialNo']}: {result.get('error')}")
-    #         except Exception as e:
-    #             failure.append(f"{boat['SerialNo']}: {e}")
-    #
-    #     body = ''
-    #     if failure:
-    #         body += 'NOT registered:<br>' + '<br>'.join(failure) + '<br><br>'
-    #     if success:
-    #         body += 'Registered:<br>' + '<br>'.join(success)
-    #     send_email('spenick@benningtonmarine.com', body, 'Boat Registration Import Report')
-    #     cursor.close()
-    #     conn.close()
-    # except Exception as e:
-    #     log.error(f'BOAT_REGISTRATION error: {e}')
+        # LOAD_BOAT_REG_UPDATE_TABLE
+        cursor.execute(
+            "SELECT * FROM Update_Tables.boatRegistration "
+            "WHERE `Boats that need to be registered` != '0'"
+        )
+        boats = cursor.fetchall()
+        log.info(f'BOAT_REGISTRATION: {len(boats)} boats to register')
+
+        success, failure = [], []
+        for boat in boats:
+            serial = boat.get('Boat_SerialNo') or boat.get('SerialNo', '')
+            try:
+                r = req.post(
+                    'https://node.eoscpq.com/bennington/pwregistration',
+                    json={'key': '<PUBLIC_KEY_TODO>', 'data': boat},
+                    timeout=30
+                )
+                result = r.json()
+                if result.get('result'):
+                    # UPDATE_BOAT_REG_UPDATE_TABLE — mark row as processed
+                    execute_write(cursor,
+                        "UPDATE Update_Tables.boatRegistration "
+                        "SET `Boats that need to be registered` = '0' "
+                        "WHERE SerialNo = %s",
+                        (serial,)
+                    )
+                    commit(conn)
+                    success.append(serial)
+                else:
+                    failure.append(f"{serial}: {result.get('error')}")
+            except Exception as e:
+                failure.append(f"{serial}: {e}")
+
+        body = ''
+        if failure:
+            body += 'NOT registered:<br>' + '<br>'.join(failure) + '<br><br>'
+        if success:
+            body += 'Registered:<br>' + '<br>'.join(success)
+        if body:
+            send_email('spenick@benningtonmarine.com', body, 'Boat Registration Import Report')
+
+        log.info(f'BOAT_REGISTRATION: done — success={len(success)} failure={len(failure)}')
+        cursor.close()
+        conn.close()
+
+    except Exception as e:
+        log.error(f'BOAT_REGISTRATION error: {e}')
 
 
 # ══════════════════════════════════════════════════════════════════════════════
