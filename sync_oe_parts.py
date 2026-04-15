@@ -479,11 +479,17 @@ def sync_oe_parts():
                   AND (ERP_OrderNo IS NULL OR ERP_OrderNo = '')
             """, (SINGLE_ORDER,))
         else:
-            mysql_cursor.execute("""
+            today = datetime.now()
+            month = today.month
+            day = today.day
+            year = today.year
+            
+            mysql_cursor.execute(f"""
                 SELECT DISTINCT PartsOrderID
                 FROM warrantyparts.PartsOrderLines
                 WHERE OrdLineStatus = 'Exported'
                   AND (ERP_OrderNo IS NULL OR ERP_OrderNo = '')
+                  AND OrdLineSttusLastUpd NOT LIKE '{month}/{day}/{year}%'
                 ORDER BY PartsOrderID DESC
             """)
         
