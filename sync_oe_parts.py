@@ -525,22 +525,25 @@ def sync_oe_parts():
             num_lines = len(lines)
             log.info(f'  Order has {num_lines} line(s)')
             
-            erp_order_no = None
+            if not mssql_available:
+                log.error(f'  MSSQL unavailable - cannot check Syteline. Skipping to avoid duplicates.')
+                stats['errors'] += 1
+                continue
             
-            if mssql_available:
-                syteline_results = check_order_in_syteline_by_partsorder(mssql_cursor, parts_order_id)
+            log.info(f'  Checking Syteline for existing order...')
+            syteline_results = check_order_in_syteline_by_partsorder(mssql_cursor, parts_order_id)
+            
+            if syteline_results:
+                erp_order_no = syteline_results[0]['ERP_OrderNo']
+                log.info(f'  Found in Syteline: {erp_order_no} - updating MySQL only')
                 
-                if syteline_results:
-                    erp_order_no = syteline_results[0]['ERP_OrderNo']
-                    log.info(f'  Found in Syteline: {erp_order_no}')
-                    
-                    rows_updated = update_erp_order_no(mysql_cursor, parts_order_id, erp_order_no)
-                    commit(mysql_conn)
-                    log.info(f'  Updated {rows_updated} of {num_lines} lines with OE# {erp_order_no}')
-                    stats['found_in_syteline'] += 1
-                    continue
+                rows_updated = update_erp_order_no(mysql_cursor, parts_order_id, erp_order_no)
+                commit(mysql_conn)
+                log.info(f'  Updated {rows_updated} of {num_lines} lines with OE# {erp_order_no}')
+                stats['found_in_syteline'] += 1
+                continue
             
-            log.info(f'  Not found in Syteline, generating XML with {num_lines} line(s)...')
+            log.info(f'  NOT found in Syteline - generating XML for ingestion')
             
             boat_serial = header.get('OrdHdrBoatSerialNo')
             boat_info = get_boat_info(mysql_cursor, boat_serial)
