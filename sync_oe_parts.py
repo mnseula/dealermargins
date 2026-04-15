@@ -122,34 +122,20 @@ def check_order_in_syteline(mssql_cursor, web_order_no, line_no):
 def check_order_in_syteline_by_partsorder(mssql_cursor, parts_order_id):
     sql = """
         SELECT 
-            coitem_mst.co_num AS ERP_OrderNo,
-            coitem_mst.Uf_BENN_PartsWebOrderNumber AS WebOrderNumber,
-            CASE 
-                WHEN CHARINDEX('-', coitem_mst.Uf_BENN_PartsWebOrderNumber) > 0 
-                THEN SUBSTRING(coitem_mst.Uf_BENN_PartsWebOrderNumber, 3, CHARINDEX('-', coitem_mst.Uf_BENN_PartsWebOrderNumber) - 3)
-                ELSE SUBSTRING(coitem_mst.Uf_BENN_PartsWebOrderNumber, 3, LEN(coitem_mst.Uf_BENN_PartsWebOrderNumber) - 2)
-            END AS WebOrderNo,
-            CASE 
-                WHEN CHARINDEX('-', coitem_mst.Uf_BENN_PartsWebOrderNumber) > 0 
-                THEN CAST(RIGHT(FORMAT(CAST(RIGHT(coitem_mst.Uf_BENN_PartsWebOrderNumber, LEN(coitem_mst.Uf_BENN_PartsWebOrderNumber) - CHARINDEX('-', coitem_mst.Uf_BENN_PartsWebOrderNumber)) AS INT), '00'), 2) AS VARCHAR(2))
-                ELSE ''
-            END AS [LineNo]
+            coitem_mst.co_num AS ERP_OrderNo
         FROM [CSIPRD].[dbo].[coitem_mst]
         WHERE 
             qty_invoiced = 0 
             AND (LEFT(co_num, 2) LIKE 'WP' OR LEFT(co_num, 2) LIKE 'WN')
-            AND coitem_mst.Uf_BENN_PartsWebOrderNumber IS NOT NULL
+            AND coitem_mst.Uf_BENN_PartsWebOrderNumber LIKE %s
             AND site_ref = 'BENN'
     """
-    mssql_cursor.execute(sql)
-    results = []
-    for row in mssql_cursor:
-        if row['WebOrderNo'] == str(parts_order_id):
-            results.append({
-                'ERP_OrderNo': row['ERP_OrderNo'],
-                'LineNo': row['LineNo']
-            })
-    return results
+    search_pattern = f'%{parts_order_id}-%'
+    mssql_cursor.execute(sql, (search_pattern,))
+    result = mssql_cursor.fetchone()
+    if result:
+        return [{'ERP_OrderNo': result['ERP_OrderNo']}]
+    return []
 
 def get_parts_order_data(mysql_cursor, parts_order_id):
     cursor = mysql_cursor
