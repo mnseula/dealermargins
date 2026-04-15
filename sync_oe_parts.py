@@ -20,7 +20,6 @@ import sys
 import os
 import logging
 import uuid
-import time
 from datetime import datetime
 from decimal import Decimal
 import xml.etree.ElementTree as ET
@@ -37,10 +36,6 @@ except ImportError:
 DRY_RUN = False
 SINGLE_ORDER = None
 
-# How long to wait between Syteline poll attempts after XML submission (seconds)
-POLL_INTERVAL = 60
-# Maximum number of poll attempts before giving up on an order
-MAX_POLL_ATTEMPTS = 10
 
 logging.basicConfig(
     level=logging.INFO,
@@ -457,17 +452,14 @@ def update_erp_order_no(mysql_cursor, parts_order_id, erp_order_no):
 
 def sync_oe_parts():
     """
-    Two-phase bulk processing:
+    Two-phase processing:
 
-    Phase 1 — for every order missing an ERP_OrderNo:
-        a. Check Syteline directly; if already there, update MySQL and move on.
-        b. If not found, build the XML and write it to the network share.
-           Collect all such orders into a pending list — NO per-order sleep.
+    Phase 1 — check Syteline for every order missing an ERP_OrderNo.
+        If the EO# is already there, update MySQL immediately and move on.
 
-    Phase 2 — poll Syteline for all pending orders together:
-        Wait POLL_INTERVAL seconds, then query all pending orders in one pass.
-        Update MySQL for each one found. Repeat up to MAX_POLL_ATTEMPTS times.
-        Any order still missing after all attempts is logged as a failure.
+    Phase 2 — for any orders still missing after Phase 1, push the XML to
+        the network share and log it. No waiting, no polling — the user is
+        responsible for the order going through in Syteline.
     """
     log.info('=' * 60)
     log.info('SYNC OE PARTS: Starting')
@@ -515,13 +507,11 @@ def sync_oe_parts():
         log.info(f'Found {len(missing_orders)} orders with missing ERP_OrderNo')
 
         stats = {
-            'total':            len(missing_orders),
+            'total':             len(missing_orders),
             'found_in_syteline': 0,
-            'xml_submitted':    0,
-            'resolved':         0,
-            'unresolved':       0,
-            'errors':           0,
-            'skipped':          0,
+            'xml_submitted':     0,
+            'errors':            0,
+            'skipped':           0,
         }
 
         if not missing_orders:
@@ -533,19 +523,18 @@ def sync_oe_parts():
             return
 
         if not mssql_available:
-            log.error('MSSQL unavailable — cannot check or submit to Syteline.')
+            log.error('MSSQL unavailable — cannot check Syteline.')
             stats['errors'] = len(missing_orders)
             return
 
-        # ── PHASE 1: check Syteline; write XML for those not yet there ──────────
-        log.info('--- Phase 1: initial Syteline check + XML submission ---')
+        # ── PHASE 1: check Syteline, update MySQL for any EO# already there ─────
+        log.info('--- Phase 1: checking Syteline for existing EO# ---')
 
-        # pending = {parts_order_id: num_lines}  — orders whose XML was submitted
-        pending = {}
+        needs_xml = []  # orders not yet in Syteline
 
         for order in missing_orders:
             parts_order_id = order['PartsOrderID']
-            log.info(f'[P1] {parts_order_id}: loading order data')
+            log.info(f'[P1] {parts_order_id}: checking Syteline')
 
             header, lines = get_parts_order_data(mysql_cursor, parts_order_id)
             if not header or not lines:
@@ -554,75 +543,34 @@ def sync_oe_parts():
                 continue
 
             num_lines = len(lines)
-
-            # Check if already in Syteline
             syteline_results = check_order_in_syteline_by_partsorder(mssql_cursor, parts_order_id)
+
             if syteline_results:
                 erp_order_no = syteline_results[0]['ERP_OrderNo']
-                log.info(f'[P1] {parts_order_id}: already in Syteline as {erp_order_no}')
                 rows_updated = update_erp_order_no(mysql_cursor, parts_order_id, erp_order_no)
                 commit(mysql_conn)
-                log.info(f'[P1] {parts_order_id}: updated {rows_updated}/{num_lines} lines')
+                log.info(f'[P1] {parts_order_id}: found EO# {erp_order_no} -> updated {rows_updated}/{num_lines} lines')
                 stats['found_in_syteline'] += 1
-                continue
+            else:
+                log.info(f'[P1] {parts_order_id}: not in Syteline yet — queued for XML')
+                needs_xml.append((parts_order_id, header, lines))
 
-            # Not in Syteline — generate and submit XML
-            boat_serial = header.get('OrdHdrBoatSerialNo')
-            boat_info   = get_boat_info(mysql_cursor, boat_serial)
-            dealer_no   = header.get('OrdHdrDealerNo', '').replace('~0', '').replace('~1', '')
-            dealer_info = get_dealer_info(mysql_cursor, dealer_no)
+        # ── PHASE 2: push XML for orders not yet in Syteline ────────────────────
+        if needs_xml:
+            log.info(f'--- Phase 2: pushing XML for {len(needs_xml)} orders ---')
 
-            xml_content  = generate_xml(header, lines, boat_info, dealer_info)
-            claim_type   = header.get('OrdHdrClaimType', 'parts_order')
-            order_prefix = 'WP' if claim_type == 'parts_order' else 'WN'
-
-            xml_file = write_xml_file(xml_content, parts_order_id, order_prefix)
-            log.info(f'[P1] {parts_order_id}: XML submitted ({num_lines} lines) -> {xml_file}')
-
-            pending[parts_order_id] = num_lines
-            stats['xml_submitted'] += 1
-
-        # ── PHASE 2: poll Syteline for all pending orders ────────────────────────
-        if pending:
-            log.info(f'--- Phase 2: polling Syteline for {len(pending)} submitted orders '
-                     f'(interval={POLL_INTERVAL}s, max={MAX_POLL_ATTEMPTS} attempts) ---')
-
-            for attempt in range(1, MAX_POLL_ATTEMPTS + 1):
-                if not pending:
-                    break
-
-                log.info(f'[P2] Attempt {attempt}/{MAX_POLL_ATTEMPTS} — '
-                         f'waiting {POLL_INTERVAL}s before querying '
-                         f'({len(pending)} orders remaining)...')
-                time.sleep(POLL_INTERVAL)
-
-                resolved_this_round = []
-                for parts_order_id, num_lines in list(pending.items()):
-                    syteline_results = check_order_in_syteline_by_partsorder(
-                        mssql_cursor, parts_order_id
-                    )
-                    if syteline_results:
-                        erp_order_no = syteline_results[0]['ERP_OrderNo']
-                        rows_updated = update_erp_order_no(
-                            mysql_cursor, parts_order_id, erp_order_no
-                        )
-                        commit(mysql_conn)
-                        log.info(f'[P2] {parts_order_id}: resolved -> {erp_order_no} '
-                                 f'({rows_updated}/{num_lines} lines updated)')
-                        resolved_this_round.append(parts_order_id)
-                        stats['resolved'] += 1
-
-                for pid in resolved_this_round:
-                    del pending[pid]
-
-                if pending:
-                    log.info(f'[P2] {len(pending)} orders still pending after attempt {attempt}')
-
-            # Anything still in pending after all attempts is unresolved
-            for parts_order_id in pending:
-                log.warning(f'[P2] {parts_order_id}: NOT resolved after {MAX_POLL_ATTEMPTS} attempts '
-                            f'— will be picked up on next run')
-                stats['unresolved'] += 1
+            for parts_order_id, header, lines in needs_xml:
+                num_lines    = len(lines)
+                boat_serial  = header.get('OrdHdrBoatSerialNo')
+                boat_info    = get_boat_info(mysql_cursor, boat_serial)
+                dealer_no    = header.get('OrdHdrDealerNo', '').replace('~0', '').replace('~1', '')
+                dealer_info  = get_dealer_info(mysql_cursor, dealer_no)
+                xml_content  = generate_xml(header, lines, boat_info, dealer_info)
+                claim_type   = header.get('OrdHdrClaimType', 'parts_order')
+                order_prefix = 'WP' if claim_type == 'parts_order' else 'WN'
+                xml_file     = write_xml_file(xml_content, parts_order_id, order_prefix)
+                log.info(f'[P2] {parts_order_id}: XML pushed ({num_lines} lines) -> {xml_file}')
+                stats['xml_submitted'] += 1
 
         if mssql_cursor:
             mssql_cursor.close()
@@ -632,10 +580,8 @@ def sync_oe_parts():
         log.info('=' * 60)
         log.info('SYNC OE PARTS: Complete')
         log.info(f'  Total orders:        {stats["total"]}')
-        log.info(f'  Already in Syteline: {stats["found_in_syteline"]}')
-        log.info(f'  XML submitted:       {stats["xml_submitted"]}')
-        log.info(f'  Resolved (Phase 2):  {stats["resolved"]}')
-        log.info(f'  Unresolved:          {stats["unresolved"]}')
+        log.info(f'  EO# found & updated: {stats["found_in_syteline"]}')
+        log.info(f'  XML pushed:          {stats["xml_submitted"]}')
         log.info(f'  Skipped:             {stats["skipped"]}')
         log.info(f'  Errors:              {stats["errors"]}')
         log.info('=' * 60)
