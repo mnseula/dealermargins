@@ -7,8 +7,8 @@ This script replaces the CSV/PHP pipeline with direct MSSQL queries and XML gene
 Flow:
 1. Find PartsOrderLines with missing ERP_OrderNo
 2. Query Syteline (CSIPRD) to check if order exists
-3. If found → update MySQL directly
-4. If not found → generate XML and write to network share for Syteline ingestion
+3. If found → update MySQL with OE# directly
+4. If not found → generate XML → write to network share → wait → requery → update MySQL
 
 Usage:
     python3 sync_oe_parts.py                    # run sync
@@ -20,6 +20,7 @@ import sys
 import os
 import logging
 import uuid
+import time
 from datetime import datetime
 from decimal import Decimal
 import xml.etree.ElementTree as ET
@@ -559,7 +560,23 @@ def sync_oe_parts():
             xml_file = write_xml_file(xml_content, parts_order_id, order_prefix)
             log.info(f'  XML written ({num_lines} lines): {xml_file}')
             
-            stats['pushed_to_syteline'] += 1
+            log.info(f'  Waiting 30 seconds for Syteline to process XML...')
+            time.sleep(30)
+            
+            log.info(f'  Requerying Syteline for new OE#...')
+            syteline_results = check_order_in_syteline_by_partsorder(mssql_cursor, parts_order_id)
+            
+            if syteline_results:
+                erp_order_no = syteline_results[0]['ERP_OrderNo']
+                log.info(f'  Found new OE# in Syteline: {erp_order_no}')
+                
+                rows_updated = update_erp_order_no(mysql_cursor, parts_order_id, erp_order_no)
+                commit(mysql_conn)
+                log.info(f'  Updated {rows_updated} of {num_lines} lines with OE# {erp_order_no}')
+                stats['pushed_to_syteline'] += 1
+            else:
+                log.warning(f'  OE# still not found in Syteline after XML push. Will retry on next run.')
+                stats['pushed_to_syteline'] += 1
         
         if mssql_cursor:
             mssql_cursor.close()
