@@ -544,25 +544,33 @@ def sync_oe_parts():
                 log.info(f'[P1] {parts_order_id}: found EO# {erp_order_no} -> updated {rows_updated}/{num_lines} lines')
                 stats['found_in_syteline'] += 1
             else:
-                log.info(f'[P1] {parts_order_id}: not in Syteline yet — queued for XML')
+                log.info(f'[P1] {parts_order_id}: not in Syteline yet — skipping (XML submission disabled)')
                 needs_xml.append((parts_order_id, header, lines))
 
         # ── PHASE 2: push XML for orders not yet in Syteline ────────────────────
-        if needs_xml:
-            log.info(f'--- Phase 2: pushing XML for {len(needs_xml)} orders ---')
+        # XML submission is disabled — Syteline ingestion not yet confirmed working.
+        # Uncomment this block when ready to re-enable.
+        #
+        # if needs_xml:
+        #     log.info(f'--- Phase 2: pushing XML for {len(needs_xml)} orders ---')
+        #
+        #     for parts_order_id, header, lines in needs_xml:
+        #         num_lines    = len(lines)
+        #         boat_serial  = header.get('OrdHdrBoatSerialNo')
+        #         boat_info    = get_boat_info(mysql_cursor, boat_serial)
+        #         dealer_no    = header.get('OrdHdrDealerNo', '').replace('~0', '').replace('~1', '')
+        #         dealer_info  = get_dealer_info(mysql_cursor, dealer_no)
+        #         xml_content  = generate_xml(header, lines, boat_info, dealer_info)
+        #         claim_type   = header.get('OrdHdrClaimType', 'parts_order')
+        #         order_prefix = 'WP' if claim_type == 'parts_order' else 'WN'
+        #         xml_file     = write_xml_file(xml_content, parts_order_id, order_prefix)
+        #         log.info(f'[P2] {parts_order_id}: XML pushed ({num_lines} lines) -> {xml_file}')
+        #         stats['xml_submitted'] += 1
 
-            for parts_order_id, header, lines in needs_xml:
-                num_lines    = len(lines)
-                boat_serial  = header.get('OrdHdrBoatSerialNo')
-                boat_info    = get_boat_info(mysql_cursor, boat_serial)
-                dealer_no    = header.get('OrdHdrDealerNo', '').replace('~0', '').replace('~1', '')
-                dealer_info  = get_dealer_info(mysql_cursor, dealer_no)
-                xml_content  = generate_xml(header, lines, boat_info, dealer_info)
-                claim_type   = header.get('OrdHdrClaimType', 'parts_order')
-                order_prefix = 'WP' if claim_type == 'parts_order' else 'WN'
-                xml_file     = write_xml_file(xml_content, parts_order_id, order_prefix)
-                log.info(f'[P2] {parts_order_id}: XML pushed ({num_lines} lines) -> {xml_file}')
-                stats['xml_submitted'] += 1
+        if needs_xml:
+            log.info(f'--- Phase 2: {len(needs_xml)} orders not in Syteline (XML submission disabled) ---')
+            for parts_order_id, _, _ in needs_xml:
+                log.info(f'[P2] {parts_order_id}: not in Syteline — no action taken')
 
         if mssql_cursor:
             mssql_cursor.close()
