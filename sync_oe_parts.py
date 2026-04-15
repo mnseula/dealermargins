@@ -479,22 +479,13 @@ def sync_oe_parts():
                   AND (ERP_OrderNo IS NULL OR ERP_OrderNo = '')
             """, (SINGLE_ORDER,))
         else:
-            today = datetime.now()
-            month = today.month
-            day = today.day
-            year = today.year
-            date_pattern1 = f'{month}/{day}/{year}%'
-            date_pattern2 = f'{month:02d}/{day:02d}/{year}%'
-            
             mysql_cursor.execute("""
                 SELECT DISTINCT PartsOrderID
                 FROM warrantyparts.PartsOrderLines
                 WHERE OrdLineStatus = 'Exported'
                   AND (ERP_OrderNo IS NULL OR ERP_OrderNo = '')
-                  AND OrdLineSttusLastUpd NOT LIKE %s
-                  AND OrdLineSttusLastUpd NOT LIKE %s
                 ORDER BY PartsOrderID DESC
-            """, (date_pattern1, date_pattern2))
+            """)
         
         missing_orders = mysql_cursor.fetchall()
         log.info(f'Found {len(missing_orders)} orders with missing ERP_OrderNo')
