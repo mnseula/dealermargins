@@ -10,11 +10,9 @@ EOS list operations (eos.ben.addByListName / deleteByListName) that have no MySQ
 equivalent are logged and skipped — mark those TODOs as you identify the backing table.
 
 Usage:
-    python3 bennington_scheduler.py                  # run scheduler loop
-    python3 bennington_scheduler.py upd_oe_parts     # run one job and exit
-    python3 bennington_scheduler.py run_serial_master
-    python3 bennington_scheduler.py export_reset
-    python3 bennington_scheduler.py ship
+    python3 bennington_scheduler.py                       # run scheduler loop
+    python3 bennington_scheduler.py upd_oe_parts          # run one job and exit
+    python3 bennington_scheduler.py --dry-run upd_oe_parts  # SELECT only, no writes
 """
 
 import sys
@@ -24,6 +22,11 @@ from datetime import datetime
 from email.mime.text import MIMEText
 
 import mysql.connector
+
+# ── Dry-run flag ──────────────────────────────────────────────────────────────
+# When True, all write operations (INSERT / UPDATE / DELETE / COMMIT) are
+# skipped and logged instead. Set via --dry-run CLI argument.
+DRY_RUN = False
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 
@@ -50,6 +53,32 @@ MYSQL_CONFIG = {
 
 def get_db():
     return mysql.connector.connect(**MYSQL_CONFIG)
+
+
+def execute_write(cursor, sql, params=None):
+    """
+    Execute a write (INSERT/UPDATE). Skipped entirely in dry-run mode.
+    DELETE and TRUNCATE are permanently blocked — raises RuntimeError if attempted.
+    """
+    keyword = sql.strip().split()[0].upper()
+    if keyword in ('DELETE', 'TRUNCATE'):
+        raise RuntimeError(f'DELETE/TRUNCATE is not permitted in this scheduler: {sql.strip()[:80]}')
+    if DRY_RUN:
+        preview = (sql.split('\n')[0].strip())[:120]
+        log.info(f'[DRY-RUN] would execute: {preview} | params={params}')
+        return
+    if params:
+        cursor.execute(sql, params)
+    else:
+        cursor.execute(sql)
+
+
+def commit(conn):
+    """Commit transaction. No-op in dry-run mode."""
+    if DRY_RUN:
+        log.info('[DRY-RUN] would commit')
+        return
+    conn.commit()
 
 
 # ── Email helper ──────────────────────────────────────────────────────────────
@@ -85,11 +114,11 @@ def log_scheduler_event(name: str):
     try:
         conn = get_db()
         cursor = conn.cursor()
-        cursor.execute(
+        execute_write(cursor,
             "INSERT INTO Scheduler_Log (Timestamp, Event) VALUES (%s, %s)",
             (ts, name)
         )
-        conn.commit()
+        commit(conn)
         cursor.close()
         conn.close()
     except Exception:
@@ -124,9 +153,9 @@ def upd_oe_parts():
               AND   e.ERPOrderNo IS NOT NULL
               AND   e.ERPOrderNo != ''
         """
-        cursor.execute(sql)
+        execute_write(cursor, sql)
         rows = cursor.rowcount
-        conn.commit()
+        commit(conn)
         log.info(f'UPD_OE_PARTS: updated {rows} rows')
         cursor.close()
         conn.close()
@@ -153,9 +182,11 @@ def export_reset():
     try:
         conn = get_db()
         cursor = conn.cursor()
-        cursor.execute("TRUNCATE TABLE warrantyparts.PW_warranty_claim_export_counter")
-        cursor.execute("INSERT INTO warrantyparts.PW_warranty_claim_export_counter (Counter) VALUES (1)")
-        conn.commit()
+        execute_write(cursor,
+            "INSERT INTO warrantyparts.PW_warranty_claim_export_counter (Counter) VALUES (1) "
+            "ON DUPLICATE KEY UPDATE Counter = 1"
+        )
+        commit(conn)
         log.info('EXPORT_RESET: counter reset to 1')
         cursor.close()
         conn.close()
@@ -230,7 +261,7 @@ def run_serial_master():
                 field_inv     = '1'
                 unknown       = '0'
                 snd           = '1' if row.get('Presold') == 'Y' else '0'
-                cursor.execute(
+                execute_write(cursor,
                     """
                     INSERT IGNORE INTO warrantyparts.SerialNumberRegistrationStatus
                         (SN_MY, Boat_SerialNo, Registered, FieldInventory, `Unknown`, SND)
@@ -246,7 +277,7 @@ def run_serial_master():
 
                 if orig_ord_type == 'C':
                     # UPD_PW_SERIAL_MASTER — credit order, mark inactive
-                    cursor.execute(
+                    execute_write(cursor,
                         "UPDATE warrantyparts.SerialNumberMaster SET Active = '0' WHERE Boat_SerialNo = %s",
                         (sn,)
                     )
@@ -260,7 +291,7 @@ def run_serial_master():
                         # Active=1, already current — skip
                         pass
 
-            conn.commit()
+            commit(conn)
 
         log.info(f'RUN_SERIAL_MASTER: done. New records written: {new_written}')
         cursor.close()
@@ -272,7 +303,7 @@ def run_serial_master():
 
 def _insert_serial_master(cursor, row: dict):
     """INS_PW_SERIAL_MASTER — insert a new boat into SerialNumberMaster."""
-    cursor.execute(
+    execute_write(cursor,
         """
         INSERT IGNORE INTO warrantyparts.SerialNumberMaster (
             Boat_SerialNo, SN_MY, BoatItemNo, Series, BoatDesc1, BoatDesc2, SerialModelYear,
@@ -310,7 +341,7 @@ def _update_serial_master_all(cursor, row: dict, existing_prod_no):
     UPD_PW_MASTER_ALL — full update of all fields for an existing inactive boat.
     ProdNo is preserved from the existing record (not overwritten from the source).
     """
-    cursor.execute(
+    execute_write(cursor,
         """
         UPDATE warrantyparts.SerialNumberMaster SET
             SN_MY              = %s,
@@ -454,7 +485,7 @@ def ship():
             state_chg_id = cursor.fetchone()['ID'] or 1
 
             # --- SHIP_UPDATE_PARTS ---
-            cursor.execute(
+            execute_write(cursor,
                 """
                 UPDATE warrantyparts.PartsOrderLines SET
                     OrdLineShipmentTrackingNo = %s,
@@ -471,7 +502,7 @@ def ship():
             )
 
             # --- PW_ADD_STATUS_TO_TRACKER_PARTS ---
-            cursor.execute(
+            execute_write(cursor,
                 """
                 INSERT INTO warrantyparts.PartsOrderLine_StateChangeStatusTracker (
                     StateChg_ID,
@@ -489,7 +520,7 @@ def ship():
                  'PartOrderLineItem', 'completed', 'Completed', '', ship_date, '')
             )
 
-            conn.commit()
+            commit(conn)
             email_body += (
                 f"Updated {poid} line {line_no} "
                 f"tracking {track_no} ship date {ship_date}<br>"
@@ -554,7 +585,7 @@ def dlr_update():
 
             if exists:
                 # UPD_DLR_LIST_SCH — update mutable fields only
-                cursor.execute(
+                execute_write(cursor,
                     """
                     UPDATE Eos.dealers SET
                         SalesPerson         = %s,
@@ -586,7 +617,7 @@ def dlr_update():
                 updated += 1
             else:
                 # INS_DLR_LIST — full insert for new dealer
-                cursor.execute(
+                execute_write(cursor,
                     """
                     INSERT INTO Eos.dealers (
                         SalesPerson, SalesPersonNo, DealerName, DealerDBA, DlrNo,
@@ -616,7 +647,7 @@ def dlr_update():
                 )
                 inserted += 1
 
-        conn.commit()
+        commit(conn)
         log.info(f'DLR_UPDATE: done — updated={updated} inserted={inserted}')
         cursor.close()
         conn.close()
@@ -664,7 +695,7 @@ def warr_claims():
             email    = row['OwnerEmail']
 
             # CLUB_B_ADD_ID_UPDATE
-            cursor.execute(
+            execute_write(cursor,
                 """
                 UPDATE warrantyparts.OwnerRegistrations SET
                     ClubID      = %s,
@@ -676,7 +707,7 @@ def warr_claims():
             )
             log.info(f'WARR_CLAIMS: added ClubID {club_id} to OwnerID {owner_id}')
 
-        conn.commit()
+        commit(conn)
         send_email(
             'tunterfenger@verenia.com',
             'Completed club bennington ID update',
