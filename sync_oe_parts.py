@@ -101,13 +101,12 @@ def commit(conn):
 
 def check_order_in_syteline(mssql_cursor, web_order_no, line_no):
     sql = """
-        SELECT 
+        SELECT TOP 1
             coitem_mst.co_num AS ERP_OrderNo,
             coitem_mst.Uf_BENN_PartsWebOrderNumber AS WebOrderNumber
         FROM [CSIPRD].[dbo].[coitem_mst]
-        WHERE 
-            qty_invoiced = 0 
-            AND (LEFT(co_num, 2) LIKE 'WP' OR LEFT(co_num, 2) LIKE 'WN')
+        WHERE
+            (LEFT(co_num, 2) LIKE 'WP' OR LEFT(co_num, 2) LIKE 'WN')
             AND coitem_mst.Uf_BENN_PartsWebOrderNumber IS NOT NULL
             AND site_ref = 'BENN'
             AND coitem_mst.Uf_BENN_PartsWebOrderNumber LIKE %s
@@ -121,12 +120,11 @@ def check_order_in_syteline(mssql_cursor, web_order_no, line_no):
 
 def check_order_in_syteline_by_partsorder(mssql_cursor, parts_order_id):
     sql = """
-        SELECT 
+        SELECT TOP 1
             coitem_mst.co_num AS ERP_OrderNo
         FROM [CSIPRD].[dbo].[coitem_mst]
-        WHERE 
-            qty_invoiced = 0 
-            AND (LEFT(co_num, 2) LIKE 'WP' OR LEFT(co_num, 2) LIKE 'WN')
+        WHERE
+            (LEFT(co_num, 2) LIKE 'WP' OR LEFT(co_num, 2) LIKE 'WN')
             AND coitem_mst.Uf_BENN_PartsWebOrderNumber LIKE %s
             AND site_ref = 'BENN'
     """
