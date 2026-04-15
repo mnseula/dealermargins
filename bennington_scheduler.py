@@ -367,6 +367,18 @@ def _update_serial_master_all(cursor, row: dict, existing_prod_no):
 # numbers + marks part order lines as completed.
 # ══════════════════════════════════════════════════════════════════════════════
 
+# PW_GET_PART_STATE_CHG_ID — next sequence ID for line-level status tracker
+GET_LINE_STATE_CHG_ID_SQL = (
+    "SELECT MAX(StateChg_ID) + 1 AS ID "
+    "FROM warrantyparts.PartsOrderLine_StateChangeStatusTracker"
+)
+
+# PW_GET_PART_STATE_CHG_ID_HEADER — next sequence ID for header-level status tracker
+GET_HDR_STATE_CHG_ID_SQL = (
+    "SELECT MAX(StateChg_ID) + 1 AS ID "
+    "FROM warrantyparts.PartsOrderHeader_StateChangeStatusTracker"
+)
+
 SHIP_UPDATE22_SQL = """
     SELECT DISTINCT
         t1.UPSTrackingNo,
@@ -441,10 +453,10 @@ def ship():
             oe_number = row['ERP_OrderNo']
             ord_line_id = row['OrdLineID']
 
-            # TODO: replace these three blocks with real SQL once provided
+            # TODO: replace remaining two blocks with real SQL once provided
             # --- PW_GET_PART_STATE_CHG_ID ---
-            # cursor.execute("<PW_GET_PART_STATE_CHG_ID SQL>")
-            # state_chg_id = cursor.fetchone()['ID']
+            cursor.execute(GET_LINE_STATE_CHG_ID_SQL)
+            state_chg_id = cursor.fetchone()['ID'] or 1
 
             # --- SHIP_UPDATE_PARTS ---
             # cursor.execute(
