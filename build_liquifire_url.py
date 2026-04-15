@@ -459,6 +459,39 @@ def test_url(url):
     return False, 0
 
 
+def build_and_test_url(serial, config, model, series, matrices):
+    """
+    Build a Liquifire URL and verify it renders, with year-walk fallback.
+    Returns (url, size_bytes) on success, or (None, 0) on failure.
+    """
+    url = build_url(serial, config, model, series, matrices)
+    if not url:
+        return None, 0
+
+    normalized_asset, _ = normalize_asset(model)
+    ok, size = test_url(url)
+
+    # Year-walk: try ±1, ±2, ±3 years if the base asset doesn't render
+    if not ok and len(normalized_asset) >= 2 and normalized_asset[:2].isdigit():
+        year = int(normalized_asset[:2])
+        model_suffix = normalized_asset[2:]
+        for delta in [1, -1, 2, -2, 3, -3]:
+            try_year = year + delta
+            if try_year < 10:
+                continue
+            fallback_asset = f'{try_year:02d}{model_suffix}'
+            fallback_url = url.replace(f'asset[{normalized_asset}]', f'asset[{fallback_asset}]')
+            ok, size = test_url(fallback_url)
+            if ok:
+                print(f'  {serial} ({model}): using year-walk asset [{fallback_asset}]')
+                return fallback_url, size
+
+    if ok:
+        return url, size
+
+    return None, 0
+
+
 def store_url(conn, serial, url):
     cur = conn.cursor()
     cur.execute(
@@ -518,47 +551,16 @@ def main():
             results['skipped'] += 1
             continue
 
-        url = build_url(serial, config, model, series, matrices)
-        if not url:
-            print(f'  {serial} ({model}): SKIP — could not build URL')
-            results['skipped'] += 1
-            continue
-
-        ok, size = test_url(url)
-        
         # Log if asset was normalized
-        normalized_asset, was_fixed = normalize_asset(model)
+        _, was_fixed = normalize_asset(model)
         if was_fixed:
+            normalized_asset, _ = normalize_asset(model)
             print(f'  {serial}: asset normalized {model} → {normalized_asset}')
 
-        # Fallback: year-walk ±1, ±2, ±3 years (forward and backward).
-        # Liquifire only carries certain model years — e.g. 24MSB→23MSB, 23SSR→22SSR.
-        if not ok and len(normalized_asset) >= 2 and normalized_asset[:2].isdigit():
-            year = int(normalized_asset[:2])
-            model_suffix = normalized_asset[2:]
-            for delta in [1, -1, 2, -2, 3, -3]:
-                try_year = year + delta
-                if try_year < 10:
-                    continue
-                fallback_asset = f'{try_year:02d}{model_suffix}'
-                fallback_url = url.replace(f'asset[{normalized_asset}]', f'asset[{fallback_asset}]')
-                ok, size = test_url(fallback_url)
-                if ok:
-                    print(f'  {serial} ({model}): using year-walk asset [{fallback_asset}]')
-                    url = fallback_url
-                    break
+        url, size = build_and_test_url(serial, config, model, series, matrices)
 
-        # Fallback: try orthographic if side view fails
-        if not ok:
-            ortho_url = url.replace('cat[pon],', 'cat[orthographic],')
-            ok, size = test_url(ortho_url)
-            if ok:
-                print(f'  {serial} ({model}): using fallback cat[orthographic]')
-                url = ortho_url
-
-        if not ok:
+        if not url:
             print(f'  {serial} ({model}): FAIL — URL did not render')
-            print(f'    {url[:100]}...')
             results['failed'] += 1
             continue
 
