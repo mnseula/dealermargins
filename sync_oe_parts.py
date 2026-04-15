@@ -68,8 +68,7 @@ def get_mysql_conn():
 def get_mssql_conn():
     return pymssql.connect(
         server=MSSQL_CONFIG['server'],
-        database=MSSQL_CONFIG['database'],
-        trusted_host=True
+        database=MSSQL_CONFIG['database']
     )
 
 def execute_write(cursor, sql, params=None):
@@ -156,15 +155,15 @@ def get_parts_order_data(mysql_cursor, parts_order_id):
             h.OrdHdrDealerComments,
             h.OrdHdrClaimType,
             h.HdrCreateDate,
-            h.OrdHdrShipMethod,
+            h.OrdHdrShipMethID,
             l.OrdLineNo,
-            l.OrdLineItemNo,
-            l.OrdLineItemDesc,
-            l.OrdLineQty,
-            l.OrdLineUnitPrice,
+            l.OrdLinePartNo,
+            l.OrdLinePartDesc,
+            l.Qty_Ordered,
+            l.DealerPrice,
             l.OrdLineEstShipDate,
             l.OrdLineID,
-            l.OrdLineShipmentID
+            l.ShipmentID
         FROM warrantyparts.PartsOrderHeader h
         JOIN warrantyparts.PartsOrderLines l ON h.PartsOrderID = l.PartsOrderID
         WHERE h.PartsOrderID = %s
@@ -176,25 +175,25 @@ def get_parts_order_data(mysql_cursor, parts_order_id):
     for row in cursor.fetchall():
         if header is None:
             header = {
-                'PartsOrderID': row[0],
-                'OrdHdrDealerNo': row[1],
-                'OrdHdrDealerRefNo': row[2],
-                'OrdHdrBoatSerialNo': row[3],
-                'OrdHdrSpecInstructions': row[4],
-                'OrdHdrDealerComments': row[5],
-                'OrdHdrClaimType': row[6],
-                'HdrCreateDate': row[7],
-                'OrdHdrShipMethod': row[8],
+                'PartsOrderID': row['PartsOrderID'],
+                'OrdHdrDealerNo': row['OrdHdrDealerNo'],
+                'OrdHdrDealerRefNo': row['OrdHdrDealerRefNo'],
+                'OrdHdrBoatSerialNo': row['OrdHdrBoatSerialNo'],
+                'OrdHdrSpecInstructions': row['OrdHdrSpecInstructions'],
+                'OrdHdrDealerComments': row['OrdHdrDealerComments'],
+                'OrdHdrClaimType': row['OrdHdrClaimType'],
+                'HdrCreateDate': row['HdrCreateDate'],
+                'OrdHdrShipMethID': row['OrdHdrShipMethID'],
             }
         lines.append({
-            'OrdLineNo': row[9],
-            'OrdLineItemNo': row[10],
-            'OrdLineItemDesc': row[11],
-            'OrdLineQty': row[12],
-            'OrdLineUnitPrice': row[13],
-            'OrdLineEstShipDate': row[14],
-            'OrdLineID': row[15],
-            'OrdLineShipmentID': row[16],
+            'OrdLineNo': row['OrdLineNo'],
+            'OrdLinePartNo': row['OrdLinePartNo'],
+            'OrdLinePartDesc': row['OrdLinePartDesc'],
+            'Qty_Ordered': row['Qty_Ordered'],
+            'DealerPrice': row['DealerPrice'],
+            'OrdLineEstShipDate': row['OrdLineEstShipDate'],
+            'OrdLineID': row['OrdLineID'],
+            'ShipmentID': row['ShipmentID'],
         })
     
     return header, lines
@@ -214,8 +213,8 @@ def get_boat_info(mysql_cursor, boat_serial_no):
     row = cursor.fetchone()
     if row:
         return {
-            'BoatModel': row[0],
-            'PanelColor': row[1]
+            'BoatModel': row['BoatItemNo'],
+            'PanelColor': row['PanelColor']
         }
     return None
 
@@ -231,7 +230,7 @@ def get_dealer_info(mysql_cursor, dealer_no):
     row = cursor.fetchone()
     if row:
         return {
-            'TermsCode': row[0]
+            'TermsCode': row['Default_Terms_Code']
         }
     return {'TermsCode': 'NK'}
 
@@ -257,7 +256,7 @@ def generate_xml(header, lines, boat_info, dealer_info):
         order_type = 'NO CHARGE PARTS'
         order_prefix = 'WN'
     
-    shipment_id = lines[0].get('OrdLineShipmentID', 'S1') if lines else 'S1'
+    shipment_id = lines[0].get('ShipmentID', 'S1') if lines else 'S1'
     if '-' in shipment_id:
         shipment_suffix = shipment_id.split('-')[-1]
     else:
@@ -269,7 +268,7 @@ def generate_xml(header, lines, boat_info, dealer_info):
     if dealer_no and '~' not in dealer_no:
         dealer_no = f"{dealer_no}~0"
     
-    ship_method = header.get('OrdHdrShipMethod', 'UPS')
+    ship_method = header.get('OrdHdrShipMethID', 'UPS')
     terms_code = dealer_info.get('TermsCode', 'NK')
     
     boat_model = boat_info.get('BoatModel', '') if boat_info else ''
@@ -363,11 +362,21 @@ def generate_xml(header, lines, boat_info, dealer_info):
         last_record = 1 if is_last else 0
         
         line_no = line.get('OrdLineNo', i + 1)
-        item_no = line.get('OrdLineItemNo', '')
-        item_desc = line.get('OrdLineItemDesc', '')
-        qty = line.get('OrdLineQty', 1)
-        unit_price = line.get('OrdLineUnitPrice', 0)
+        item_no = line.get('OrdLinePartNo', '')
+        item_desc = line.get('OrdLinePartDesc', '')
+        qty_str = line.get('Qty_Ordered', '1')
+        unit_price_str = line.get('DealerPrice', '0')
         est_ship_date = line.get('OrdLineEstShipDate', '')
+        
+        try:
+            qty = int(qty_str) if qty_str else 1
+        except (ValueError, TypeError):
+            qty = 1
+        
+        try:
+            unit_price = float(unit_price_str) if unit_price_str else 0.0
+        except (ValueError, TypeError):
+            unit_price = 0.0
         
         if isinstance(unit_price, Decimal):
             unit_price = float(unit_price)
