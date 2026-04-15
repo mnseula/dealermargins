@@ -519,14 +519,110 @@ def dlr_update():
     """
     Replacement for DLR_UPDATE.
 
-    TODO: provide SQL for:
-        DLR_UPDT_TBL   — source of updated dealer data from Syteline
-        ALL_DLR        — current dealer list
-        UPD_DLR_LIST_SCH  — update existing dealer row
-        INS_DLR_LIST      — insert new dealer row
+    DLR_UPDT_TBL and ALL_DLR are both SELECT * FROM Update_Tables.dealerlist,
+    so we load the table once and upsert each row into the target dealer table.
+
+    TODO: provide SQL for UPD_DLR_LIST_SCH and INS_DLR_LIST to confirm
+    the target table name and column list, then replace the UPSERT below.
     """
     log_scheduler_event('DLR_UPDATE')
-    log.info('DLR_UPDATE: start — TODO: add DLR_UPDT_TBL / ALL_DLR SQL')
+    log.info('DLR_UPDATE: start')
+    try:
+        conn = get_db()
+        cursor = conn.cursor(dictionary=True)
+
+        # DLR_UPDT_TBL / ALL_DLR — same source table
+        # Filter out reps whose dealers are blocked by the trg_block_salesrep_dealers trigger
+        # (Jake Jackson, Sam Girten) — the trigger would delete them on INSERT anyway.
+        BLOCKED_REPS = {'JAKE JACKSON', 'SAM GIRTEN'}
+        cursor.execute("SELECT * FROM Update_Tables.dealerlist")
+        all_dealers = cursor.fetchall()
+        dealers = [d for d in all_dealers if d.get('SalesPerson', '').upper() not in BLOCKED_REPS]
+        skipped = len(all_dealers) - len(dealers)
+        log.info(f'DLR_UPDATE: {len(dealers)} dealers to process ({skipped} skipped — blocked reps)')
+
+        inserted = updated = 0
+        for d in dealers:
+            dlr_no = d['DlrNo']
+
+            # Check if dealer already exists in Eos.dealers
+            cursor.execute(
+                "SELECT DlrNo FROM Eos.dealers WHERE DlrNo = %s",
+                (dlr_no,)
+            )
+            exists = cursor.fetchone()
+
+            if exists:
+                # UPD_DLR_LIST_SCH — update mutable fields only
+                cursor.execute(
+                    """
+                    UPDATE Eos.dealers SET
+                        SalesPerson         = %s,
+                        SalesPersonNo       = %s,
+                        FIPSCode            = %s,
+                        cus_type_cd         = %s,
+                        CustomerTypeDesc    = %s,
+                        cr_rating           = %s,
+                        prdline_no          = %s,
+                        Date_Active         = %s,
+                        Date_Inactive       = %s,
+                        Inactive_Reason     = %s,
+                        Warranty_Labor_Rate = %s,
+                        Default_Terms_Code  = %s,
+                        Terms_Desc          = %s,
+                        DoNotShowFlag       = %s,
+                        DealerDBA           = %s,
+                        DealerName          = %s
+                    WHERE DlrNo = %s
+                    """,
+                    (d['SalesPerson'], d['SalesPersonNo'], d['FIPSCode'],
+                     d['cus_type_cd'], d['CustomerTypeDesc'], d['cr_rating'],
+                     d['prdline_no'], d['Date_Active'], d['Date_Inactive'],
+                     d['Inactive_Reason'], d['Warranty_Labor_Rate'],
+                     d['Default_Terms_Code'], d['Terms_Desc'], d['DoNotShowFlag'],
+                     d['DealerDBA'], d['DealerName'],
+                     dlr_no)
+                )
+                updated += 1
+            else:
+                # INS_DLR_LIST — full insert for new dealer
+                cursor.execute(
+                    """
+                    INSERT INTO Eos.dealers (
+                        SalesPerson, SalesPersonNo, DealerName, DealerDBA, DlrNo,
+                        Contact, Add1, Addr2, City, State, Zip, County,
+                        FIPSCode, Country, PhoneNo, Email_Address,
+                        cus_type_cd, CustomerTypeDesc, cr_rating, prdline_no,
+                        Date_Active, Date_Inactive, Inactive_Reason,
+                        Warranty_Labor_Rate, Default_Terms_Code, Terms_Desc,
+                        Fax, Phone2, ParentCustNo, Web_URL, DoNotShowFlag
+                    ) VALUES (
+                        %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s,
+                        %s, %s, %s, %s,
+                        %s, %s, %s,
+                        %s, %s, %s,
+                        %s, %s, %s, %s, %s
+                    )
+                    """,
+                    (d['SalesPerson'], d['SalesPersonNo'], d['DealerName'], d['DealerDBA'], dlr_no,
+                     d['Contact'], d['Add1'], d['Addr2'], d['City'], d['State'], d['Zip'], d['County'],
+                     d['FIPSCode'], d['Country'], d['PhoneNo'], d['Email_Address'],
+                     d['cus_type_cd'], d['CustomerTypeDesc'], d['cr_rating'], d['prdline_no'],
+                     d['Date_Active'], d['Date_Inactive'], d['Inactive_Reason'],
+                     d['Warranty_Labor_Rate'], d['Default_Terms_Code'], d['Terms_Desc'],
+                     d['Fax'], d['Phone2'], d['ParentCustNo'], d['Web_URL'], d['DoNotShowFlag'])
+                )
+                inserted += 1
+
+        conn.commit()
+        log.info(f'DLR_UPDATE: done — updated={updated} inserted={inserted}')
+        cursor.close()
+        conn.close()
+
+    except Exception as e:
+        log.error(f'DLR_UPDATE error: {e}')
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -537,14 +633,61 @@ def dlr_update():
 
 def warr_claims():
     """
-    Replacement for WARR_CLAIMS (Club Bennington ID updates).
+    Replacement for WARR_CLAIMS.
 
-    TODO: provide SQL for:
-        CLUB_B_UPDATES_TO_OWNERS   — returns {OwnerID, ClubID, OwnerEmail} for pending updates
-        CLUB_B_ADD_ID_UPDATE       — UPDATE owners SET ClubID=?, Active=1, Email=? WHERE OwnerID=?
+    Finds Club Bennington registrations whose OwnerRegistrations row is missing
+    a ClubID, then updates OwnerRegistrations with the ClubID and email.
+    (Despite its name this job has nothing to do with warranty claims.)
     """
     log_scheduler_event('WARR_CLAIMS')
-    log.info('WARR_CLAIMS: start — TODO: add CLUB_B_UPDATES_TO_OWNERS SQL')
+    log.info('WARR_CLAIMS: start')
+    try:
+        conn = get_db()
+        cursor = conn.cursor(dictionary=True)
+
+        # CLUB_B_UPDATES_TO_OWNERS
+        cursor.execute("""
+            SELECT t1.*, t2.OwnerID
+            FROM warrantyparts.club_bennington_registrations AS t1
+            JOIN warrantyparts.OwnerRegistrations            AS t2
+              ON  t1.Boat_SerialNo   = t2.Boat_SerialNo
+             AND  t1.OwnerFirstName  = t2.OwnerFirstName
+             AND  t2.OwnerLastName   = t2.OwnerLastName
+            WHERE t2.ClubID = ''
+        """)
+        pending = cursor.fetchall()
+        log.info(f'WARR_CLAIMS: {len(pending)} Club Bennington ID updates pending')
+
+        for row in pending:
+            owner_id = row['OwnerID']
+            club_id  = row['ClubID']
+            email    = row['OwnerEmail']
+
+            # CLUB_B_ADD_ID_UPDATE
+            cursor.execute(
+                """
+                UPDATE warrantyparts.OwnerRegistrations SET
+                    ClubID      = %s,
+                    ExtEligible = %s,
+                    OwnerEmail  = %s
+                WHERE OwnerID = %s
+                """,
+                (club_id, 1, email, owner_id)
+            )
+            log.info(f'WARR_CLAIMS: added ClubID {club_id} to OwnerID {owner_id}')
+
+        conn.commit()
+        send_email(
+            'tunterfenger@verenia.com',
+            'Completed club bennington ID update',
+            'Club ID update'
+        )
+        log.info('WARR_CLAIMS: done')
+        cursor.close()
+        conn.close()
+
+    except Exception as e:
+        log.error(f'WARR_CLAIMS error: {e}')
 
 
 # ══════════════════════════════════════════════════════════════════════════════
