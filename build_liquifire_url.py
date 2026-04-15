@@ -188,6 +188,7 @@ ASSET_FIXES = {
     '27QXSBWAT2SE': '25QXSBW',
     # SX series → S series (SX = upgraded S, no separate Liquifire asset)
     '20SXSSF':    '22SSR',
+    '22SFC':      '22SSR',
     '22SFCSF':    '22SSR',
     '22SXSRSF':   '22SSR',
     '23SXSAPGSF': '22SSR',
@@ -225,6 +226,22 @@ ASSET_FIXES = {
     # Legacy/old model naming
     '188SL':  '22SL',
     '188SLSF': '22SL',
+}
+
+# Series-level stock assets — used as last-resort fallback when no model-specific
+# asset renders. These are known-good Liquifire assets for each series.
+SERIES_STOCK_ASSET = {
+    'S':   '22SSR',
+    'S1':  '22SSR',
+    'M':   '23MSB',
+    'M1':  '23MSB',
+    'Q':   '25QSB',
+    'QX':  '25QXFBW',
+    'R':   '25RSR',
+    'RT':  '25RSR',
+    'RX':  '25RSR',
+    'LXS': '25LXSSB',
+    'LT':  '22SL',
 }
 
 
@@ -488,6 +505,15 @@ def build_and_test_url(serial, config, model, series, matrices):
 
     if ok:
         return url, size
+
+    # Last resort: series-level stock image (no color params, known-good asset)
+    stock = SERIES_STOCK_ASSET.get((series or '').upper())
+    if stock:
+        stock_url = f"{LIQUIFIRE_BASE}?set=cat[pon],asset[{stock}],view[side],tube[std]&call=url[file:PS/main]&sink"
+        ok, size = test_url(stock_url)
+        if ok:
+            print(f'  {serial} ({model}): using series stock asset [{stock}]')
+            return stock_url, size
 
     return None, 0
 
