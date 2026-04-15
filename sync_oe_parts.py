@@ -56,8 +56,12 @@ MYSQL_CONFIG = {
 }
 
 MSSQL_CONFIG = {
-    'server': 'CSIPRD',
-    'database': 'dbo',
+    'server': 'MPL1ITSSQL086.POLARISIND.COM',
+    'database': 'CSIPRD',
+    'user': 'svcSpecs01',
+    'password': 'SD4nzr0CJ5oj38',
+    'timeout': 300,
+    'login_timeout': 60
 }
 
 XML_OUTPUT_DIR = r'\\Elk1itsqvp001\Qlikview\SytelineProd'
@@ -68,7 +72,11 @@ def get_mysql_conn():
 def get_mssql_conn():
     return pymssql.connect(
         server=MSSQL_CONFIG['server'],
-        database=MSSQL_CONFIG['database']
+        database=MSSQL_CONFIG['database'],
+        user=MSSQL_CONFIG['user'],
+        password=MSSQL_CONFIG['password'],
+        timeout=MSSQL_CONFIG['timeout'],
+        login_timeout=MSSQL_CONFIG['login_timeout']
     )
 
 def execute_write(cursor, sql, params=None):
