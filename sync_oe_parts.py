@@ -405,14 +405,15 @@ def sync_oe_parts():
 
         if SINGLE_ORDER:
             mysql_cursor.execute("""
-                SELECT DISTINCT PartsOrderID
-                FROM warrantyparts.PartsOrderLines
-                WHERE PartsOrderID = %s
-                  AND (ERP_OrderNo IS NULL OR ERP_OrderNo = '')
+                SELECT DISTINCT l.PartsOrderID, h.OrdHdrBoatSerialNo
+                FROM warrantyparts.PartsOrderLines l
+                JOIN warrantyparts.PartsOrderHeader h ON l.PartsOrderID = h.PartsOrderID
+                WHERE l.PartsOrderID = %s
+                  AND (l.ERP_OrderNo IS NULL OR l.ERP_OrderNo = '')
             """, (SINGLE_ORDER,))
         else:
             mysql_cursor.execute("""
-                SELECT DISTINCT l.PartsOrderID
+                SELECT DISTINCT l.PartsOrderID, h.OrdHdrBoatSerialNo
                 FROM warrantyparts.PartsOrderLines l
                 JOIN warrantyparts.PartsOrderHeader h ON l.PartsOrderID = h.PartsOrderID
                 WHERE l.OrdLineStatus = 'Exported'
@@ -458,7 +459,8 @@ def sync_oe_parts():
 
         for order in missing_orders:
             parts_order_id = order['PartsOrderID']
-            log.info(f'[P1] {parts_order_id}: checking Syteline')
+            serial_no = order['OrdHdrBoatSerialNo'] or 'N/A'
+            log.info(f'[P1] {parts_order_id} ({serial_no}): checking Syteline')
 
             syteline_results = check_order_in_syteline_by_partsorder(mssql_cursor, parts_order_id)
 
@@ -466,10 +468,10 @@ def sync_oe_parts():
                 erp_order_no = syteline_results[0]['ERP_OrderNo']
                 rows_updated = update_erp_order_no(mysql_cursor, parts_order_id, erp_order_no)
                 commit(mysql_conn)
-                log.info(f'[P1] {parts_order_id}: found EO# {erp_order_no} -> updated {rows_updated} lines')
+                log.info(f'[P1] UPDATED {parts_order_id} ({serial_no}): EO# {erp_order_no} -> {rows_updated} lines')
                 stats['found_in_syteline'] += 1
             else:
-                log.info(f'[P1] {parts_order_id}: not in Syteline')
+                log.info(f'[P1] {parts_order_id} ({serial_no}): not in Syteline')
                 stats['not_in_syteline'] += 1
 
         if mssql_cursor:
