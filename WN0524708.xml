@@ -6,7 +6,7 @@
             <ConfirmationCode>OnError</ConfirmationCode>
         </Sender>
         <CreationDateTime>2023-09-07T16:34:51.379Z</CreationDateTime>
-        <BODID>infor.file.test_verenia_boat_sftp:1776340042:ef209682-5c4a-4c46-8f4d-0f2dfaf1ece0</BODID>
+        <BODID>infor.file.test_verenia_boat_sftp:1776344400:b2f1c3d4-e5a6-47b8-c9d0-e1f2a3b4c5d6</BODID>
     </ApplicationArea>
     <DataArea>
         <Process>
@@ -38,7 +38,7 @@
                 </PaymentTerm>
                 <PurchaseOrderReference>
                     <DocumentID>
-                        <ID>wo# 1047363</ID>
+                        <ID>1047363</ID>
                     </DocumentID>
                 </PurchaseOrderReference>
                 <OrderDateTime>4/8/2026</OrderDateTime>

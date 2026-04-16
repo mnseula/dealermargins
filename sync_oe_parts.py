@@ -323,8 +323,11 @@ def generate_xml(header, lines, boat_info, dealer_info):
     xml_lines.append(f"                    </Term>")
     xml_lines.append(f"                </PaymentTerm>")
     xml_lines.append(f"                <PurchaseOrderReference>")
+    dealer_ref = header.get('OrdHdrDealerRefNo', '') or ''
+    if '#' in dealer_ref:
+        dealer_ref = dealer_ref.split('#')[-1].strip()
     xml_lines.append(f"                    <DocumentID>")
-    xml_lines.append(f"                        <ID>{escape_xml(header.get('OrdHdrDealerRefNo', ''))}</ID>")
+    xml_lines.append(f"                        <ID>{escape_xml(dealer_ref)}</ID>")
     xml_lines.append(f"                    </DocumentID>")
     xml_lines.append(f"                </PurchaseOrderReference>")
     xml_lines.append(f"                <OrderDateTime>{escape_xml(order_date)}</OrderDateTime>")
