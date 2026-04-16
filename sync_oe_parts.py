@@ -412,11 +412,22 @@ def sync_oe_parts():
             """, (SINGLE_ORDER,))
         else:
             mysql_cursor.execute("""
-                SELECT DISTINCT PartsOrderID
-                FROM warrantyparts.PartsOrderLines
-                WHERE OrdLineStatus = 'Exported'
-                  AND (ERP_OrderNo IS NULL OR ERP_OrderNo = '')
-                ORDER BY PartsOrderID DESC
+                SELECT DISTINCT l.PartsOrderID
+                FROM warrantyparts.PartsOrderLines l
+                JOIN warrantyparts.PartsOrderHeader h ON l.PartsOrderID = h.PartsOrderID
+                WHERE l.OrdLineStatus = 'Exported'
+                  AND (l.ERP_OrderNo IS NULL OR l.ERP_OrderNo = '')
+                  AND h.HdrCreateDate IN (
+                      DATE_FORMAT(CURDATE(), '%c/%e/%Y'),
+                      DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 DAY), '%c/%e/%Y'),
+                      DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 2 DAY), '%c/%e/%Y'),
+                      DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 3 DAY), '%c/%e/%Y'),
+                      DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 4 DAY), '%c/%e/%Y'),
+                      DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 5 DAY), '%c/%e/%Y'),
+                      DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 DAY), '%c/%e/%Y'),
+                      DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 7 DAY), '%c/%e/%Y')
+                  )
+                ORDER BY l.PartsOrderID DESC
             """)
 
         missing_orders = mysql_cursor.fetchall()
