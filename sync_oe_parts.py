@@ -242,8 +242,10 @@ def get_parts_order_data(mysql_cursor, parts_order_id):
 #     else:
 #         order_type = 'NO CHARGE PARTS'
 #         order_prefix = 'WN'
-#     shipment_id = lines[0].get('ShipmentID', 'S1') if lines else 'S1'
-#     shipment_suffix = shipment_id.split('-')[-1] if '-' in shipment_id else 'S1'
+#     shipment_id = lines[0].get('ShipmentID') if lines else None
+#     if not shipment_id:
+#         raise ValueError(f'Order {parts_order_id}: ShipmentID is NULL or missing — cannot build XML')
+#     shipment_suffix = shipment_id.split('-')[-1] if '-' in shipment_id else shipment_id
 #     padded_id = str(parts_order_id).zfill(7)
 #     alternate_doc_id = f"{order_prefix}{padded_id}-{shipment_suffix}"
 #     dealer_no = header.get('OrdHdrDealerNo', '')
@@ -475,6 +477,13 @@ def sync_oe_parts():
         #
         #     for parts_order_id, header, lines in needs_xml:
         #         num_lines    = len(lines)
+        #         # Validate ShipmentID before building XML — a missing ShipmentID
+        #         # produces a bad AlternateDocumentID and Syteline will reject the order.
+        #         shipment_id = lines[0].get('ShipmentID') if lines else None
+        #         if not shipment_id:
+        #             log.error(f'[P2] {parts_order_id}: ShipmentID is NULL — skipping (fix in DB before resubmitting)')
+        #             stats['errors'] += 1
+        #             continue
         #         boat_serial  = header.get('OrdHdrBoatSerialNo')
         #         boat_info    = get_boat_info(mysql_cursor, boat_serial)
         #         dealer_no    = header.get('OrdHdrDealerNo', '').replace('~0', '').replace('~1', '')
