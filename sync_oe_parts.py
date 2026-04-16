@@ -413,14 +413,14 @@ def sync_oe_parts():
                   AND (l.ERP_OrderNo IS NULL OR l.ERP_OrderNo = '')
             """, (SINGLE_ORDER,))
         elif BACKFILL:
-            log.info('BACKFILL mode: processing all exported orders from 2026-03-23 to now')
+            log.info('BACKFILL mode: processing all exported orders from 2026-03-03 to now')
             mysql_cursor.execute("""
                 SELECT DISTINCT l.PartsOrderID, h.OrdHdrBoatSerialNo
                 FROM warrantyparts.PartsOrderLines l
                 JOIN warrantyparts.PartsOrderHeader h ON l.PartsOrderID = h.PartsOrderID
                 WHERE l.OrdLineStatus = 'Exported'
                   AND (l.ERP_OrderNo IS NULL OR l.ERP_OrderNo = '')
-                  AND STR_TO_DATE(h.HdrCreateDate, '%c/%e/%Y') >= '2026-03-23'
+                  AND STR_TO_DATE(h.HdrCreateDate, '%c/%e/%Y') >= '2026-03-03'
                 ORDER BY l.PartsOrderID DESC
             """)
         else:
