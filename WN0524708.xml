@@ -6,7 +6,7 @@
             <ConfirmationCode>OnError</ConfirmationCode>
         </Sender>
         <CreationDateTime>2023-09-07T16:34:51.379Z</CreationDateTime>
-        <BODID>infor.file.test_verenia_boat_sftp:1776344400:b2f1c3d4-e5a6-47b8-c9d0-e1f2a3b4c5d6</BODID>
+        <BODID>infor.file.test_verenia_boat_sftp:1776344400:a9c3f7e2-1b4d-4f80-9e6a-3d2c8b5a1047</BODID>
     </ApplicationArea>
     <DataArea>
         <Process>
@@ -81,7 +81,7 @@
                 <ue_Item_Desc>TUBE 25&apos;4&quot; x 23&quot; 24&quot; OC .100 stbd toon damage</ue_Item_Desc>
                 <ue_RGA>0</ue_RGA>
                 <ue_RGA_Date></ue_RGA_Date>
-                <ue_Estimated_Shipping_Date>05/29/2026</ue_Estimated_Shipping_Date>
+                <ue_Estimated_Shipping_Date>2026-05-29</ue_Estimated_Shipping_Date>
                 <ue_TransactionId>WN0524708-01</ue_TransactionId>
                 <ue_Alternate_Shipping_Location></ue_Alternate_Shipping_Location>
             </Test_Verenia_BoatLine>
@@ -103,7 +103,7 @@
                 <ue_Item_Desc>FOIL SEALED 140&quot; 6063, MILL, WEBSTER 12+</ue_Item_Desc>
                 <ue_RGA>0</ue_RGA>
                 <ue_RGA_Date></ue_RGA_Date>
-                <ue_Estimated_Shipping_Date>05/29/2026</ue_Estimated_Shipping_Date>
+                <ue_Estimated_Shipping_Date>2026-05-29</ue_Estimated_Shipping_Date>
                 <ue_TransactionId>WN0524708-02</ue_TransactionId>
                 <ue_Alternate_Shipping_Location></ue_Alternate_Shipping_Location>
             </Test_Verenia_BoatLine>
