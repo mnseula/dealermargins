@@ -425,9 +425,8 @@ def sync_oe_parts():
         stats = {
             'total':             len(missing_orders),
             'found_in_syteline': 0,
-            'xml_submitted':     0,
+            'not_in_syteline':   0,
             'errors':            0,
-            'skipped':           0,
         }
 
         if not missing_orders:
@@ -446,62 +445,21 @@ def sync_oe_parts():
         # ── PHASE 1: check Syteline, update MySQL for any EO# already there ─────
         log.info('--- Phase 1: checking Syteline for existing EO# ---')
 
-        needs_xml = []  # orders not yet in Syteline
-
         for order in missing_orders:
             parts_order_id = order['PartsOrderID']
             log.info(f'[P1] {parts_order_id}: checking Syteline')
 
-            header, lines = get_parts_order_data(mysql_cursor, parts_order_id)
-            if not header or not lines:
-                log.warning(f'[P1] {parts_order_id}: no data found — skipped')
-                stats['skipped'] += 1
-                continue
-
-            num_lines = len(lines)
             syteline_results = check_order_in_syteline_by_partsorder(mssql_cursor, parts_order_id)
 
             if syteline_results:
                 erp_order_no = syteline_results[0]['ERP_OrderNo']
                 rows_updated = update_erp_order_no(mysql_cursor, parts_order_id, erp_order_no)
                 commit(mysql_conn)
-                log.info(f'[P1] {parts_order_id}: found EO# {erp_order_no} -> updated {rows_updated}/{num_lines} lines')
+                log.info(f'[P1] {parts_order_id}: found EO# {erp_order_no} -> updated {rows_updated} lines')
                 stats['found_in_syteline'] += 1
             else:
-                log.info(f'[P1] {parts_order_id}: not in Syteline yet — skipping (XML submission disabled)')
-                needs_xml.append((parts_order_id, header, lines))
-
-        # ── PHASE 2: push XML for orders not yet in Syteline ────────────────────
-        # XML submission is disabled — Syteline ingestion not yet confirmed working.
-        # Uncomment this block when ready to re-enable.
-        #
-        # if needs_xml:
-        #     log.info(f'--- Phase 2: pushing XML for {len(needs_xml)} orders ---')
-        #
-        #     for parts_order_id, header, lines in needs_xml:
-        #         num_lines    = len(lines)
-        #         # Validate ShipmentID before building XML — a missing ShipmentID
-        #         # produces a bad AlternateDocumentID and Syteline will reject the order.
-        #         shipment_id = lines[0].get('ShipmentID') if lines else None
-        #         if not shipment_id:
-        #             log.error(f'[P2] {parts_order_id}: ShipmentID is NULL — skipping (fix in DB before resubmitting)')
-        #             stats['errors'] += 1
-        #             continue
-        #         boat_serial  = header.get('OrdHdrBoatSerialNo')
-        #         boat_info    = get_boat_info(mysql_cursor, boat_serial)
-        #         dealer_no    = header.get('OrdHdrDealerNo', '').replace('~0', '').replace('~1', '')
-        #         dealer_info  = get_dealer_info(mysql_cursor, dealer_no)
-        #         xml_content  = generate_xml(header, lines, boat_info, dealer_info)
-        #         claim_type   = header.get('OrdHdrClaimType', 'parts_order')
-        #         order_prefix = 'WP' if claim_type == 'parts_order' else 'WN'
-        #         xml_file     = write_xml_file(xml_content, parts_order_id, order_prefix)
-        #         log.info(f'[P2] {parts_order_id}: XML pushed ({num_lines} lines) -> {xml_file}')
-        #         stats['xml_submitted'] += 1
-
-        if needs_xml:
-            log.info(f'--- Phase 2: {len(needs_xml)} orders not in Syteline (XML submission disabled) ---')
-            for parts_order_id, _, _ in needs_xml:
-                log.info(f'[P2] {parts_order_id}: not in Syteline — no action taken')
+                log.info(f'[P1] {parts_order_id}: not in Syteline')
+                stats['not_in_syteline'] += 1
 
         if mssql_cursor:
             mssql_cursor.close()
@@ -512,8 +470,7 @@ def sync_oe_parts():
         log.info('SYNC OE PARTS: Complete')
         log.info(f'  Total orders:        {stats["total"]}')
         log.info(f'  EO# found & updated: {stats["found_in_syteline"]}')
-        log.info(f'  XML pushed:          {stats["xml_submitted"]}')
-        log.info(f'  Skipped:             {stats["skipped"]}')
+        log.info(f'  Not in Syteline:     {stats["not_in_syteline"]}')
         log.info(f'  Errors:              {stats["errors"]}')
         log.info('=' * 60)
 
