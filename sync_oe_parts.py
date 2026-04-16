@@ -223,14 +223,14 @@ def get_parts_order_data(mysql_cursor, parts_order_id):
 #     return {'TermsCode': 'NK'}
 #
 # def escape_xml(text):
+#     # Only escape the three characters that are illegal in XML element content.
+#     # Do NOT escape ' or " — Syteline rejects &apos;/&quot; in element text.
 #     if text is None:
 #         return ''
 #     text = str(text)
 #     text = text.replace('&', '&amp;')
 #     text = text.replace('<', '&lt;')
 #     text = text.replace('>', '&gt;')
-#     text = text.replace('"', '&quot;')
-#     text = text.replace("'", '&apos;')
 #     return text
 
 # def generate_xml(header, lines, boat_info, dealer_info):
@@ -248,10 +248,14 @@ def get_parts_order_data(mysql_cursor, parts_order_id):
 #     shipment_suffix = shipment_id.split('-')[-1] if '-' in shipment_id else shipment_id
 #     padded_id = str(parts_order_id).zfill(7)
 #     alternate_doc_id = f"{order_prefix}{padded_id}-{shipment_suffix}"
-#     dealer_no = header.get('OrdHdrDealerNo', '')
+#     dealer_no = header.get('OrdHdrDealerNo', '') or ''
+#     # Strip leading zeros from dealer number (e.g. '00562010' -> '562010')
+#     dealer_no = dealer_no.lstrip('0') or dealer_no
 #     if dealer_no and '~' not in dealer_no:
 #         dealer_no = f"{dealer_no}~0"
-#     ship_method = header.get('OrdHdrShipMethID', 'UPS')
+#     # ShippingMethod: use carrier code from dealer info; fall back to 'null' (not a number)
+#     ship_method = dealer_info.get('CarrierCode') or 'null'
+#     # Terms code comes from dealer's Default_Terms_Code, not the order header
 #     terms_code = dealer_info.get('TermsCode', 'NK')
 #     boat_model = boat_info.get('BoatModel', '') if boat_info else ''
 #     panel_color = boat_info.get('PanelColor', '') if boat_info else ''
@@ -269,9 +273,8 @@ def get_parts_order_data(mysql_cursor, parts_order_id):
 #             order_date = datetime.now().strftime('%m/%d/%Y')
 #     else:
 #         order_date = datetime.now().strftime('%m/%d/%Y')
+#     # Keep dealer ref exactly as stored (e.g. 'wo# 1047363') — do NOT strip 'wo#'
 #     dealer_ref = header.get('OrdHdrDealerRefNo', '') or ''
-#     if '#' in dealer_ref:
-#         dealer_ref = dealer_ref.split('#')[-1].strip()
 #     xml_lines = []
 #     xml_lines.append("<ProcessTest_Verenia_Boat xmlns='http://schema.infor.com/InforOAGIS/2' xmlns:xs='http://www.w3.org/2001/XMLSchema'>")
 #     xml_lines.append("    <ApplicationArea>")
