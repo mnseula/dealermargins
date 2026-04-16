@@ -35,6 +35,7 @@ except ImportError:
 
 DRY_RUN = False
 SINGLE_ORDER = None
+BACKFILL = False
 
 
 logging.basicConfig(
@@ -411,6 +412,17 @@ def sync_oe_parts():
                 WHERE l.PartsOrderID = %s
                   AND (l.ERP_OrderNo IS NULL OR l.ERP_OrderNo = '')
             """, (SINGLE_ORDER,))
+        elif BACKFILL:
+            log.info('BACKFILL mode: processing all exported orders from 2026-03-23 to now')
+            mysql_cursor.execute("""
+                SELECT DISTINCT l.PartsOrderID, h.OrdHdrBoatSerialNo
+                FROM warrantyparts.PartsOrderLines l
+                JOIN warrantyparts.PartsOrderHeader h ON l.PartsOrderID = h.PartsOrderID
+                WHERE l.OrdLineStatus = 'Exported'
+                  AND (l.ERP_OrderNo IS NULL OR l.ERP_OrderNo = '')
+                  AND STR_TO_DATE(h.HdrCreateDate, '%c/%e/%Y') >= '2026-03-23'
+                ORDER BY l.PartsOrderID DESC
+            """)
         else:
             mysql_cursor.execute("""
                 SELECT DISTINCT l.PartsOrderID, h.OrdHdrBoatSerialNo
@@ -497,6 +509,10 @@ if __name__ == '__main__':
     if '--dry-run' in args:
         DRY_RUN = True
         args.remove('--dry-run')
+
+    if '--backfill' in args:
+        BACKFILL = True
+        args.remove('--backfill')
     
     if '--order' in args:
         idx = args.index('--order')
