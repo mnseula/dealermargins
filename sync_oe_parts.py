@@ -17,13 +17,13 @@ Usage:
 """
 
 import sys
-import os
+# import os
 import logging
-import uuid
+# import uuid
 from datetime import datetime
-from decimal import Decimal
-import xml.etree.ElementTree as ET
-from xml.dom import minidom
+# from decimal import Decimal
+# import xml.etree.ElementTree as ET
+# from xml.dom import minidom
 
 import mysql.connector
 
@@ -191,257 +191,172 @@ def get_parts_order_data(mysql_cursor, parts_order_id):
     
     return header, lines
 
-def get_boat_info(mysql_cursor, boat_serial_no):
-    if not boat_serial_no or boat_serial_no == 'StockParts':
-        return None
-    
-    cursor = mysql_cursor
-    cursor.execute("""
-        SELECT BoatItemNo, PanelColor
-        FROM warrantyparts.SerialNumberMaster
-        WHERE Boat_SerialNo = %s
-        LIMIT 1
-    """, (boat_serial_no,))
-    
-    row = cursor.fetchone()
-    if row:
-        return {
-            'BoatModel': row['BoatItemNo'],
-            'PanelColor': row['PanelColor']
-        }
-    return None
+# ── XML generation functions (disabled) ──────────────────────────────────────
+# Uncomment when XML submission to Syteline is ready to re-enable.
+#
+# def get_boat_info(mysql_cursor, boat_serial_no):
+#     if not boat_serial_no or boat_serial_no == 'StockParts':
+#         return None
+#     cursor = mysql_cursor
+#     cursor.execute("""
+#         SELECT BoatItemNo, PanelColor
+#         FROM warrantyparts.SerialNumberMaster
+#         WHERE Boat_SerialNo = %s
+#         LIMIT 1
+#     """, (boat_serial_no,))
+#     row = cursor.fetchone()
+#     if row:
+#         return {'BoatModel': row['BoatItemNo'], 'PanelColor': row['PanelColor']}
+#     return None
+#
+# def get_dealer_info(mysql_cursor, dealer_no):
+#     cursor = mysql_cursor
+#     cursor.execute("""
+#         SELECT Default_Terms_Code
+#         FROM Eos.dealers
+#         WHERE DlrNo = %s
+#         LIMIT 1
+#     """, (dealer_no,))
+#     row = cursor.fetchone()
+#     if row:
+#         return {'TermsCode': row['Default_Terms_Code']}
+#     return {'TermsCode': 'NK'}
+#
+# def escape_xml(text):
+#     if text is None:
+#         return ''
+#     text = str(text)
+#     text = text.replace('&', '&amp;')
+#     text = text.replace('<', '&lt;')
+#     text = text.replace('>', '&gt;')
+#     text = text.replace('"', '&quot;')
+#     text = text.replace("'", '&apos;')
+#     return text
 
-def get_dealer_info(mysql_cursor, dealer_no):
-    cursor = mysql_cursor
-    cursor.execute("""
-        SELECT Default_Terms_Code
-        FROM Eos.dealers
-        WHERE DlrNo = %s
-        LIMIT 1
-    """, (dealer_no,))
-    
-    row = cursor.fetchone()
-    if row:
-        return {
-            'TermsCode': row['Default_Terms_Code']
-        }
-    return {'TermsCode': 'NK'}
+# def generate_xml(header, lines, boat_info, dealer_info):
+#     parts_order_id = header['PartsOrderID']
+#     claim_type = header.get('OrdHdrClaimType', 'parts_order')
+#     if claim_type == 'parts_order':
+#         order_type = 'CHARGE PARTS'
+#         order_prefix = 'WP'
+#     else:
+#         order_type = 'NO CHARGE PARTS'
+#         order_prefix = 'WN'
+#     shipment_id = lines[0].get('ShipmentID', 'S1') if lines else 'S1'
+#     shipment_suffix = shipment_id.split('-')[-1] if '-' in shipment_id else 'S1'
+#     alternate_doc_id = f"{order_prefix}{parts_order_id}-{shipment_suffix}"
+#     dealer_no = header.get('OrdHdrDealerNo', '')
+#     if dealer_no and '~' not in dealer_no:
+#         dealer_no = f"{dealer_no}~0"
+#     ship_method = header.get('OrdHdrShipMethID', 'UPS')
+#     terms_code = dealer_info.get('TermsCode', 'NK')
+#     boat_model = boat_info.get('BoatModel', '') if boat_info else ''
+#     panel_color = boat_info.get('PanelColor', '') if boat_info else ''
+#     boat_serial = header.get('OrdHdrBoatSerialNo', 'StockParts')
+#     if not boat_model:
+#         boat_model = 'undefined'
+#     order_date = header.get('HdrCreateDate', '')
+#     if order_date:
+#         try:
+#             if isinstance(order_date, datetime):
+#                 order_date = order_date.strftime('%m/%d/%Y')
+#             elif isinstance(order_date, str) and '/' not in order_date:
+#                 order_date = datetime.now().strftime('%m/%d/%Y')
+#         except:
+#             order_date = datetime.now().strftime('%m/%d/%Y')
+#     else:
+#         order_date = datetime.now().strftime('%m/%d/%Y')
+#     dealer_ref = header.get('OrdHdrDealerRefNo', '') or ''
+#     if '#' in dealer_ref:
+#         dealer_ref = dealer_ref.split('#')[-1].strip()
+#     xml_lines = []
+#     xml_lines.append("<ProcessTest_Verenia_Boat xmlns='http://schema.infor.com/InforOAGIS/2' xmlns:xs='http://www.w3.org/2001/XMLSchema'>")
+#     xml_lines.append("    <ApplicationArea>")
+#     xml_lines.append("        <Sender>")
+#     xml_lines.append("            <LogicalID>infor.file.test_verenia_boat_sftp</LogicalID>")
+#     xml_lines.append("            <ComponentID>External</ComponentID>")
+#     xml_lines.append("            <ConfirmationCode>OnError</ConfirmationCode>")
+#     xml_lines.append("        </Sender>")
+#     xml_lines.append("        <CreationDateTime>2023-09-07T16:34:51.379Z</CreationDateTime>")
+#     xml_lines.append(f"        <BODID>infor.file.test_verenia_boat_sftp:{int(datetime.now().timestamp())}:{uuid.uuid4()}</BODID>")
+#     xml_lines.append("    </ApplicationArea>")
+#     xml_lines.append("    <DataArea>")
+#     xml_lines.append("        <Process>")
+#     xml_lines.append("            <AccountingEntityID xmlns=\"\"/>")
+#     xml_lines.append("            <LocationID xmlns=\"\"/>")
+#     xml_lines.append("            <ActionCriteria>")
+#     xml_lines.append("                <ActionExpression actionCode='Add'/>")
+#     xml_lines.append("            </ActionCriteria>")
+#     xml_lines.append("        </Process>")
+#     xml_lines.append("        <Test_Verenia_Boat>")
+#     xml_lines.append("            <Test_Verenia_BoatHeader>")
+#     xml_lines.append(f"                <AlternateDocumentID><ID>{escape_xml(alternate_doc_id)}</ID></AlternateDocumentID>")
+#     xml_lines.append(f"                <ShipToParty><PartyIDs><ID>{escape_xml(dealer_no)}</ID></PartyIDs></ShipToParty>")
+#     xml_lines.append(f"                <CarrierParty><PartyIDs><ID>{escape_xml(ship_method)}</ID></PartyIDs></CarrierParty>")
+#     xml_lines.append(f"                <PaymentTerm><Term><ID>{escape_xml(terms_code)}</ID></Term></PaymentTerm>")
+#     xml_lines.append(f"                <PurchaseOrderReference><DocumentID><ID>{escape_xml(dealer_ref)}</ID></DocumentID></PurchaseOrderReference>")
+#     xml_lines.append(f"                <OrderDateTime>{escape_xml(order_date)}</OrderDateTime>")
+#     xml_lines.append(f"                <ue_BennOrderType>{order_type}</ue_BennOrderType>")
+#     xml_lines.append(f"                <ue_EngineForBoat/><ue_PreSold/><ue_ShowBoat/><ue_RentalBoat/>")
+#     xml_lines.append(f"                <PanelColor>{escape_xml(panel_color)}</PanelColor>")
+#     xml_lines.append(f"                <BaseVinyl/><BuildComments/><DealerComments/>")
+#     xml_lines.append(f"                <BoatModel>{escape_xml(boat_model)}</BoatModel>")
+#     xml_lines.append(f"                <BoatSerialNo>{escape_xml(boat_serial)}</BoatSerialNo>")
+#     xml_lines.append(f"                <ShippingMethod>{escape_xml(ship_method)}</ShippingMethod>")
+#     xml_lines.append(f"                <BennTermsCode>{escape_xml(terms_code)}</BennTermsCode>")
+#     xml_lines.append(f"                <ue_International>0</ue_International><ue_InternationalType></ue_InternationalType>")
+#     xml_lines.append(f"                <ue_SpecialInstructions>{escape_xml(header.get('OrdHdrSpecInstructions', ''))}</ue_SpecialInstructions>")
+#     xml_lines.append(f"                <ue_Reason></ue_Reason><ue_LoadNumber/><ue_BennOwned></ue_BennOwned><ue_CustTrackingEmail></ue_CustTrackingEmail>")
+#     xml_lines.append(f"            </Test_Verenia_BoatHeader>")
+#     for i, line in enumerate(lines):
+#         last_record = 1 if i == len(lines) - 1 else 0
+#         line_no = line.get('OrdLineNo', i + 1)
+#         item_no = line.get('OrdLinePartNo', '')
+#         item_desc = line.get('OrdLinePartDesc', '')
+#         qty = int(line.get('Qty_Ordered', '1') or 1)
+#         unit_price = 0.0 if claim_type != 'parts_order' else float(str(line.get('DealerPrice', '0') or '0').replace('$','') or 0)
+#         est_ship_date = line.get('OrdLineEstShipDate', '')
+#         if isinstance(est_ship_date, datetime):
+#             est_ship_date = est_ship_date.strftime('%Y-%m-%d')
+#         parts_web_order_no = f"{order_prefix}{parts_order_id}-{str(line_no).zfill(2)}"
+#         xml_lines.append(f"            <Test_Verenia_BoatLine>")
+#         xml_lines.append(f"                <Item><ItemID><ID>{escape_xml(item_no)}</ID></ItemID></Item>")
+#         xml_lines.append(f"                <Quantity unitCode=\"EA\">{qty}</Quantity>")
+#         xml_lines.append(f"                <WarrantyClaimNo/><WarrantyClaimLineID/>")
+#         xml_lines.append(f"                <UnitPrice>{unit_price:.2f}</UnitPrice>")
+#         xml_lines.append(f"                <ShippingInstructions/>")
+#         xml_lines.append(f"                <PartsWebOrderNo>{escape_xml(parts_web_order_no)}</PartsWebOrderNo>")
+#         xml_lines.append(f"                <ue_LastRecord>{last_record}</ue_LastRecord>")
+#         xml_lines.append(f"                <ue_Dealer_Comments/><ue_Details_Sublet_Comments/>")
+#         xml_lines.append(f"                <ue_Item_Desc>{escape_xml(item_desc)}</ue_Item_Desc>")
+#         xml_lines.append(f"                <ue_RGA>0</ue_RGA><ue_RGA_Date></ue_RGA_Date>")
+#         xml_lines.append(f"                <ue_Estimated_Shipping_Date>{escape_xml(est_ship_date)}</ue_Estimated_Shipping_Date>")
+#         xml_lines.append(f"                <ue_TransactionId>{escape_xml(parts_web_order_no)}</ue_TransactionId>")
+#         xml_lines.append(f"                <ue_Alternate_Shipping_Location></ue_Alternate_Shipping_Location>")
+#         xml_lines.append(f"            </Test_Verenia_BoatLine>")
+#     xml_lines.append("        </Test_Verenia_Boat>")
+#     xml_lines.append("    </DataArea>")
+#     xml_lines.append("</ProcessTest_Verenia_Boat>")
+#     return '\n'.join(xml_lines)
 
-def escape_xml(text):
-    if text is None:
-        return ''
-    text = str(text)
-    text = text.replace('&', '&amp;')
-    text = text.replace('<', '&lt;')
-    text = text.replace('>', '&gt;')
-    text = text.replace('"', '&quot;')
-    text = text.replace("'", '&apos;')
-    return text
-
-def generate_xml(header, lines, boat_info, dealer_info):
-    parts_order_id = header['PartsOrderID']
-    claim_type = header.get('OrdHdrClaimType', 'parts_order')
-    
-    if claim_type == 'parts_order':
-        order_type = 'CHARGE PARTS'
-        order_prefix = 'WP'
-    else:
-        order_type = 'NO CHARGE PARTS'
-        order_prefix = 'WN'
-    
-    shipment_id = lines[0].get('ShipmentID', 'S1') if lines else 'S1'
-    if '-' in shipment_id:
-        shipment_suffix = shipment_id.split('-')[-1]
-    else:
-        shipment_suffix = 'S1'
-    
-    alternate_doc_id = f"{order_prefix}{parts_order_id}-{shipment_suffix}"
-    
-    dealer_no = header.get('OrdHdrDealerNo', '')
-    if dealer_no and '~' not in dealer_no:
-        dealer_no = f"{dealer_no}~0"
-    
-    ship_method = header.get('OrdHdrShipMethID', 'UPS')
-    terms_code = dealer_info.get('TermsCode', 'NK')
-    
-    boat_model = boat_info.get('BoatModel', '') if boat_info else ''
-    panel_color = boat_info.get('PanelColor', '') if boat_info else ''
-    boat_serial = header.get('OrdHdrBoatSerialNo', 'StockParts')
-    
-    if not boat_model:
-        boat_model = 'undefined'
-    
-    order_date = header.get('HdrCreateDate', '')
-    if order_date:
-        try:
-            if isinstance(order_date, datetime):
-                order_date = order_date.strftime('%m/%d/%Y')
-            elif isinstance(order_date, str) and '/' not in order_date:
-                order_date = datetime.now().strftime('%m/%d/%Y')
-        except:
-            order_date = datetime.now().strftime('%m/%d/%Y')
-    else:
-        order_date = datetime.now().strftime('%m/%d/%Y')
-    
-    xml_lines = []
-    xml_lines.append("<ProcessTest_Verenia_Boat xmlns='http://schema.infor.com/InforOAGIS/2' xmlns:xs='http://www.w3.org/2001/XMLSchema'>")
-    xml_lines.append("    <ApplicationArea>")
-    xml_lines.append("        <Sender>")
-    xml_lines.append("            <LogicalID>infor.file.test_verenia_boat_sftp</LogicalID>")
-    xml_lines.append("            <ComponentID>External</ComponentID>")
-    xml_lines.append("            <ConfirmationCode>OnError</ConfirmationCode>")
-    xml_lines.append("        </Sender>")
-    xml_lines.append("        <CreationDateTime>2023-09-07T16:34:51.379Z</CreationDateTime>")
-    xml_lines.append(f"        <BODID>infor.file.test_verenia_boat_sftp:{int(datetime.now().timestamp())}:{uuid.uuid4()}</BODID>")
-    xml_lines.append("    </ApplicationArea>")
-    xml_lines.append("    <DataArea>")
-    xml_lines.append("        <Process>")
-    xml_lines.append("            <AccountingEntityID xmlns=\"\"/>")
-    xml_lines.append("            <LocationID xmlns=\"\"/>")
-    xml_lines.append("            <ActionCriteria>")
-    xml_lines.append("                <ActionExpression actionCode='Add'/>")
-    xml_lines.append("            </ActionCriteria>")
-    xml_lines.append("        </Process>")
-    xml_lines.append("        <Test_Verenia_Boat>")
-    xml_lines.append("            <Test_Verenia_BoatHeader>")
-    xml_lines.append(f"                <AlternateDocumentID>")
-    xml_lines.append(f"                    <ID>{escape_xml(alternate_doc_id)}</ID>")
-    xml_lines.append(f"                </AlternateDocumentID>")
-    xml_lines.append(f"                <ShipToParty>")
-    xml_lines.append(f"                    <PartyIDs>")
-    xml_lines.append(f"                        <ID>{escape_xml(dealer_no)}</ID>")
-    xml_lines.append(f"                    </PartyIDs>")
-    xml_lines.append(f"                </ShipToParty>")
-    xml_lines.append(f"                <CarrierParty>")
-    xml_lines.append(f"                    <PartyIDs>")
-    xml_lines.append(f"                        <ID>{escape_xml(ship_method)}</ID>")
-    xml_lines.append(f"                    </PartyIDs>")
-    xml_lines.append(f"                </CarrierParty>")
-    xml_lines.append(f"                <PaymentTerm>")
-    xml_lines.append(f"                    <Term>")
-    xml_lines.append(f"                        <ID>{escape_xml(terms_code)}</ID>")
-    xml_lines.append(f"                    </Term>")
-    xml_lines.append(f"                </PaymentTerm>")
-    xml_lines.append(f"                <PurchaseOrderReference>")
-    dealer_ref = header.get('OrdHdrDealerRefNo', '') or ''
-    if '#' in dealer_ref:
-        dealer_ref = dealer_ref.split('#')[-1].strip()
-    xml_lines.append(f"                    <DocumentID>")
-    xml_lines.append(f"                        <ID>{escape_xml(dealer_ref)}</ID>")
-    xml_lines.append(f"                    </DocumentID>")
-    xml_lines.append(f"                </PurchaseOrderReference>")
-    xml_lines.append(f"                <OrderDateTime>{escape_xml(order_date)}</OrderDateTime>")
-    xml_lines.append(f"                <ue_BennOrderType>{order_type}</ue_BennOrderType>")
-    xml_lines.append(f"                <ue_EngineForBoat/>")
-    xml_lines.append(f"                <ue_PreSold/>")
-    xml_lines.append(f"                <ue_ShowBoat/>")
-    xml_lines.append(f"                <ue_RentalBoat/>")
-    xml_lines.append(f"                <PanelColor>{escape_xml(panel_color)}</PanelColor>")
-    xml_lines.append(f"                <BaseVinyl/>")
-    xml_lines.append(f"                <BuildComments/>")
-    xml_lines.append(f"                <DealerComments/>")
-    xml_lines.append(f"                <BoatModel>{escape_xml(boat_model)}</BoatModel>")
-    xml_lines.append(f"                <BoatSerialNo>{escape_xml(boat_serial)}</BoatSerialNo>")
-    xml_lines.append(f"                <ShippingMethod>{escape_xml(ship_method)}</ShippingMethod>")
-    xml_lines.append(f"                <BennTermsCode>{escape_xml(terms_code)}</BennTermsCode>")
-    xml_lines.append(f"                <ue_International>0</ue_International>")
-    xml_lines.append(f"                <ue_InternationalType></ue_InternationalType>")
-    xml_lines.append(f"                <ue_SpecialInstructions>{escape_xml(header.get('OrdHdrSpecInstructions', ''))}</ue_SpecialInstructions>")
-    xml_lines.append(f"                <ue_Reason></ue_Reason>")
-    xml_lines.append(f"                <ue_LoadNumber/>")
-    xml_lines.append(f"                <ue_BennOwned></ue_BennOwned>")
-    xml_lines.append(f"                <ue_CustTrackingEmail></ue_CustTrackingEmail>")
-    xml_lines.append(f"            </Test_Verenia_BoatHeader>")
-    
-    for i, line in enumerate(lines):
-        is_last = (i == len(lines) - 1)
-        last_record = 1 if is_last else 0
-        
-        line_no = line.get('OrdLineNo', i + 1)
-        item_no = line.get('OrdLinePartNo', '')
-        item_desc = line.get('OrdLinePartDesc', '')
-        qty_str = line.get('Qty_Ordered', '1')
-        unit_price_str = line.get('DealerPrice', '0')
-        est_ship_date = line.get('OrdLineEstShipDate', '')
-        
-        try:
-            qty = int(qty_str) if qty_str else 1
-        except (ValueError, TypeError):
-            qty = 1
-        
-        try:
-            unit_price = float(unit_price_str) if unit_price_str else 0.0
-        except (ValueError, TypeError):
-            unit_price = 0.0
-        
-        if isinstance(unit_price, Decimal):
-            unit_price = float(unit_price)
-        
-        if claim_type != 'parts_order':
-            unit_price = 0.0
-        
-        parts_web_order_no = f"{order_prefix}{parts_order_id}-{str(line_no).zfill(2)}"
-        
-        if est_ship_date:
-            try:
-                if isinstance(est_ship_date, datetime):
-                    est_ship_date = est_ship_date.strftime('%Y-%m-%d')
-                elif isinstance(est_ship_date, str):
-                    pass
-            except:
-                est_ship_date = ''
-        
-        xml_lines.append(f"            <Test_Verenia_BoatLine>")
-        xml_lines.append(f"                <Item>")
-        xml_lines.append(f"                    <ItemID>")
-        xml_lines.append(f"                        <ID>{escape_xml(item_no)}</ID>")
-        xml_lines.append(f"                    </ItemID>")
-        xml_lines.append(f"                </Item>")
-        xml_lines.append(f"                <Quantity unitCode=\"EA\">{qty}</Quantity>")
-        xml_lines.append(f"                <WarrantyClaimNo/>")
-        xml_lines.append(f"                <WarrantyClaimLineID/>")
-        xml_lines.append(f"                <UnitPrice>{unit_price:.2f}</UnitPrice>")
-        xml_lines.append(f"                <ShippingInstructions/>")
-        xml_lines.append(f"                <PartsWebOrderNo>{escape_xml(parts_web_order_no)}</PartsWebOrderNo>")
-        xml_lines.append(f"                <ue_LastRecord>{last_record}</ue_LastRecord>")
-        xml_lines.append(f"                <ue_Dealer_Comments/>")
-        xml_lines.append(f"                <ue_Details_Sublet_Comments/>")
-        xml_lines.append(f"                <ue_Item_Desc>{escape_xml(item_desc)}</ue_Item_Desc>")
-        xml_lines.append(f"                <ue_RGA>0</ue_RGA>")
-        xml_lines.append(f"                <ue_RGA_Date></ue_RGA_Date>")
-        xml_lines.append(f"                <ue_Estimated_Shipping_Date>{escape_xml(est_ship_date)}</ue_Estimated_Shipping_Date>")
-        xml_lines.append(f"                <ue_TransactionId>{escape_xml(parts_web_order_no)}</ue_TransactionId>")
-        xml_lines.append(f"                <ue_Alternate_Shipping_Location></ue_Alternate_Shipping_Location>")
-        xml_lines.append(f"            </Test_Verenia_BoatLine>")
-    
-    xml_lines.append("        </Test_Verenia_Boat>")
-    xml_lines.append("    </DataArea>")
-    xml_lines.append("</ProcessTest_Verenia_Boat>")
-    
-    return '\n'.join(xml_lines)
-
-def write_xml_file(xml_content, parts_order_id, order_prefix):
-    timestamp = datetime.now().strftime('%Y-%m-%d')
-    filename = f"sytelineExport_{timestamp}_{order_prefix}{parts_order_id}.xml"
-    
-    if DRY_RUN:
-        log.info(f'[DRY-RUN] would write XML file: {filename}')
-        log.info(f'[DRY-RUN] XML content preview (first 500 chars):\n{xml_content[:500]}...')
-        return filename
-    
-    output_path = os.path.join(XML_OUTPUT_DIR, filename)
-    
-    try:
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(xml_content)
-        log.info(f'XML written to: {output_path}')
-        return filename
-    except Exception as e:
-        local_path = os.path.join(os.getcwd(), filename)
-        with open(local_path, 'w', encoding='utf-8') as f:
-            f.write(xml_content)
-        log.warning(f'Could not write to network share ({e}). Written locally: {local_path}')
-        return local_path
+# def write_xml_file(xml_content, parts_order_id, order_prefix):
+#     timestamp = datetime.now().strftime('%Y-%m-%d')
+#     filename = f"sytelineExport_{timestamp}_{order_prefix}{parts_order_id}.xml"
+#     if DRY_RUN:
+#         log.info(f'[DRY-RUN] would write XML file: {filename}')
+#         return filename
+#     output_path = os.path.join(XML_OUTPUT_DIR, filename)
+#     try:
+#         with open(output_path, 'w', encoding='utf-8') as f:
+#             f.write(xml_content)
+#         log.info(f'XML written to: {output_path}')
+#         return filename
+#     except Exception as e:
+#         local_path = os.path.join(os.getcwd(), filename)
+#         with open(local_path, 'w', encoding='utf-8') as f:
+#             f.write(xml_content)
+#         log.warning(f'Could not write to network share ({e}). Written locally: {local_path}')
+#         return local_path
 
 def update_erp_order_no(mysql_cursor, parts_order_id, erp_order_no):
     execute_write(mysql_cursor, """
