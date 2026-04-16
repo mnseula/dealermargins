@@ -19,7 +19,7 @@
         <Test_Verenia_Boat>
             <Test_Verenia_BoatHeader>
                 <AlternateDocumentID>
-                    <ID>WN524708-S1</ID>
+                    <ID>WN0524708-S1</ID>
                 </AlternateDocumentID>
                 <ShipToParty>
                     <PartyIDs>
@@ -74,7 +74,7 @@
                 <WarrantyClaimLineID/>
                 <UnitPrice>0.00</UnitPrice>
                 <ShippingInstructions/>
-                <PartsWebOrderNo>WN524708-01</PartsWebOrderNo>
+                <PartsWebOrderNo>WN0524708-01</PartsWebOrderNo>
                 <ue_LastRecord>0</ue_LastRecord>
                 <ue_Dealer_Comments/>
                 <ue_Details_Sublet_Comments/>
@@ -82,7 +82,7 @@
                 <ue_RGA>0</ue_RGA>
                 <ue_RGA_Date></ue_RGA_Date>
                 <ue_Estimated_Shipping_Date>05/29/2026</ue_Estimated_Shipping_Date>
-                <ue_TransactionId>WN524708-01</ue_TransactionId>
+                <ue_TransactionId>WN0524708-01</ue_TransactionId>
                 <ue_Alternate_Shipping_Location></ue_Alternate_Shipping_Location>
             </Test_Verenia_BoatLine>
             <Test_Verenia_BoatLine>
@@ -96,7 +96,7 @@
                 <WarrantyClaimLineID/>
                 <UnitPrice>0.00</UnitPrice>
                 <ShippingInstructions/>
-                <PartsWebOrderNo>WN524708-02</PartsWebOrderNo>
+                <PartsWebOrderNo>WN0524708-02</PartsWebOrderNo>
                 <ue_LastRecord>1</ue_LastRecord>
                 <ue_Dealer_Comments/>
                 <ue_Details_Sublet_Comments/>
@@ -104,7 +104,7 @@
                 <ue_RGA>0</ue_RGA>
                 <ue_RGA_Date></ue_RGA_Date>
                 <ue_Estimated_Shipping_Date>05/29/2026</ue_Estimated_Shipping_Date>
-                <ue_TransactionId>WN524708-02</ue_TransactionId>
+                <ue_TransactionId>WN0524708-02</ue_TransactionId>
                 <ue_Alternate_Shipping_Location></ue_Alternate_Shipping_Location>
             </Test_Verenia_BoatLine>
         </Test_Verenia_Boat>

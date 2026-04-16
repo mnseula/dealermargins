@@ -244,7 +244,8 @@ def get_parts_order_data(mysql_cursor, parts_order_id):
 #         order_prefix = 'WN'
 #     shipment_id = lines[0].get('ShipmentID', 'S1') if lines else 'S1'
 #     shipment_suffix = shipment_id.split('-')[-1] if '-' in shipment_id else 'S1'
-#     alternate_doc_id = f"{order_prefix}{parts_order_id}-{shipment_suffix}"
+#     padded_id = str(parts_order_id).zfill(7)
+#     alternate_doc_id = f"{order_prefix}{padded_id}-{shipment_suffix}"
 #     dealer_no = header.get('OrdHdrDealerNo', '')
 #     if dealer_no and '~' not in dealer_no:
 #         dealer_no = f"{dealer_no}~0"
@@ -318,7 +319,7 @@ def get_parts_order_data(mysql_cursor, parts_order_id):
 #         est_ship_date = line.get('OrdLineEstShipDate', '')
 #         if isinstance(est_ship_date, datetime):
 #             est_ship_date = est_ship_date.strftime('%Y-%m-%d')
-#         parts_web_order_no = f"{order_prefix}{parts_order_id}-{str(line_no).zfill(2)}"
+#         parts_web_order_no = f"{order_prefix}{padded_id}-{str(line_no).zfill(2)}"
 #         xml_lines.append(f"            <Test_Verenia_BoatLine>")
 #         xml_lines.append(f"                <Item><ItemID><ID>{escape_xml(item_no)}</ID></ItemID></Item>")
 #         xml_lines.append(f"                <Quantity unitCode=\"EA\">{qty}</Quantity>")
