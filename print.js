@@ -129,23 +129,8 @@ if (!hasAnswer('PRINT_PHOTO', 'PRINT_PHOTO')) {
     if (!imgUrl) {
         console.log(model, two);
         modelImg = getModelImage('20' + two, model);
-        // Older models use a single-char year designator (e.g. 21SFC -> 21SF).
-        // If full model lookup fails, retry stripping just 1 character.
-        if (modelImg == undefined) {
-            modelImg = getModelImage('20' + two, model.substring(0, model.length - 1));
-            if (modelImg != undefined) {
-                console.log('Found image by stripping 1-char year designator:', model.substring(0, model.length - 1));
-            }
-        }
-        if (modelImg == undefined) {
-            // Fall back to stored image URL from SerialNumberMaster before using white filler
-            var storedImageUrl = window.snmImageUrl;
-            if (storedImageUrl && storedImageUrl.length > 0) {
-                imgUrl = storedImageUrl;
-                console.log('Using stored image URL from SerialNumberMaster:', imgUrl);
-            } else {
-                imgUrl = 'https://s3.amazonaws.com/eosstatic/images/0/552287f6f0f18aaf52d19f6d/window_sticker_missing_model_white_filler.png';
-            }
+        if (modelImg == undefined) { //set image to a white filler if it is missing.
+            imgUrl = 'https://s3.amazonaws.com/eosstatic/images/0/552287f6f0f18aaf52d19f6d/window_sticker_missing_model_white_filler.png';
         } else {
             imgUrl = modelImg.replace(/\s/g, "%20");
         }
