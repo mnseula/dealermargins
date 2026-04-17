@@ -129,6 +129,14 @@ if (!hasAnswer('PRINT_PHOTO', 'PRINT_PHOTO')) {
     if (!imgUrl) {
         console.log(model, two);
         modelImg = getModelImage('20' + two, model);
+        // Older models use a single-char year designator (e.g. 21SFC -> 21SF).
+        // If full model lookup fails, retry stripping just 1 character.
+        if (modelImg == undefined) {
+            modelImg = getModelImage('20' + two, model.substring(0, model.length - 1));
+            if (modelImg != undefined) {
+                console.log('Found image by stripping 1-char year designator:', model.substring(0, model.length - 1));
+            }
+        }
         if (modelImg == undefined) {
             // Fall back to stored image URL from SerialNumberMaster before using white filler
             var storedImageUrl = window.snmImageUrl;
