@@ -131,7 +131,7 @@ if (!hasAnswer('PRINT_PHOTO', 'PRINT_PHOTO')) {
         modelImg = getModelImage('20' + two, model);
         if (modelImg == undefined) {
             // Fall back to stored image URL from SerialNumberMaster before using white filler
-            var storedImageUrl = dealerinfo[0].LiquifireImageUrl;
+            var storedImageUrl = window.snmImageUrl;
             if (storedImageUrl && storedImageUrl.length > 0) {
                 imgUrl = storedImageUrl;
                 console.log('Using stored image URL from SerialNumberMaster:', imgUrl);
