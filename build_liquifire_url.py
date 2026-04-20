@@ -199,6 +199,7 @@ ASSET_FIXES = {
     '23LTSBASF': '22SL',
     '25LTSBSF':  '22SL',
     # R / RX series
+    '23RSBA':    '23RFB',
     '23RSBASF':  '23RFB',
     '23RXFBASF': '23RFB',
     '23RXSBSF':  '23RFB',
@@ -506,13 +507,20 @@ def build_and_test_url(serial, config, model, series, matrices):
     if ok:
         return url, size
 
-    # Last resort: series-level stock image (no color params, known-good asset)
+    # Last resort: series-level stock asset — substitute into the colored URL so we
+    # at least render the right colors on a known-good hull shape.
     stock = SERIES_STOCK_ASSET.get((series or '').upper())
+    if stock and url:
+        colored_stock_url = url.replace(f'asset[{normalized_asset}]', f'asset[{stock}]')
+        ok, size = test_url(colored_stock_url)
+        if ok:
+            print(f'  {serial} ({model}): using series stock asset [{stock}] with colors')
+            return colored_stock_url, size
     if stock:
         stock_url = f"{LIQUIFIRE_BASE}?set=cat[pon],asset[{stock}],view[side],tube[std]&call=url[file:PS/main]&sink"
         ok, size = test_url(stock_url)
         if ok:
-            print(f'  {serial} ({model}): using series stock asset [{stock}]')
+            print(f'  {serial} ({model}): using series stock asset [{stock}] (bare fallback)')
             return stock_url, size
 
     return None, 0
