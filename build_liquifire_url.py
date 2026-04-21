@@ -186,10 +186,15 @@ ASSET_FIXES = {
     '22MFBSE': '24MFB',
     '23RXSBSE': '23RFB',
     '27QXSBWAT2SE': '25QXSBW',
-    # SX series → S series (SX = upgraded S, no separate Liquifire asset)
-    '20SXSSF':    '22SSR',
+    # SFC series → S series (SFC = Sport Fishing Combo, no separate Liquifire asset)
+    '188SFC':     '22SSR',
+    '20SFC':      '22SSR',
+    '21SFC':      '22SSR',
     '22SFC':      '22SSR',
     '22SFCSF':    '22SSR',
+    '23SFC':      '22SSR',
+    # SX series → S series (SX = upgraded S, no separate Liquifire asset)
+    '20SXSSF':    '22SSR',
     '22SXSRSF':   '22SSR',
     '23SXSAPGSF': '22SSR',
     '23SXSBSF':   '22SSB',
@@ -216,6 +221,11 @@ ASSET_FIXES = {
     '30QXSBWAX2SF': '25QXSBW',
     # MC variant → base M series (24MCSB has no Liquifire asset, use 23MSB)
     '24MCSB': '23MSB',
+    # MOFB series → M series (Open Fastback, no separate Liquifire asset)
+    '22MOFB': '23MSB',
+    '23MOFB': '23MSB',
+    '24MOFB': '23MSB',
+    '26MOFB': '23MSB',
     # Arch suffix removal
     '25QSBA': '25QSB',
     # S1 series → S series mapping (S1 = upgraded S, not a separate Liquifire asset)
