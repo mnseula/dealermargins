@@ -1990,6 +1990,24 @@ def main():
             else:
                 cpq_image_urls = {}
 
+            # Load Eos dealer → SalesPerson map as authoritative fallback for ParentRepName.
+            # Eos is the source of truth for who owns the dealer relationship.
+            eos_dealer_rep_map = {}
+            try:
+                _eos_conn = mysql.connector.connect(**MYSQL_CONFIG)
+                _eos_cur = _eos_conn.cursor()
+                _eos_cur.execute("""
+                    SELECT TRIM(LEADING '0' FROM DlrNo), SalesPerson
+                    FROM Eos.dealers
+                    WHERE SalesPerson IS NOT NULL AND SalesPerson != ''
+                """)
+                eos_dealer_rep_map = {row[0]: row[1] for row in _eos_cur.fetchall() if row[0]}
+                _eos_cur.close()
+                _eos_conn.close()
+                log(f"Loaded {len(eos_dealer_rep_map)} Eos dealer→rep mappings")
+            except Exception as e:
+                log(f"WARNING: Could not load Eos dealer rep map ({e}) — Eos fallback disabled", "WARNING")
+
             # Detect CPQ boats by checking for CfgName in boat_option_rows
             def is_cpq_boat(serial_no):
                 """Check if boat has CPQ configuration (CfgName field populated)"""
@@ -2045,7 +2063,8 @@ def main():
                     'ColorPackage':    color_package,
                     'TrimAccent':      trim_accent,
                     'ParentRepName':   (
-                        (rep_names.get(int(boat['SlsMan'])) if boat.get('SlsMan') not in (None, '', 0) else None)
+                        eos_dealer_rep_map.get((boat.get('DealerNumber') or '').strip().lstrip('0'))
+                        or (rep_names.get(int(boat['SlsMan'])) if boat.get('SlsMan') not in (None, '', 0) else None)
                         or state_rep_map.get((boat.get('DealerState') or '').strip().upper())
                         or ''
                     ),
