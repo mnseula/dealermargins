@@ -235,6 +235,15 @@ ASSET_FIXES = {
     '30QXSBWAX2SF': '25QXSBW',
     # MC variant → base M series (24MCSB has no Liquifire asset, use 23MSB)
     '24MCSB': '23MSB',
+    # ML (Laker) — only 23ML exists in Liquifire
+    '21ML':   '23ML',
+    '21MLSF': '23ML',
+    '22ML':   '23ML',
+    '22MLSE': '23ML',
+    '22MLSF': '23ML',
+    '23MLSF': '23ML',
+    '24MLSE': '23ML',
+    '24MLSF': '23ML',
     # MFC (Fishing Combo) — only 24MFC exists in Liquifire
     '22MFC':   '24MFC',
     '22MFCSF': '24MFC',
