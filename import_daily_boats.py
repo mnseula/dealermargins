@@ -1306,19 +1306,13 @@ def sweep_missing_liquifire_urls_matrix(mysql_conn, lookback_days: int = 180) ->
             OR snm.LiquifireImageUrl LIKE '%asset[furn\\_%'
             OR snm.LiquifireImageUrl LIKE '%view[]%'
             OR snm.LiquifireImageUrl LIKE '%asset[]%'
-            -- Bare URL: has an asset but no color params (came from CPQ LastConfigurationImageLink
-            -- as a skeleton — shows only tube/deck with no furniture or panel colors).
             OR (
                 snm.LiquifireImageUrl LIKE '%asset[%'
                 AND snm.LiquifireImageUrl NOT LIKE '%furnPrime[%'
             )
-            -- CPQ PRD sometimes returns a URL whose asset year predates the boat model year.
-            -- The furniture params make it render large enough to pass the >20KB check but
-            -- the hull is wrong (shows only deck/tube). Catch by comparing asset year in the
-            -- URL against the first 2 chars of BoatModelNo.
             OR (
-                bo.BoatModelNo REGEXP '^[0-9]{2}'
-                AND snm.LiquifireImageUrl REGEXP 'asset\\\\[[0-9]{2}'
+                bo.BoatModelNo REGEXP '^[0-9]{{2}}'
+                AND snm.LiquifireImageUrl REGEXP 'asset\\\\[[0-9]{{2}}'
                 AND CAST(SUBSTRING(bo.BoatModelNo, 1, 2) AS UNSIGNED) <>
                     CAST(SUBSTRING(snm.LiquifireImageUrl,
                         LOCATE('asset[', snm.LiquifireImageUrl) + 6, 2) AS UNSIGNED)
@@ -1326,12 +1320,20 @@ def sweep_missing_liquifire_urls_matrix(mysql_conn, lookback_days: int = 180) ->
           )
           AND snm.InvoiceDateYYYYMMDD >= DATE_FORMAT(
                 CURDATE() - INTERVAL {lookback_days} DAY, '%Y%m%d') + 0
+        UNION
+        SELECT DISTINCT bo.BoatSerialNo
+        FROM {MYSQL_DB}.BoatOptions25 bo
+        JOIN {MYSQL_DB}.SerialNumberMaster snm ON snm.Boat_SerialNo = bo.BoatSerialNo
+        WHERE bo.BoatModelNo IS NOT NULL AND bo.BoatModelNo != ''
+          AND (snm.LiquifireImageUrl IS NULL OR snm.LiquifireImageUrl = '')
+          AND snm.InvoiceDateYYYYMMDD >= DATE_FORMAT(
+                CURDATE() - INTERVAL {lookback_days} DAY, '%Y%m%d') + 0
     """)
     serials = [r[0] for r in cursor.fetchall()]
     cursor.close()
 
     if not serials:
-        log("Step 1e: No CPQ boats missing or bad Liquifire URLs — matrix fallback not needed")
+        log("Step 1e: No boats missing or bad Liquifire URLs — matrix fallback not needed")
         return 0
 
     log(f"Step 1e: {len(serials)} boat(s) missing or bad Liquifire URL — building from CPQ matrices...")
@@ -1348,37 +1350,20 @@ def sweep_missing_liquifire_urls_matrix(mysql_conn, lookback_days: int = 180) ->
         try:
             config, model, series = build_liquifire_url.get_boat_config(bo_cursor, serial)
             if not model:
-                log(f"  {serial}: no model in BoatOptions26 — skipped")
+                log(f"  {serial}: no model in BoatOptions — skipped")
                 continue
 
-            url = build_liquifire_url.build_url(serial, config, model, series, matrices)
+            from_snm = False
+            if not config:
+                config, from_snm = build_liquifire_url.get_snm_config(bo_cursor, serial, matrices)
+                if from_snm:
+                    log(f"  {serial}: built config from SNM colors ({len(config)} keys)")
+
+            url, size, method = build_liquifire_url.build_and_test_url(
+                serial, config, model, series, matrices, from_snm=from_snm
+            )
+
             if not url:
-                log(f"  {serial} ({model}): could not build URL — skipped")
-                continue
-
-            ok, size = build_liquifire_url.test_url(url)
-
-            # Year fallback: try next model years if current asset missing
-            if not ok and len(model) >= 2 and model[:2].isdigit():
-                year = int(model[:2])
-                for try_year in range(year + 1, year + 4):
-                    fallback_model = f'{try_year:02d}{model[2:]}'
-                    fallback_url = url.replace(f'asset[{model}]', f'asset[{fallback_model}]')
-                    ok, size = build_liquifire_url.test_url(fallback_url)
-                    if ok:
-                        log(f"  {serial} ({model}): using fallback asset [{fallback_model}]")
-                        url = fallback_url
-                        break
-
-            # Fallback: try view[side] with cat[pon] for models without a 3qtr asset
-            if not ok:
-                side_url = url.replace('cat[3qtr],', 'cat[pon],').replace(',view[3qtr]', ',view[side]')
-                ok, size = build_liquifire_url.test_url(side_url)
-                if ok:
-                    log(f"  {serial} ({model}): using fallback view[side]")
-                    url = side_url
-
-            if not ok:
                 log(f"  {serial} ({model}): URL did not render — skipped")
                 continue
 
@@ -1389,7 +1374,7 @@ def sweep_missing_liquifire_urls_matrix(mysql_conn, lookback_days: int = 180) ->
             )
             mysql_conn.commit()
             cursor2.close()
-            log(f"  {serial} ({model}): stored ({size:,} bytes)")
+            log(f"  {serial} ({model}): stored [{method}] ({size:,} bytes)")
             updated += 1
 
         except Exception as exc:
@@ -1419,6 +1404,13 @@ def sweep_weekly_liquifire_rebuild(mysql_conn, lookback_days: int = 7) -> int:
         WHERE bo.BoatModelNo IS NOT NULL AND bo.BoatModelNo NOT IN ('', 'Base Boat')
           AND snm.InvoiceDateYYYYMMDD >= DATE_FORMAT(
                 CURDATE() - INTERVAL {lookback_days} DAY, '%Y%m%d') + 0
+        UNION
+        SELECT DISTINCT bo.BoatSerialNo
+        FROM {MYSQL_DB}.BoatOptions25 bo
+        JOIN {MYSQL_DB}.SerialNumberMaster snm ON snm.Boat_SerialNo = bo.BoatSerialNo
+        WHERE bo.BoatModelNo IS NOT NULL AND bo.BoatModelNo != ''
+          AND snm.InvoiceDateYYYYMMDD >= DATE_FORMAT(
+                CURDATE() - INTERVAL {lookback_days} DAY, '%Y%m%d') + 0
     """)
     serials = [r[0] for r in cursor.fetchall()]
     cursor.close()
@@ -1443,28 +1435,17 @@ def sweep_weekly_liquifire_rebuild(mysql_conn, lookback_days: int = 7) -> int:
             if not model:
                 continue
 
-            url = build_liquifire_url.build_url(serial, config, model, series, matrices)
+            from_snm = False
+            if not config:
+                config, from_snm = build_liquifire_url.get_snm_config(bo_cursor, serial, matrices)
+                if from_snm:
+                    log(f"  {serial}: built config from SNM colors ({len(config)} keys)")
+
+            url, size, method = build_liquifire_url.build_and_test_url(
+                serial, config, model, series, matrices, from_snm=from_snm
+            )
+
             if not url:
-                continue
-
-            ok, size = build_liquifire_url.test_url(url)
-
-            if not ok and len(model) >= 2 and model[:2].isdigit():
-                year = int(model[:2])
-                model_suffix = model[2:]
-                for delta in [1, -1, 2, -2, 3, -3]:
-                    try_year = year + delta
-                    if try_year < 10:
-                        continue
-                    fallback_asset = f'{try_year:02d}{model_suffix}'
-                    fallback_url = url.replace(f'asset[{model}]', f'asset[{fallback_asset}]')
-                    ok, size = build_liquifire_url.test_url(fallback_url)
-                    if ok:
-                        log(f"  {serial} ({model}): year-walk → {fallback_asset}")
-                        url = fallback_url
-                        break
-
-            if not ok:
                 log(f"  {serial} ({model}): URL did not render — skipped", "WARNING")
                 continue
 
@@ -1475,7 +1456,7 @@ def sweep_weekly_liquifire_rebuild(mysql_conn, lookback_days: int = 7) -> int:
             )
             mysql_conn.commit()
             cursor2.close()
-            log(f"  {serial} ({model}): rebuilt ({size:,} bytes)")
+            log(f"  {serial} ({model}): rebuilt [{method}] ({size:,} bytes)")
             updated += 1
 
         except Exception as exc:

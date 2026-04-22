@@ -504,18 +504,27 @@ def test_url(url, retries=2, timeout=30):
                 return False, 0
 
 
-def build_and_test_url(serial, config, model, series, matrices):
+def build_and_test_url(serial, config, model, series, matrices, from_snm=False):
     """
     Build a Liquifire URL and verify it renders, with year-walk fallback.
-    Returns (url, size_bytes) on success, or (None, 0) on failure.
+    Returns (url, size_bytes, method) on success, or (None, 0, None) on failure.
+
+    method values:
+      colored        — full CPQ config, exact asset rendered
+      snm-colored    — config built from SNM text fields, exact asset rendered
+      year-walk      — CPQ config, asset year was walked to find a renderable version
+      snm-year-walk  — SNM config + year walk
+      stock-colored  — series stock hull rendered with colors
+      stock-bare     — series stock hull, no colors (last resort)
     """
     url = build_url(serial, config, model, series, matrices)
     if not url:
-        return None, 0
+        return None, 0, None
 
     normalized_asset, _ = normalize_asset(model)
+    pfx = 'snm-' if from_snm else ''
 
-    # No CPQ config (BoatOptions25 boat) — skip bare tube URL, go straight to stock asset
+    # No config at all — bare stock hull only
     if not config:
         stock = SERIES_STOCK_ASSET.get((series or '').upper())
         if stock:
@@ -523,8 +532,8 @@ def build_and_test_url(serial, config, model, series, matrices):
             ok, size = test_url(stock_url)
             if ok:
                 print(f'  {serial} ({model}): no CPQ config (BO25), using stock asset [{stock}]')
-                return stock_url, size
-        return None, 0
+                return stock_url, size, 'stock-bare'
+        return None, 0, None
 
     ok, size = test_url(url)
 
@@ -541,10 +550,10 @@ def build_and_test_url(serial, config, model, series, matrices):
             ok, size = test_url(fallback_url)
             if ok:
                 print(f'  {serial} ({model}): using year-walk asset [{fallback_asset}]')
-                return fallback_url, size
+                return fallback_url, size, f'{pfx}year-walk'
 
     if ok:
-        return url, size
+        return url, size, f'{pfx}colored'
 
     # Last resort: series-level stock asset — substitute into the colored URL so we
     # at least render the right colors on a known-good hull shape.
@@ -554,15 +563,15 @@ def build_and_test_url(serial, config, model, series, matrices):
         ok, size = test_url(colored_stock_url)
         if ok:
             print(f'  {serial} ({model}): using series stock asset [{stock}] with colors')
-            return colored_stock_url, size
+            return colored_stock_url, size, 'stock-colored'
     if stock:
         stock_url = f"{LIQUIFIRE_BASE}?set=cat[pon],asset[{stock}],view[side],tube[std]&call=url[file:PS/main]&sink"
         ok, size = test_url(stock_url)
         if ok:
             print(f'  {serial} ({model}): using series stock asset [{stock}] (bare fallback)')
-            return stock_url, size
+            return stock_url, size, 'stock-bare'
 
-    return None, 0
+    return None, 0, None
 
 
 def get_snm_colors(cur, serial):
@@ -580,6 +589,18 @@ def get_snm_colors(cur, serial):
         'PanelColor': row[1] or '',
         'AccentPanel': row[2] or '',
     }
+
+
+def get_snm_config(cur, serial, matrices):
+    """
+    Build a CPQ config dict from SNM plain-text color fields.
+    Returns (config, from_snm) — from_snm is True when SNM fields produced a config.
+    """
+    snm_colors = get_snm_colors(cur, serial)
+    if not any(snm_colors.values()):
+        return {}, False
+    config = snm_to_config(snm_colors, matrices)
+    return config, bool(config)
 
 
 def store_url(conn, serial, url):
@@ -653,12 +674,11 @@ def main():
             continue
 
         # BO25 boats have no CfgName/CfgValue — try to build config from SNM color text fields
+        from_snm = False
         if not config:
-            snm_colors = get_snm_colors(prod_cur, serial)
-            if any(snm_colors.values()):
-                config = snm_to_config(snm_colors, matrices)
-                if config:
-                    print(f'  {serial}: built config from SNM colors ({len(config)} keys)')
+            config, from_snm = get_snm_config(prod_cur, serial, matrices)
+            if from_snm:
+                print(f'  {serial}: built config from SNM colors ({len(config)} keys)')
 
         # Log if asset was normalized
         _, was_fixed = normalize_asset(model)
@@ -666,7 +686,7 @@ def main():
             normalized_asset, _ = normalize_asset(model)
             print(f'  {serial}: asset normalized {model} → {normalized_asset}')
 
-        url, size = build_and_test_url(serial, config, model, series, matrices)
+        url, size, method = build_and_test_url(serial, config, model, series, matrices, from_snm=from_snm)
 
         if not url:
             print(f'  {serial} ({model}): FAIL — URL did not render')
@@ -674,11 +694,11 @@ def main():
             continue
 
         if dry_run:
-            print(f'  {serial} ({model}): OK ({size:,} bytes) [dry-run, not stored]')
+            print(f'  {serial} ({model}): OK [{method}] ({size:,} bytes) [dry-run, not stored]')
         else:
             n_prod = store_url(prod_conn, serial, url)
             n_test = store_url(test_conn, serial, url)
-            print(f'  {serial} ({model}): OK ({size:,} bytes) — stored prod={n_prod} test={n_test}')
+            print(f'  {serial} ({model}): OK [{method}] ({size:,} bytes) — stored prod={n_prod} test={n_test}')
 
         results['ok'] += 1
 
