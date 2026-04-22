@@ -126,7 +126,7 @@ def load_matrices(token):
 # ── Config extraction ─────────────────────────────────────────────────────────
 
 def get_boat_config(cur, serial):
-    """Return dict of CfgName→CfgValue for a CPQ boat from BoatOptions26."""
+    """Return dict of CfgName→CfgValue for a CPQ boat from BoatOptions26, falling back to BoatOptions25."""
     cur.execute("""
         SELECT CfgName, CfgValue, BoatModelNo, Series
         FROM BoatOptions26
@@ -144,6 +144,19 @@ def get_boat_config(cur, serial):
             model = boat_model
         if boat_series:
             series = boat_series
+
+    # BoatOptions25 has no CfgName/CfgValue — fall back for model/series only
+    if not model:
+        cur.execute("""
+            SELECT DISTINCT BoatModelNo, Series
+            FROM BoatOptions25
+            WHERE BoatSerialNo = %s AND BoatModelNo IS NOT NULL AND BoatModelNo != ''
+            LIMIT 1
+        """, (serial,))
+        row = cur.fetchone()
+        if row:
+            model, series = row[0], row[1]
+
     return config, model, series
 
 
@@ -500,6 +513,18 @@ def build_and_test_url(serial, config, model, series, matrices):
         return None, 0
 
     normalized_asset, _ = normalize_asset(model)
+
+    # No CPQ config (BoatOptions25 boat) — skip bare tube URL, go straight to stock asset
+    if not config:
+        stock = SERIES_STOCK_ASSET.get((series or '').upper())
+        if stock:
+            stock_url = f"{LIQUIFIRE_BASE}?set=cat[pon],asset[{stock}],view[side],tube[std]&call=url[file:PS/main]&sink"
+            ok, size = test_url(stock_url)
+            if ok:
+                print(f'  {serial} ({model}): no CPQ config (BO25), using stock asset [{stock}]')
+                return stock_url, size
+        return None, 0
+
     ok, size = test_url(url)
 
     # Year-walk: try ±1, ±2, ±3 years if the base asset doesn't render
@@ -560,6 +585,11 @@ def get_target_serials(cur, specific=None, rebuild_all=False):
             FROM BoatOptions26 bo
             JOIN SerialNumberMaster snm ON snm.Boat_SerialNo = bo.BoatSerialNo
             WHERE bo.BoatModelNo IS NOT NULL AND bo.BoatModelNo != 'Base Boat'
+            UNION
+            SELECT DISTINCT bo.BoatSerialNo
+            FROM BoatOptions25 bo
+            JOIN SerialNumberMaster snm ON snm.Boat_SerialNo = bo.BoatSerialNo
+            WHERE bo.BoatModelNo IS NOT NULL AND bo.BoatModelNo != ''
         """)
     else:
         cur.execute("""
@@ -567,6 +597,12 @@ def get_target_serials(cur, specific=None, rebuild_all=False):
             FROM BoatOptions26 bo
             JOIN SerialNumberMaster snm ON snm.Boat_SerialNo = bo.BoatSerialNo
             WHERE bo.BoatModelNo IS NOT NULL AND bo.BoatModelNo != 'Base Boat'
+              AND (snm.LiquifireImageUrl IS NULL OR snm.LiquifireImageUrl = '')
+            UNION
+            SELECT DISTINCT bo.BoatSerialNo
+            FROM BoatOptions25 bo
+            JOIN SerialNumberMaster snm ON snm.Boat_SerialNo = bo.BoatSerialNo
+            WHERE bo.BoatModelNo IS NOT NULL AND bo.BoatModelNo != ''
               AND (snm.LiquifireImageUrl IS NULL OR snm.LiquifireImageUrl = '')
         """)
     return [r[0] for r in cur.fetchall()]
