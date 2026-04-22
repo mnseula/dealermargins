@@ -235,6 +235,14 @@ ASSET_FIXES = {
     '30QXSBWAX2SF': '25QXSBW',
     # MC variant → base M series (24MCSB has no Liquifire asset, use 23MSB)
     '24MCSB': '23MSB',
+    # MFC (Fishing Combo) — only 24MFC exists in Liquifire
+    '22MFC':   '24MFC',
+    '22MFCSF': '24MFC',
+    '23MFC':   '24MFC',
+    '23MFCSF': '24MFC',
+    '24MFCSF': '24MFC',
+    '26MFC':   '24MFC',
+    '26MFCSF': '24MFC',
     # MOFB series → M series (Open Fastback, no separate Liquifire asset)
     '22MOFB': '23MSB',
     '23MOFB': '23MSB',
