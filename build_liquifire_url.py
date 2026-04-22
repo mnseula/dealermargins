@@ -319,7 +319,7 @@ def build_url(serial, config, model, series, matrices):
     panel_color_key = config.get('panelColor', '').upper()
     accent_type_key = config.get('accentPanelType', '').upper()
     accent_color_key = config.get('accentPanelColor', '').upper()
-    bimini_key = config.get('biminiAft', '')
+    bimini_key = config.get('biminiAft', '').upper()
     canvas_key = config.get('canvas', '').upper()
     anodizing = config.get('anodizing', '')
     arch_val = config.get('arch', '')
