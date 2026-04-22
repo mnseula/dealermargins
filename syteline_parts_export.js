@@ -321,6 +321,14 @@ window.ExportSytelineParts = window.ExportSytelineParts || function (ordersIDs) 
         }
 
 
+        // Temp fix: Wilson Marine (559236) has SelectedCustSeq='1' stored for their
+        // primary Brighton address but ~1 does not exist in Syteline — force to ~0.
+        // Remove once root cause (portal storing wrong seq at order creation) is fixed.
+        var shipToCustSeq = (item.SelectedCustSeq?.trim() ? item.SelectedCustSeq : "0");
+        if (item.OrdHdrDealerNo.replace(/^0+/, "") === "559236" && shipToCustSeq === "1") {
+            shipToCustSeq = "0";
+        }
+
         xmlContent += `<Test_Verenia_Boat>
                             <Test_Verenia_BoatHeader>
                                 <AlternateDocumentID>
@@ -328,7 +336,7 @@ window.ExportSytelineParts = window.ExportSytelineParts || function (ordersIDs) 
                                 </AlternateDocumentID>
                                 <ShipToParty>
                                     <PartyIDs>
-                                        <ID>` + item.OrdHdrDealerNo.replace(/^0+/, "") + `~` + (item.SelectedCustSeq?.trim() ? item.SelectedCustSeq : "0") + `</ID>
+                                        <ID>` + item.OrdHdrDealerNo.replace(/^0+/, "") + `~` + shipToCustSeq + `</ID>
                                     </PartyIDs>
                                 </ShipToParty>
                                 <CarrierParty>
