@@ -20,6 +20,7 @@ Run:
 import sys
 import requests
 import mysql.connector
+from snm_color_map import snm_to_config
 
 # ── Auth ─────────────────────────────────────────────────────────────────────
 
@@ -564,6 +565,23 @@ def build_and_test_url(serial, config, model, series, matrices):
     return None, 0
 
 
+def get_snm_colors(cur, serial):
+    """Return SNM plain-text color fields for a serial (used for BoatOptions25 boats)."""
+    cur.execute("""
+        SELECT BaseVinyl, PanelColor, AccentPanel
+        FROM SerialNumberMaster
+        WHERE Boat_SerialNo = %s
+    """, (serial,))
+    row = cur.fetchone()
+    if not row:
+        return {}
+    return {
+        'BaseVinyl':  row[0] or '',
+        'PanelColor': row[1] or '',
+        'AccentPanel': row[2] or '',
+    }
+
+
 def store_url(conn, serial, url):
     cur = conn.cursor()
     cur.execute(
@@ -630,9 +648,17 @@ def main():
         config, model, series = get_boat_config(prod_cur, serial)
 
         if not model:
-            print(f'  {serial}: SKIP — no model in BoatOptions26')
+            print(f'  {serial}: SKIP — no model in BoatOptions26 or BoatOptions25')
             results['skipped'] += 1
             continue
+
+        # BO25 boats have no CfgName/CfgValue — try to build config from SNM color text fields
+        if not config:
+            snm_colors = get_snm_colors(prod_cur, serial)
+            if any(snm_colors.values()):
+                config = snm_to_config(snm_colors, matrices)
+                if config:
+                    print(f'  {serial}: built config from SNM colors ({len(config)} keys)')
 
         # Log if asset was normalized
         _, was_fixed = normalize_asset(model)
