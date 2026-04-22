@@ -227,6 +227,49 @@ LIMIT 20;
 
 ---
 
+## 8. Fix Wrong ParentRepName on a Boat
+
+**Symptom:** Rep can't find a boat in their territory view — boat shows under wrong distributor/rep.
+**Cause:** During import, `ParentRepName` is set from `Syteline_RepNames.xlsx` via slsman code. If the
+network share is unreachable or the slsman code is missing, it falls back to a state-based map which
+may resolve to a distributor name instead of the rep name.
+
+### Step 1 — Check what's stored
+```sql
+SELECT Boat_SerialNo, DealerName, DealerState, ParentRepName
+FROM warrantyparts.SerialNumberMaster
+WHERE DealerNumber = '180456'  -- use the dealer number
+  AND ParentRepName != 'JON FIZER';  -- use expected rep name
+```
+
+### Step 2 — Confirm correct rep name from Eos
+```sql
+SELECT DlrNo, DealerName, SalesPerson
+FROM Eos.dealers
+WHERE DlrNo = '00180456';
+-- SalesPerson is the correct ParentRepName value
+```
+
+### Step 3 — Fix (get approval first)
+```sql
+UPDATE warrantyparts.SerialNumberMaster
+SET ParentRepName = 'JON FIZER'
+WHERE Boat_SerialNo IN ('ETWS1503B626','ETWS1548B626','ETWS1549B626',
+                        'ETWS1550B626','ETWS1552B626','ETWS1987C626');
+```
+
+### To reverse
+```sql
+UPDATE warrantyparts.SerialNumberMaster
+SET ParentRepName = 'MARINE DISTRIBUTORS'
+WHERE Boat_SerialNo IN ('ETWS1503B626','ETWS1548B626','ETWS1549B626',
+                        'ETWS1550B626','ETWS1552B626','ETWS1987C626');
+```
+
+**Note:** Always check `Eos.dealers.SalesPerson` for the authoritative rep name — do not guess.
+
+---
+
 ## Notes
 
 - Always use `TRIM(Cust_Num)` when querying `DealerAddr` — values have leading spaces.
