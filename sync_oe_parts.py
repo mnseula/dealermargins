@@ -112,7 +112,8 @@ def check_order_in_syteline(mssql_cursor, web_order_no, line_no):
             AND site_ref = 'BENN'
             AND coitem_mst.Uf_BENN_PartsWebOrderNumber LIKE %s
     """
-    search_pattern = f'PO{web_order_no}-{line_no}'
+    padded_id = str(web_order_no).zfill(7)
+    search_pattern = f'%{padded_id}-0{line_no}'
     mssql_cursor.execute(sql, (search_pattern,))
     result = mssql_cursor.fetchone()
     if result:
