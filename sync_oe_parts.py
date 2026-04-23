@@ -11,9 +11,11 @@ Flow:
 4. If not found → generate XML → write to network share → wait → requery → update MySQL
 
 Usage:
-    python3 sync_oe_parts.py                    # run sync
+    python3 sync_oe_parts.py                    # run sync (last 7 days)
     python3 sync_oe_parts.py --dry-run          # SELECT only, no writes
     python3 sync_oe_parts.py --order WP0524059  # process single order
+    python3 sync_oe_parts.py --backfill         # process all missing OE# from 2026-03-03
+    python3 sync_oe_parts.py --fix-multiline    # fix incorrect OE# on multi-line orders
 """
 
 import sys
@@ -36,6 +38,7 @@ except ImportError:
 DRY_RUN = False
 SINGLE_ORDER = None
 BACKFILL = False
+FIX_MULTILINE = False
 
 
 logging.basicConfig(
@@ -431,6 +434,25 @@ def sync_oe_parts():
                   AND STR_TO_DATE(h.HdrCreateDate, '%c/%e/%Y') >= '2026-03-03'
                 ORDER BY l.PartsOrderID, l.OrdLineNo
             """)
+        elif FIX_MULTILINE:
+            log.info('FIX_MULTILINE mode: checking multi-line orders from 2026-03-03 to now')
+            mysql_cursor.execute("""
+                SELECT l.PartsOrderID, l.OrdLineNo, l.ERP_OrderNo, h.OrdHdrBoatSerialNo
+                FROM warrantyparts.PartsOrderLines l
+                JOIN warrantyparts.PartsOrderHeader h ON l.PartsOrderID = h.PartsOrderID
+                WHERE l.OrdLineStatus = 'Exported'
+                  AND l.ERP_OrderNo IS NOT NULL
+                  AND l.ERP_OrderNo != ''
+                  AND STR_TO_DATE(h.HdrCreateDate, '%c/%e/%Y') >= '2026-03-03'
+                  AND l.PartsOrderID IN (
+                      SELECT PartsOrderID
+                      FROM warrantyparts.PartsOrderLines
+                      WHERE OrdLineStatus = 'Exported'
+                      GROUP BY PartsOrderID
+                      HAVING COUNT(*) > 1
+                  )
+                ORDER BY l.PartsOrderID, l.OrdLineNo
+            """)
         else:
             mysql_cursor.execute("""
                 SELECT l.PartsOrderID, l.OrdLineNo, h.OrdHdrBoatSerialNo
@@ -451,50 +473,118 @@ def sync_oe_parts():
                 ORDER BY l.PartsOrderID, l.OrdLineNo
             """)
 
-        missing_lines = mysql_cursor.fetchall()
-        unique_orders = set(line['PartsOrderID'] for line in missing_lines)
-        log.info(f'Found {len(missing_lines)} lines (across {len(unique_orders)} orders) with missing ERP_OrderNo')
+        lines_to_process = mysql_cursor.fetchall()
+        
+        if FIX_MULTILINE:
+            unique_orders = set(line['PartsOrderID'] for line in lines_to_process)
+            log.info(f'Found {len(lines_to_process)} lines (across {len(unique_orders)} multi-line orders) to check')
+            
+            stats = {
+                'total_lines':       len(lines_to_process),
+                'total_orders':      len(unique_orders),
+                'correct':           0,
+                'updated':           0,
+                'not_in_syteline':   0,
+                'errors':            0,
+            }
+            
+            if not lines_to_process:
+                log.info('Nothing to do.')
+                if mssql_cursor:
+                    mssql_cursor.close()
+                mysql_cursor.close()
+                mysql_conn.close()
+                return
+            
+            if not mssql_available:
+                log.error('MSSQL unavailable — cannot check Syteline.')
+                stats['errors'] = len(lines_to_process)
+                return
+            
+            csv_rows = []
+            log.info('--- Phase 1: checking Syteline for correct EO# (per line) ---')
+            
+            for line in lines_to_process:
+                parts_order_id = line['PartsOrderID']
+                line_no = line['OrdLineNo']
+                current_oe = line['ERP_OrderNo']
+                serial_no = line['OrdHdrBoatSerialNo'] or 'N/A'
+                log.info(f'[FIX] {parts_order_id}-{line_no:02d} ({serial_no}): current={current_oe}')
+                
+                erp_order_no = check_order_in_syteline(mssql_cursor, parts_order_id, line_no)
+                
+                if erp_order_no:
+                    if erp_order_no == current_oe:
+                        log.info(f'[FIX] {parts_order_id}-{line_no:02d}: OE# correct ({current_oe})')
+                        stats['correct'] += 1
+                    else:
+                        rows_updated = update_erp_order_no(mysql_cursor, parts_order_id, erp_order_no, line_no)
+                        commit(mysql_conn)
+                        log.info(f'[FIX] UPDATED {parts_order_id}-{line_no:02d}: {current_oe} -> {erp_order_no}')
+                        csv_rows.append({
+                            'PartsOrderID': parts_order_id,
+                            'OrdLineNo': line_no,
+                            'SerialNo': serial_no,
+                            'OldOE': current_oe,
+                            'NewOE': erp_order_no,
+                        })
+                        stats['updated'] += 1
+                else:
+                    log.info(f'[FIX] {parts_order_id}-{line_no:02d}: not in Syteline')
+                    stats['not_in_syteline'] += 1
+            
+            if csv_rows:
+                csv_filename = f'fix_multiline_changes_{datetime.now().strftime("%Y-%m-%d_%H%M%S")}.csv'
+                import csv as csv_module
+                with open(csv_filename, 'w', newline='', encoding='utf-8') as f:
+                    writer = csv_module.DictWriter(f, fieldnames=['PartsOrderID', 'OrdLineNo', 'SerialNo', 'OldOE', 'NewOE'])
+                    writer.writeheader()
+                    writer.writerows(csv_rows)
+                log.info(f'Changes written to: {csv_filename}')
+        else:
+            unique_orders = set(line['PartsOrderID'] for line in lines_to_process)
+            log.info(f'Found {len(lines_to_process)} lines (across {len(unique_orders)} orders) with missing ERP_OrderNo')
 
-        stats = {
-            'total_lines':       len(missing_lines),
-            'total_orders':      len(unique_orders),
-            'found_in_syteline': 0,
-            'not_in_syteline':   0,
-            'errors':            0,
-        }
+            stats = {
+                'total_lines':       len(lines_to_process),
+                'total_orders':      len(unique_orders),
+                'found_in_syteline': 0,
+                'not_in_syteline':   0,
+                'errors':            0,
+            }
 
-        if not missing_lines:
-            log.info('Nothing to do.')
-            if mssql_cursor:
-                mssql_cursor.close()
-            mysql_cursor.close()
-            mysql_conn.close()
-            return
+            if not lines_to_process:
+                log.info('Nothing to do.')
+                if mssql_cursor:
+                    mssql_cursor.close()
+                mysql_cursor.close()
+                mysql_conn.close()
+                return
 
-        if not mssql_available:
-            log.error('MSSQL unavailable — cannot check Syteline.')
-            stats['errors'] = len(missing_lines)
-            return
+            if not mssql_available:
+                log.error('MSSQL unavailable — cannot check Syteline.')
+                stats['errors'] = len(lines_to_process)
+                return
 
-        # ── PHASE 1: check Syteline per line, update MySQL ───────────────────────
-        log.info('--- Phase 1: checking Syteline for existing EO# (per line) ---')
+            # ── PHASE 1: check Syteline per line, update MySQL ───────────────────────
+            log.info('--- Phase 1: checking Syteline for existing EO# (per line) ---')
 
-        for line in missing_lines:
-            parts_order_id = line['PartsOrderID']
-            line_no = line['OrdLineNo']
-            serial_no = line['OrdHdrBoatSerialNo'] or 'N/A'
-            log.info(f'[P1] {parts_order_id}-{line_no:02d} ({serial_no}): checking Syteline')
+            for line in lines_to_process:
+                parts_order_id = line['PartsOrderID']
+                line_no = line['OrdLineNo']
+                serial_no = line['OrdHdrBoatSerialNo'] or 'N/A'
+                log.info(f'[P1] {parts_order_id}-{line_no:02d} ({serial_no}): checking Syteline')
 
-            erp_order_no = check_order_in_syteline(mssql_cursor, parts_order_id, line_no)
+                erp_order_no = check_order_in_syteline(mssql_cursor, parts_order_id, line_no)
 
-            if erp_order_no:
-                rows_updated = update_erp_order_no(mysql_cursor, parts_order_id, erp_order_no, line_no)
-                commit(mysql_conn)
-                log.info(f'[P1] UPDATED {parts_order_id}-{line_no:02d} ({serial_no}): EO# {erp_order_no}')
-                stats['found_in_syteline'] += 1
-            else:
-                log.info(f'[P1] {parts_order_id}-{line_no:02d} ({serial_no}): not in Syteline')
-                stats['not_in_syteline'] += 1
+                if erp_order_no:
+                    rows_updated = update_erp_order_no(mysql_cursor, parts_order_id, erp_order_no, line_no)
+                    commit(mysql_conn)
+                    log.info(f'[P1] UPDATED {parts_order_id}-{line_no:02d} ({serial_no}): EO# {erp_order_no}')
+                    stats['found_in_syteline'] += 1
+                else:
+                    log.info(f'[P1] {parts_order_id}-{line_no:02d} ({serial_no}): not in Syteline')
+                    stats['not_in_syteline'] += 1
 
         if mssql_cursor:
             mssql_cursor.close()
@@ -503,11 +593,19 @@ def sync_oe_parts():
 
         log.info('=' * 60)
         log.info('SYNC OE PARTS: Complete')
-        log.info(f'  Total lines:         {stats["total_lines"]}')
-        log.info(f'  Total orders:        {stats["total_orders"]}')
-        log.info(f'  EO# found & updated: {stats["found_in_syteline"]}')
-        log.info(f'  Not in Syteline:     {stats["not_in_syteline"]}')
-        log.info(f'  Errors:              {stats["errors"]}')
+        if FIX_MULTILINE:
+            log.info(f'  Total lines:         {stats["total_lines"]}')
+            log.info(f'  Total orders:        {stats["total_orders"]}')
+            log.info(f'  OE# already correct: {stats["correct"]}')
+            log.info(f'  OE# corrected:       {stats["updated"]}')
+            log.info(f'  Not in Syteline:     {stats["not_in_syteline"]}')
+            log.info(f'  Errors:              {stats["errors"]}')
+        else:
+            log.info(f'  Total lines:         {stats["total_lines"]}')
+            log.info(f'  Total orders:        {stats["total_orders"]}')
+            log.info(f'  EO# found & updated: {stats["found_in_syteline"]}')
+            log.info(f'  Not in Syteline:     {stats["not_in_syteline"]}')
+            log.info(f'  Errors:              {stats["errors"]}')
         log.info('=' * 60)
 
     except Exception as e:
@@ -524,6 +622,10 @@ if __name__ == '__main__':
     if '--backfill' in args:
         BACKFILL = True
         args.remove('--backfill')
+    
+    if '--fix-multiline' in args:
+        FIX_MULTILINE = True
+        args.remove('--fix-multiline')
     
     if '--order' in args:
         idx = args.index('--order')
