@@ -366,12 +366,19 @@ def get_parts_order_data(mysql_cursor, parts_order_id):
 #         log.warning(f'Could not write to network share ({e}). Written locally: {local_path}')
 #         return local_path
 
-def update_erp_order_no(mysql_cursor, parts_order_id, erp_order_no):
-    execute_write(mysql_cursor, """
-        UPDATE warrantyparts.PartsOrderLines
-        SET ERP_OrderNo = %s
-        WHERE PartsOrderID = %s
-    """, (erp_order_no, parts_order_id))
+def update_erp_order_no(mysql_cursor, parts_order_id, erp_order_no, line_no=None):
+    if line_no is not None:
+        execute_write(mysql_cursor, """
+            UPDATE warrantyparts.PartsOrderLines
+            SET ERP_OrderNo = %s
+            WHERE PartsOrderID = %s AND OrdLineNo = %s
+        """, (erp_order_no, parts_order_id, line_no))
+    else:
+        execute_write(mysql_cursor, """
+            UPDATE warrantyparts.PartsOrderLines
+            SET ERP_OrderNo = %s
+            WHERE PartsOrderID = %s
+        """, (erp_order_no, parts_order_id))
     return mysql_cursor.rowcount
 
 def sync_oe_parts():
@@ -407,7 +414,7 @@ def sync_oe_parts():
 
         if SINGLE_ORDER:
             mysql_cursor.execute("""
-                SELECT DISTINCT l.PartsOrderID, h.OrdHdrBoatSerialNo
+                SELECT l.PartsOrderID, l.OrdLineNo, h.OrdHdrBoatSerialNo
                 FROM warrantyparts.PartsOrderLines l
                 JOIN warrantyparts.PartsOrderHeader h ON l.PartsOrderID = h.PartsOrderID
                 WHERE l.PartsOrderID = %s
@@ -416,17 +423,17 @@ def sync_oe_parts():
         elif BACKFILL:
             log.info('BACKFILL mode: processing all exported orders from 2026-03-03 to now')
             mysql_cursor.execute("""
-                SELECT DISTINCT l.PartsOrderID, h.OrdHdrBoatSerialNo
+                SELECT l.PartsOrderID, l.OrdLineNo, h.OrdHdrBoatSerialNo
                 FROM warrantyparts.PartsOrderLines l
                 JOIN warrantyparts.PartsOrderHeader h ON l.PartsOrderID = h.PartsOrderID
                 WHERE l.OrdLineStatus = 'Exported'
                   AND (l.ERP_OrderNo IS NULL OR l.ERP_OrderNo = '')
                   AND STR_TO_DATE(h.HdrCreateDate, '%c/%e/%Y') >= '2026-03-03'
-                ORDER BY l.PartsOrderID DESC
+                ORDER BY l.PartsOrderID, l.OrdLineNo
             """)
         else:
             mysql_cursor.execute("""
-                SELECT DISTINCT l.PartsOrderID, h.OrdHdrBoatSerialNo
+                SELECT l.PartsOrderID, l.OrdLineNo, h.OrdHdrBoatSerialNo
                 FROM warrantyparts.PartsOrderLines l
                 JOIN warrantyparts.PartsOrderHeader h ON l.PartsOrderID = h.PartsOrderID
                 WHERE l.OrdLineStatus = 'Exported'
@@ -441,20 +448,22 @@ def sync_oe_parts():
                       DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 DAY), '%c/%e/%Y'),
                       DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 7 DAY), '%c/%e/%Y')
                   )
-                ORDER BY l.PartsOrderID DESC
+                ORDER BY l.PartsOrderID, l.OrdLineNo
             """)
 
-        missing_orders = mysql_cursor.fetchall()
-        log.info(f'Found {len(missing_orders)} orders with missing ERP_OrderNo')
+        missing_lines = mysql_cursor.fetchall()
+        unique_orders = set(line['PartsOrderID'] for line in missing_lines)
+        log.info(f'Found {len(missing_lines)} lines (across {len(unique_orders)} orders) with missing ERP_OrderNo')
 
         stats = {
-            'total':             len(missing_orders),
+            'total_lines':       len(missing_lines),
+            'total_orders':      len(unique_orders),
             'found_in_syteline': 0,
             'not_in_syteline':   0,
             'errors':            0,
         }
 
-        if not missing_orders:
+        if not missing_lines:
             log.info('Nothing to do.')
             if mssql_cursor:
                 mssql_cursor.close()
@@ -464,27 +473,27 @@ def sync_oe_parts():
 
         if not mssql_available:
             log.error('MSSQL unavailable — cannot check Syteline.')
-            stats['errors'] = len(missing_orders)
+            stats['errors'] = len(missing_lines)
             return
 
-        # ── PHASE 1: check Syteline, update MySQL for any EO# already there ─────
-        log.info('--- Phase 1: checking Syteline for existing EO# ---')
+        # ── PHASE 1: check Syteline per line, update MySQL ───────────────────────
+        log.info('--- Phase 1: checking Syteline for existing EO# (per line) ---')
 
-        for order in missing_orders:
-            parts_order_id = order['PartsOrderID']
-            serial_no = order['OrdHdrBoatSerialNo'] or 'N/A'
-            log.info(f'[P1] {parts_order_id} ({serial_no}): checking Syteline')
+        for line in missing_lines:
+            parts_order_id = line['PartsOrderID']
+            line_no = line['OrdLineNo']
+            serial_no = line['OrdHdrBoatSerialNo'] or 'N/A'
+            log.info(f'[P1] {parts_order_id}-{line_no:02d} ({serial_no}): checking Syteline')
 
-            syteline_results = check_order_in_syteline_by_partsorder(mssql_cursor, parts_order_id)
+            erp_order_no = check_order_in_syteline(mssql_cursor, parts_order_id, line_no)
 
-            if syteline_results:
-                erp_order_no = syteline_results[0]['ERP_OrderNo']
-                rows_updated = update_erp_order_no(mysql_cursor, parts_order_id, erp_order_no)
+            if erp_order_no:
+                rows_updated = update_erp_order_no(mysql_cursor, parts_order_id, erp_order_no, line_no)
                 commit(mysql_conn)
-                log.info(f'[P1] UPDATED {parts_order_id} ({serial_no}): EO# {erp_order_no} -> {rows_updated} lines')
+                log.info(f'[P1] UPDATED {parts_order_id}-{line_no:02d} ({serial_no}): EO# {erp_order_no}')
                 stats['found_in_syteline'] += 1
             else:
-                log.info(f'[P1] {parts_order_id} ({serial_no}): not in Syteline')
+                log.info(f'[P1] {parts_order_id}-{line_no:02d} ({serial_no}): not in Syteline')
                 stats['not_in_syteline'] += 1
 
         if mssql_cursor:
@@ -494,7 +503,8 @@ def sync_oe_parts():
 
         log.info('=' * 60)
         log.info('SYNC OE PARTS: Complete')
-        log.info(f'  Total orders:        {stats["total"]}')
+        log.info(f'  Total lines:         {stats["total_lines"]}')
+        log.info(f'  Total orders:        {stats["total_orders"]}')
         log.info(f'  EO# found & updated: {stats["found_in_syteline"]}')
         log.info(f'  Not in Syteline:     {stats["not_in_syteline"]}')
         log.info(f'  Errors:              {stats["errors"]}')
