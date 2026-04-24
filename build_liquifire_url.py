@@ -219,6 +219,8 @@ ASSET_FIXES = {
     '23LTSBASF': '22SL',
     '25LTSBSF':  '22SL',
     # R / RX series
+    '23RSB':     '25RSB',
+    '24RSB':     '25RSB',
     '23RSBA':    '23RFB',
     '23RSBASF':  '23RFB',
     '23RXFBASF': '23RFB',
