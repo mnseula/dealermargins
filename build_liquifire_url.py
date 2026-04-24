@@ -681,8 +681,8 @@ def main():
     token = get_trn_token()
     matrices = load_matrices(token)
 
-    prod_conn = mysql.connector.connect(database='warrantyparts', **DB)
-    test_conn = mysql.connector.connect(database='warrantyparts_test', **DB)
+    prod_conn = mysql.connector.connect(database='warrantyparts', client_flags=[mysql.connector.constants.ClientFlag.FOUND_ROWS], **DB)
+    test_conn = mysql.connector.connect(database='warrantyparts_test', client_flags=[mysql.connector.constants.ClientFlag.FOUND_ROWS], **DB)
     prod_cur = prod_conn.cursor()
 
     serials = get_target_serials(prod_cur, specific or None, rebuild_all)
