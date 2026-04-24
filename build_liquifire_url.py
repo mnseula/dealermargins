@@ -503,16 +503,20 @@ def build_url(serial, config, model, series, matrices):
     return f"{LIQUIFIRE_BASE}?set={params}&call=url[file:PS/main]&sink"
 
 
-def test_url(url, retries=2, timeout=30):
+def test_url(url, retries=3, timeout=60):
     """Return (ok, size_bytes) for a Liquifire URL.
     Liquifire returns a small (~4KB) placeholder JPEG for invalid/unknown assets.
     A real boat render is typically >20KB.
     Retries on timeout/error to handle transient Liquifire slowness.
+    First render of a complex URL can take 30-50s; use 60s timeout.
     """
     for attempt in range(retries):
         try:
             r = requests.get(url, timeout=timeout)
             if r.status_code == 200 and 'image' in r.headers.get('Content-Type', ''):
+                size = len(r.content)
+                return size > 20_000, size
+            if r.status_code == 200:
                 size = len(r.content)
                 return size > 20_000, size
             return False, 0
