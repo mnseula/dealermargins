@@ -653,13 +653,15 @@ def get_target_serials(cur, specific=None, rebuild_all=False):
             FROM BoatOptions26 bo
             JOIN SerialNumberMaster snm ON snm.Boat_SerialNo = bo.BoatSerialNo
             WHERE bo.BoatModelNo IS NOT NULL AND bo.BoatModelNo != 'Base Boat'
-              AND (snm.LiquifireImageUrl IS NULL OR snm.LiquifireImageUrl = '')
+              AND (snm.LiquifireImageUrl IS NULL OR snm.LiquifireImageUrl = ''
+                   OR snm.LiquifireImageUrl NOT LIKE '%furnPrime%')
             UNION
             SELECT DISTINCT bo.BoatSerialNo
             FROM BoatOptions25 bo
             JOIN SerialNumberMaster snm ON snm.Boat_SerialNo = bo.BoatSerialNo
             WHERE bo.BoatModelNo IS NOT NULL AND bo.BoatModelNo != ''
-              AND (snm.LiquifireImageUrl IS NULL OR snm.LiquifireImageUrl = '')
+              AND (snm.LiquifireImageUrl IS NULL OR snm.LiquifireImageUrl = ''
+                   OR snm.LiquifireImageUrl NOT LIKE '%furnPrime%')
         """)
     return [r[0] for r in cur.fetchall()]
 
