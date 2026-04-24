@@ -14,6 +14,7 @@ Run:
     python3 build_liquifire_url.py              # process missing URLs only
     python3 build_liquifire_url.py --all        # rebuild all CPQ boat URLs
     python3 build_liquifire_url.py --dry-run    # build but don't store
+    python3 build_liquifire_url.py --no-verify  # skip Liquifire render test (use when Liquifire unreachable)
     python3 build_liquifire_url.py ETWXXXX626   # specific serial(s)
 """
 
@@ -674,6 +675,7 @@ def main():
     args = sys.argv[1:]
     dry_run = '--dry-run' in args
     rebuild_all = '--all' in args
+    no_verify = '--no-verify' in args
     specific = [a for a in args if not a.startswith('--')]
 
     token = get_trn_token()
@@ -685,6 +687,8 @@ def main():
 
     serials = get_target_serials(prod_cur, specific or None, rebuild_all)
     print(f'\nProcessing {len(serials)} boat(s)...\n')
+    if no_verify:
+        print('  [--no-verify] skipping Liquifire render test — storing built URL directly\n')
 
     results = {'ok': 0, 'failed': 0, 'skipped': 0}
 
@@ -709,7 +713,15 @@ def main():
             normalized_asset, _ = normalize_asset(model)
             print(f'  {serial}: asset normalized {model} → {normalized_asset}')
 
-        url, size, method = build_and_test_url(serial, config, model, series, matrices, from_snm=from_snm)
+        if no_verify:
+            url = build_url(serial, config, model, series, matrices)
+            if not url:
+                print(f'  {serial} ({model}): SKIP — could not build URL (no model)')
+                results['skipped'] += 1
+                continue
+            method, size = 'no-verify', 0
+        else:
+            url, size, method = build_and_test_url(serial, config, model, series, matrices, from_snm=from_snm)
 
         if not url:
             print(f'  {serial} ({model}): FAIL — URL did not render')
