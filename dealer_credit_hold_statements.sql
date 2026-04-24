@@ -1,77 +1,61 @@
 -- ============================================================================
 -- DEALER CREDIT HOLD - EOS Stored Statements
--- Add each query below as a new sStatement in the EOS admin interface
+-- Add each block below as a sStatement in the EOS admin interface
 -- ============================================================================
 
 
 -- ============================================================================
--- IS_CREDIT_HOLD_MANAGER
--- Params: @PARAM1 = username (from getValue('EOS','USER'))
--- Returns: 1 row if authorized, 0 rows if not
--- ============================================================================
-SELECT username FROM warrantyparts.credit_hold_managers WHERE username = @PARAM1
-
-
--- ============================================================================
--- GET_DEALER_HOLD_STATUS
--- Params: @PARAM1 = DlrNo (8-char dealer number)
--- Returns: hold record if it exists (check Is_on_hold = '1' for active hold)
--- ============================================================================
-SELECT
-    h.DlrNo,
-    h.Is_on_hold,
-    h.Added_by,
-    h.Date_added,
-    h.Updated_by,
-    h.Date_updated,
-    d.DealerName
-FROM warrantyparts.Dealers_on_hold h
-LEFT JOIN Eos.dealers d ON h.DlrNo = d.DlrNo
-WHERE h.DlrNo = @PARAM1
-
-
--- ============================================================================
--- GET_ALL_HELD_DEALERS
+-- DLRS_GET_ALL_ON_HOLD
 -- Params: none
--- Returns: all dealers currently on hold (Is_on_hold = '1')
+-- Returns all dealers currently on hold with columns the JS expects:
+--   DlrNo, DealerName, Address, Date_added, Added_by, isOnHold
 -- ============================================================================
 SELECT
     h.DlrNo,
-    h.Is_on_hold,
-    h.Added_by,
+    d.DealerName,
+    CONCAT_WS(' ', d.Add1, d.City, d.State, d.Zip) AS Address,
     h.Date_added,
-    h.Updated_by,
-    h.Date_updated,
-    d.DealerName
+    h.Added_by,
+    h.Is_on_hold AS isOnHold
 FROM warrantyparts.Dealers_on_hold h
 LEFT JOIN Eos.dealers d ON h.DlrNo = d.DlrNo
 WHERE h.Is_on_hold = '1'
-ORDER BY d.DealerName
+ORDER BY h.DlrNo
 
 
 -- ============================================================================
--- SET_DEALER_ON_HOLD
--- Params: @PARAM1 = DlrNo, @PARAM2 = user email (Added_by / Updated_by)
--- Inserts new hold or updates existing row to Is_on_hold = '1'
+-- DLRS_GET_ALL
+-- Params: none
+-- Returns all active dealers for the Add dropdown
+-- ============================================================================
+SELECT DlrNo, DealerName
+FROM Eos.dealers
+WHERE DoNotShowFlag = 0
+ORDER BY DealerName
+
+
+-- ============================================================================
+-- DLRS_ADD_ON_HOLD
+-- Params: @PARAM1 = DlrNo, @PARAM2 = Added_by, @PARAM3 = Updated_by
+-- Called as: sStatement('DLRS_ADD_ON_HOLD', [dlrNo, eos.user.username, eos.user.username])
 -- ============================================================================
 INSERT INTO warrantyparts.Dealers_on_hold
     (DlrNo, Is_on_hold, Added_by, Date_added, Updated_by, Date_updated)
 VALUES
-    (@PARAM1, '1', @PARAM2, CURDATE(), @PARAM2, CURDATE())
+    (@PARAM1, '1', @PARAM2, CURDATE(), @PARAM3, CURDATE())
 ON DUPLICATE KEY UPDATE
-    Is_on_hold  = '1',
-    Updated_by  = @PARAM2,
+    Is_on_hold   = '1',
+    Updated_by   = @PARAM3,
     Date_updated = CURDATE()
 
 
 -- ============================================================================
--- REMOVE_DEALER_HOLD
--- Params: @PARAM1 = DlrNo, @PARAM2 = user email (Updated_by)
--- Sets Is_on_hold = '0', does NOT delete the row (preserves audit trail)
+-- DLRS_REMOVE_ON_HOLD
+-- Params: @PARAM1 = DlrNo
+-- Called as: sStatement('DLRS_REMOVE_ON_HOLD', [dlrNo])
 -- ============================================================================
 UPDATE warrantyparts.Dealers_on_hold
 SET
     Is_on_hold   = '0',
-    Updated_by   = @PARAM2,
     Date_updated = CURDATE()
 WHERE DlrNo = @PARAM1
