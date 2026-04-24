@@ -5,6 +5,14 @@
 
 
 -- ============================================================================
+-- IS_CREDIT_HOLD_MANAGER
+-- Params: @PARAM1 = username (from getValue('EOS','USER'))
+-- Returns: 1 row if authorized, 0 rows if not
+-- ============================================================================
+SELECT username FROM warrantyparts.credit_hold_managers WHERE username = @PARAM1
+
+
+-- ============================================================================
 -- GET_DEALER_HOLD_STATUS
 -- Params: @PARAM1 = DlrNo (8-char dealer number)
 -- Returns: hold record if it exists (check Is_on_hold = '1' for active hold)
