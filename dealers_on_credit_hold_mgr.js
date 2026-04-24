@@ -1,4 +1,6 @@
 window.pwDlrsOnCreditHold = Object.freeze((function () {
+    var allowedRoles = ['CustServiceMgr', 'WarrantyMgr', 'Maint', 'Admin', 'SuperUser'];
+    var canManage = allowedRoles.indexOf(eos.user.role) !== -1;
     var imported = false;
     var dlrData = [];
     var dlrListData = [];
@@ -69,9 +71,11 @@ window.pwDlrsOnCreditHold = Object.freeze((function () {
             }
         },
         add : function (dlrNo) {
+            if (!canManage) { return; }
             return add(dlrNo);
         },
         remove : function (dlrNo) {
+            if (!canManage) { return; }
             var confirmDelete = two_option(
                 'Confirm Deletion',
                 '<p style="margin:25px;">Click <span style="font-weight:bold;">OK</span> to confirm removing the On Hold status for Dealer Number ' + dlrNo + '</p>',
