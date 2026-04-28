@@ -1,0 +1,92 @@
+<ProcessTest_Verenia_Boat xmlns='http://schema.infor.com/InforOAGIS/2' xmlns:xs='http://www.w3.org/2001/XMLSchema'>
+  <ApplicationArea>
+    <Sender>
+      <LogicalID>infor.file.test_verenia_boat_sftp</LogicalID>
+      <ComponentID>External</ComponentID>
+      <ConfirmationCode>OnError</ConfirmationCode>
+    </Sender>
+    <CreationDateTime>2026-04-28T13:56:13.351Z</CreationDateTime>
+    <BODID>infor.file.test_verenia_boat_sftp:1777398973351:8da467f0-da1b-43a2-88ab-35c2271aed07</BODID>
+  </ApplicationArea>
+  <DataArea>
+    <Process>
+      <AccountingEntityID xmlns=""/>
+      <LocationID xmlns=""/>
+      <ActionCriteria>
+        <ActionExpression actionCode='Add'/>
+      </ActionCriteria>
+    </Process>
+    <Test_Verenia_Boat>
+      <Test_Verenia_BoatHeader>
+        <AlternateDocumentID>
+          <ID>WP0526080-S3</ID>
+        </AlternateDocumentID>
+        <ShipToParty>
+          <PartyIDs>
+            <ID>146072~5</ID>
+          </PartyIDs>
+        </ShipToParty>
+        <CarrierParty>
+          <PartyIDs>
+            <ID>UPS</ID>
+          </PartyIDs>
+        </CarrierParty>
+        <PaymentTerm>
+          <Term>
+            <ID>P2</ID>
+          </Term>
+        </PaymentTerm>
+        <PurchaseOrderReference>
+          <DocumentID>
+            <ID>GREG FELTUS</ID>
+          </DocumentID>
+        </PurchaseOrderReference>
+        <OrderDateTime>4/22/2026</OrderDateTime>
+        <ue_BennOrderType>CHARGE PARTS</ue_BennOrderType>
+        <ue_EngineForBoat/>
+        <ue_PreSold/>
+        <ue_ShowBoat/>
+        <ue_RentalBoat/>
+        <PanelColor>OCEAN BLUE</PanelColor>
+        <BaseVinyl/>
+        <BuildComments/>
+        <DealerComments/>
+        <BoatModel>22SSRXSG</BoatModel>
+        <BoatSerialNo>ETWJ2167B020</BoatSerialNo>
+        <ShippingMethod>UPS</ShippingMethod>
+        <BennTermsCode></BennTermsCode>
+        <ue_International>0</ue_International>
+        <ue_InternationalType></ue_InternationalType>
+        <ue_SpecialInstructions>PRODUCTION NUMBER 2005454
+CANVAS COLOR MIDNIGHT BLUE</ue_SpecialInstructions>
+        <ue_Reason></ue_Reason>
+        <ue_LoadNumber/>
+        <ue_BennOwned></ue_BennOwned>
+        <ue_CustTrackingEmail>josh@futrellmarine.com</ue_CustTrackingEmail>
+      </Test_Verenia_BoatHeader>
+      <Test_Verenia_BoatLine>
+        <Item>
+          <ItemID>
+            <ID>011212</ID>
+          </ItemID>
+        </Item>
+        <Quantity unitCode="EA">4</Quantity>
+        <WarrantyClaimNo/>
+        <WarrantyClaimLineID/>
+        <UnitPrice>144.00</UnitPrice>
+        <ShippingInstructions/>
+        <PartsWebOrderNo>WP0526080-04</PartsWebOrderNo>
+        <ue_LastRecord>1</ue_LastRecord>
+        <ue_Dealer_Comments/>
+        <ue_Details_Sublet_Comments/>
+        <ue_Item_Desc>POLE PLYPN CVR STRAIGHT W/CLMP (SHIP)
+</ue_Item_Desc>
+        <ue_RGA>0</ue_RGA>
+        <ue_RGA_Date></ue_RGA_Date>
+        <ue_Estimated_Shipping_Date>2026-05-08</ue_Estimated_Shipping_Date>
+        <ue_TransactionId>WP0526080-04</ue_TransactionId>
+        <ue_Alternate_Shipping_Location></ue_Alternate_Shipping_Location>
+      </Test_Verenia_BoatLine>
+    </Test_Verenia_Boat>
+  </DataArea>
+</ProcessTest_Verenia_Boat>
