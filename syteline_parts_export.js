@@ -460,6 +460,10 @@ window.ExportSytelineParts = window.ExportSytelineParts || function (ordersIDs) 
     }
 
 
+    // Empty terminator block — Syteline skips it (no AlternateDocumentID / no lines)
+    // but prevents the real last shipment block from being silently dropped.
+    xmlContent += `<Test_Verenia_Boat><Test_Verenia_BoatHeader><AlternateDocumentID><ID></ID></AlternateDocumentID></Test_Verenia_BoatHeader></Test_Verenia_Boat>`;
+
     var xmlFooter = `
                 </DataArea>
                 </ProcessTest_Verenia_Boat>
