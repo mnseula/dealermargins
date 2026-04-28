@@ -266,11 +266,40 @@ ASSET_FIXES = {
     # Arch suffix removal
     '25QSBA': '25QSB',
     # S1 series → S series mapping (S1 = upgraded S, not a separate Liquifire asset)
-    '22S1SR': '23SSR',
+    '22S1SR': '22SSR',   # was wrongly '23SSR' which does not render
     '22S1SB': '22SSB',
+    '23S1SB': '22SSB',
     '20S1SR': '22SSR',
     '23S1SR': '22SSR',
     '20S1L':  '22SL',
+    # S series year variants not in Liquifire
+    '20SSR':  '22SSR',
+    '21SSR':  '22SSR',
+    '23SSR':  '22SSR',
+    '25SSR':  '22SSR',
+    '21SSB':  '22SSB',
+    '23SSB':  '22SSB',
+    '20SSB':  '22SSB',
+    # S series Fastback / Legacy year variants
+    '22SF':   '20SF',
+    '188SF':  '20SF',
+    '20SL':   '22SL',
+    '23SL':   '22SL',
+    '168SL':  '22SL',
+    '20SLJ':  '22SLJ',
+    '168SLJ': '22SLJ',
+    # M series Fastback year variants not in Liquifire
+    '22MFB':  '24MFB',
+    '23MFB':  '24MFB',
+    '26MFB':  '24MFB',
+    '23M1FB': '24MFB',
+    # M series Sportliner year variants
+    '23MSL':  '24MSL',
+    '26MSL':  '24MSL',
+    # M series Swingback year variants
+    '26MSB':  '23MSB',
+    # Large QX model without SF suffix
+    '30QXFBAX2': '25QXFBW',
     # Legacy/old model naming
     '188SL':  '22SL',
     '188SLSF': '22SL',
