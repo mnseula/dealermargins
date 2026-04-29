@@ -71,20 +71,33 @@ configured before the template was set up).
 
 ## How to Retrieve headerId and detailId
 
-The two required IDs come from the CPQEQ OrderLine — the same API we already use to get
-`LastConfigurationImageLink`.
+The two required IDs come from the CPQEQ OrderLine — the **same API already used in
+`fetch_cpq_image_urls()` in `import_daily_boats.py`** to retrieve `LastConfigurationImageLink`.
 
-```
-1. GET /CPQEQ/RuntimeApi/EnterpriseQuoting/Entities/Order
-       ?$filter=ExternalId eq '{SO_number}'
-   → order['Id']  (this is the headerId)
+### Existing pipeline (lines 810–825 of `import_daily_boats.py`)
 
-2. GET /CPQEQ/RuntimeApi/EnterpriseQuoting/Entities/OrderLine
-       ?$filter=Order eq '{order_guid}'
-   → Find the line where Description = 'Pontoon Boats'
-   → line['SourceDetailId']  (this is the detailId)
-   → line['Order']           (same as order['Id'] — confirms headerId)
+```python
+# Step 1 — get Order by SO number → yields headerId
+r = requests.get(f"{eq_base}/Order",
+                 params={'$filter': f"ExternalId eq '{so}'", '$top': 1}, ...)
+order_id = r.json()['items'][0]['Id']   # <-- this is the headerId
+
+# Step 2 — get OrderLine by Order GUID → yields detailId
+r2 = requests.get(f"{eq_base}/OrderLine",
+                  params={'$filter': f"Order eq '{order_id}'", '$top': 50}, ...)
+for line in r2.json()['items']:
+    url = line.get('LastConfigurationImageLink')   # currently used
+    detail_id = line.get('SourceDetailId')         # <-- this is the detailId
 ```
+
+The `headerId` is `order_id` (already retrieved on line 816).
+The `detailId` is `line['SourceDetailId']` on the same `OrderLine` response (line 821).
+
+Adding support for `LoadIntegrationOutputData` requires **one additional field read**
+from the OrderLine response — `SourceDetailId` — with no extra API calls.
+
+A fallback path via `ConfigurationId` already exists for non-standard SO numbers
+(SOORE*, SONKF*, etc.) and can be extended the same way.
 
 ---
 
