@@ -660,11 +660,27 @@ def get_snm_config(cur, serial, matrices):
     return config, bool(config)
 
 
-def store_url(conn, serial, url):
+def ensure_snm_method_column(conn):
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME   = 'SerialNumberMaster'
+          AND COLUMN_NAME  = 'LiquifireMethod'
+    """)
+    if cur.fetchone()[0] == 0:
+        cur.execute("""
+            ALTER TABLE SerialNumberMaster
+            ADD COLUMN LiquifireMethod VARCHAR(20) NOT NULL DEFAULT ''
+        """)
+        conn.commit()
+
+
+def store_url(conn, serial, url, method=''):
     cur = conn.cursor()
     cur.execute(
-        "UPDATE SerialNumberMaster SET LiquifireImageUrl = %s WHERE Boat_SerialNo = %s",
-        (url, serial)
+        "UPDATE SerialNumberMaster SET LiquifireImageUrl = %s, LiquifireMethod = %s WHERE Boat_SerialNo = %s",
+        (url, method, serial)
     )
     conn.commit()
     return cur.rowcount
@@ -718,6 +734,8 @@ def main():
 
     prod_conn = mysql.connector.connect(database='warrantyparts', client_flags=[mysql.connector.constants.ClientFlag.FOUND_ROWS], **DB)
     test_conn = mysql.connector.connect(database='warrantyparts_test', client_flags=[mysql.connector.constants.ClientFlag.FOUND_ROWS], **DB)
+    ensure_snm_method_column(prod_conn)
+    ensure_snm_method_column(test_conn)
     prod_cur = prod_conn.cursor()
 
     serials = get_target_serials(prod_cur, specific or None, rebuild_all)
@@ -766,8 +784,8 @@ def main():
         if dry_run:
             print(f'  {serial} ({model}): OK [{method}] ({size:,} bytes) [dry-run, not stored]')
         else:
-            n_prod = store_url(prod_conn, serial, url)
-            n_test = store_url(test_conn, serial, url)
+            n_prod = store_url(prod_conn, serial, url, method)
+            n_test = store_url(test_conn, serial, url, method)
             print(f'  {serial} ({model}): OK [{method}] ({size:,} bytes) — stored prod={n_prod} test={n_test}')
 
         results['ok'] += 1
