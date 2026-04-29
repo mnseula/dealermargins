@@ -283,6 +283,7 @@ ASSET_FIXES = {
     # S series Fastback / Legacy year variants
     '22SF':   '20SF',
     '188SF':  '20SF',
+    '168':    '20SF',   # 168SF strips to 168 — use 20SF hull
     '20SL':   '22SL',
     '23SL':   '22SL',
     '168SL':  '22SL',
