@@ -11,17 +11,19 @@ Targets:
                                         CPQ config is now available
 
 Usage:
-    python3 sweep_liquifire_urls.py             # full sweep (all missing)
-    python3 sweep_liquifire_urls.py --today     # only boats imported today (JAMS nightly)
-    python3 sweep_liquifire_urls.py --dry-run   # print what would be processed, no writes
+    python3 sweep_liquifire_urls.py                        # full sweep (all missing)
+    python3 sweep_liquifire_urls.py --today                # only boats imported today (JAMS nightly)
+    python3 sweep_liquifire_urls.py --today --no-verify    # skip Liquifire render test (use when Liquifire unreachable)
+    python3 sweep_liquifire_urls.py --dry-run              # print what would be processed, no writes
 """
 
 import sys
 import mysql.connector
 import build_liquifire_url as blu
 
-DRY_RUN  = '--dry-run' in sys.argv
-TODAY    = '--today'   in sys.argv
+DRY_RUN   = '--dry-run'   in sys.argv
+TODAY     = '--today'     in sys.argv
+NO_VERIFY = '--no-verify' in sys.argv
 
 
 def get_sweep_serials(cur):
@@ -46,6 +48,8 @@ def get_sweep_serials(cur):
 def main():
     scope = 'today' if TODAY else 'all missing'
     print(f'=== Liquifire URL Sweep ({scope}) ===\n')
+    if NO_VERIFY:
+        print('  [--no-verify] skipping Liquifire render test — storing built URL directly\n')
 
     token = blu.get_trn_token()
     matrices = blu.load_matrices(token)
@@ -99,9 +103,17 @@ def main():
             normalized_asset, _ = blu.normalize_asset(model)
             print(f'  {serial}: asset normalized {model} → {normalized_asset}')
 
-        url, size, method = blu.build_and_test_url(
-            serial, config, model, series, matrices, from_snm=from_snm
-        )
+        if NO_VERIFY:
+            url = blu.build_url(serial, config, model, series, matrices)
+            size, method = 0, 'no-verify'
+            if not url:
+                print(f'  {serial} ({model}): SKIP — could not build URL')
+                results['skipped'] += 1
+                continue
+        else:
+            url, size, method = blu.build_and_test_url(
+                serial, config, model, series, matrices, from_snm=from_snm
+            )
 
         if not url:
             print(f'  {serial} ({model}): FAIL — URL did not render')
