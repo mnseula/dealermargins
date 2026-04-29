@@ -233,6 +233,7 @@ ASSET_FIXES = {
     '27QXFBWAX2SF': '25QXFBW',
     '27RXSBWAT2SF': '25RSR',
     '23LXSFB':      '24LXSFB',
+    '24LXSFBA':     '24LXSFB',   # arch variant not in Liquifire — use base FB
     '25QFBA':       '25QFB',
     '28QXFBAX1SF':  '25QXFBW',
     '28QXSBWA':     '25QXSBW',
@@ -318,7 +319,7 @@ SERIES_STOCK_ASSET = {
     'R':   '25RSR',
     'RT':  '25RSR',
     'RX':  '25RSR',
-    'LXS': '25LXSSB',
+    'LXS': '24LXSSB',
     'LT':  '22SL',
 }
 
