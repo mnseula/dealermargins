@@ -11,7 +11,8 @@ Targets:
                                         CPQ config is now available
 
 Usage:
-    python3 sweep_liquifire_urls.py             # run sweep
+    python3 sweep_liquifire_urls.py             # full sweep (all missing)
+    python3 sweep_liquifire_urls.py --today     # only boats imported today (JAMS nightly)
     python3 sweep_liquifire_urls.py --dry-run   # print what would be processed, no writes
 """
 
@@ -19,11 +20,13 @@ import sys
 import mysql.connector
 import build_liquifire_url as blu
 
-DRY_RUN = '--dry-run' in sys.argv
+DRY_RUN  = '--dry-run' in sys.argv
+TODAY    = '--today'   in sys.argv
 
 
 def get_sweep_serials(cur):
-    cur.execute("""
+    date_filter = "AND DATE(snm.createdate) = CURDATE()" if TODAY else ""
+    cur.execute(f"""
         SELECT DISTINCT snm.Boat_SerialNo
         FROM SerialNumberMaster snm
         JOIN warrantyparts.BoatOptions26 bo ON bo.BoatSerialNo = snm.Boat_SerialNo
@@ -34,13 +37,15 @@ def get_sweep_serials(cur):
             OR snm.LiquifireImageUrl = ''
             OR snm.LiquifireMethod   = 'stock-bare'
           )
+          {date_filter}
         ORDER BY snm.Boat_SerialNo
     """)
     return [r[0] for r in cur.fetchall()]
 
 
 def main():
-    print('=== Liquifire URL Sweep ===\n')
+    scope = 'today' if TODAY else 'all missing'
+    print(f'=== Liquifire URL Sweep ({scope}) ===\n')
 
     token = blu.get_trn_token()
     matrices = blu.load_matrices(token)
