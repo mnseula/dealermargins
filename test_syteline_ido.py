@@ -425,8 +425,32 @@ if __name__ == "__main__":
     print("Syteline IDO API Test (STG)")
     print("=" * 60)
 
-    # Step 1: Get OAuth token
-    print("\n--- Step 1: Get OAuth token ---")
+    # Step 1: CPQ-style token — no scope, no resource (CPQ gets a JWT this way)
+    print("\n--- Step 1: CPQ-style token (no scope/resource) ---")
+    resp = requests.post(
+        TOKEN_ENDPOINT,
+        data={
+            'grant_type':    'password',
+            'client_id':     CLIENT_ID,
+            'client_secret': CLIENT_SECRET,
+            'username':      SERVICE_KEY,
+            'password':      SERVICE_SECRET,
+        },
+        verify=False, timeout=30
+    )
+    print(f"  Status: {resp.status_code}")
+    cpq_style_token = None
+    if resp.status_code == 200:
+        cpq_style_token = resp.json().get('access_token', '')
+        is_jwt = cpq_style_token.startswith('eyJ')
+        print(f"  Token ({len(cpq_style_token)} chars, {'JWT ✓' if is_jwt else 'opaque'}): {cpq_style_token[:80]}...")
+        print("\n  Testing CPQ-style token directly against IDO...")
+        query_ido(cpq_style_token, "SLCos", properties="CoNum", record_cap=1)
+    else:
+        print(f"  Error: {resp.text[:200]}")
+
+    # Step 2: Fallback — token with resource param
+    print("\n--- Step 2: Token with resource param (fallback) ---")
     oauth_token = get_token_with_resource()
     if not oauth_token:
         print("Failed to get OAuth token — stopping.")
