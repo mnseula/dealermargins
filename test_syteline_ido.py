@@ -341,22 +341,83 @@ def try_basic_auth():
         print(f"  Basic({label}): {resp.status_code} — {resp.text[:200]}")
 
 
-def try_token_as_logon_body(oauth_token):
-    """Try posting the token to a logon endpoint to get a session."""
-    print("\n--- Token as logon body ---")
-    base = "https://inforosmarine.polarisstage.com:7443/infor/CSI/IDORequestService"
-    for path in ['/logon', '/session/logon', '/ido/logon']:
-        for payload in [
-            {'token': oauth_token},
-            {'access_token': oauth_token},
-            {'BearerToken': oauth_token, 'configuration': CONFIG},
-        ]:
-            resp = requests.post(f"{base}{path}",
-                                 headers={'Accept': 'application/json',
-                                          'Content-Type': 'application/json',
-                                          'X-Infor-MongooseConfig': CONFIG},
-                                 json=payload, verify=False, timeout=10)
-            print(f"  POST {path} {list(payload.keys())}: {resp.status_code} — {resp.text[:150]}")
+def try_ido_logon(oauth_token):
+    """
+    /ido/logon is alive (returns 401, not 500).
+    Try it with Bearer token in Authorization header + config in body,
+    and also with direct service credentials in the body.
+    On success it should return a Mongoose session token.
+    """
+    print("\n--- /ido/logon attempts ---")
+    url = "https://inforosmarine.polarisstage.com:7443/infor/CSI/IDORequestService/ido/logon"
+
+    attempts = [
+        # Bearer token in header, config in body
+        {
+            'label': 'Bearer header + config body',
+            'headers': {
+                'Authorization': f'Bearer {oauth_token}',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Infor-MongooseConfig': CONFIG,
+            },
+            'body': {'configuration': CONFIG},
+        },
+        # Bearer token in header, no body
+        {
+            'label': 'Bearer header, no body',
+            'headers': {
+                'Authorization': f'Bearer {oauth_token}',
+                'Accept': 'application/json',
+                'X-Infor-MongooseConfig': CONFIG,
+            },
+            'body': None,
+        },
+        # Service key/secret as Mongoose credentials in body
+        {
+            'label': 'service credentials in body',
+            'headers': {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Infor-MongooseConfig': CONFIG,
+            },
+            'body': {
+                'configuration': CONFIG,
+                'userName': SERVICE_KEY,
+                'password': SERVICE_SECRET,
+            },
+        },
+        # Bearer + service credentials in body
+        {
+            'label': 'Bearer header + service credentials in body',
+            'headers': {
+                'Authorization': f'Bearer {oauth_token}',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Infor-MongooseConfig': CONFIG,
+            },
+            'body': {
+                'configuration': CONFIG,
+                'userName': SERVICE_KEY,
+                'password': SERVICE_SECRET,
+            },
+        },
+    ]
+
+    for attempt in attempts:
+        kwargs = dict(headers=attempt['headers'], verify=False, timeout=30)
+        if attempt['body'] is not None:
+            kwargs['json'] = attempt['body']
+        resp = requests.post(url, **kwargs)
+        print(f"  [{attempt['label']}]: {resp.status_code} — {resp.text[:300]}")
+        if resp.status_code == 200:
+            data = resp.json()
+            token = (data.get('SessionToken') or data.get('sessionToken')
+                     or data.get('token') or data.get('access_token'))
+            if token:
+                print(f"    *** Got session token: {token[:60]}...")
+                return token
+    return None
 
 
 if __name__ == "__main__":
@@ -377,12 +438,8 @@ if __name__ == "__main__":
     # Step 3: Try Basic auth
     try_basic_auth()
 
-    # Step 4: Try posting token to logon endpoints
-    try_token_as_logon_body(oauth_token)
-
-    # Step 5: Exchange for Mongoose session token (existing flow)
-    print("\n--- Step 5: Session exchange ---")
-    session_token = exchange_for_session(oauth_token)
+    # Step 4: Target /ido/logon — the only alive auth endpoint
+    session_token = try_ido_logon(oauth_token)
     if session_token:
-        print("\n--- Step 6: Query SLCos with session token ---")
+        print("\n--- Step 5: Query SLCos with session token ---")
         query_ido_with_session(session_token, "SLCos", properties="CoNum", record_cap=3)
