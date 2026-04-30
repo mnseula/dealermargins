@@ -93,6 +93,30 @@ def get_session_token():
     return None
 
 
+def get_token_client_credentials():
+    """Try client_credentials grant — may return a JWT instead of opaque token."""
+    print(f"\nGetting token via client_credentials grant...")
+    resp = requests.post(
+        TOKEN_ENDPOINT,
+        data={
+            'grant_type': 'client_credentials',
+            'client_id': CLIENT_ID,
+            'client_secret': CLIENT_SECRET,
+            'scope': 'ido',
+        },
+        verify=False,
+        timeout=30
+    )
+    print(f"  Status: {resp.status_code}")
+    if resp.status_code == 200:
+        data = resp.json()
+        token = data.get('access_token', '')
+        print(f"  Token ({len(token)} chars): {token[:60]}...")
+        return token
+    print(f"  Error: {resp.text[:300]}")
+    return None
+
+
 def get_token_via_ion_api():
     """Try ION API token endpoint on port 7443."""
     ion_token_url = "https://inforosmarine.polarisstage.com:7443/infor/CSI/IONTokenService/token"
@@ -210,27 +234,53 @@ def try_slrest_api():
 
 def exchange_for_session(oauth_token):
     """Exchange OAuth bearer token for a Mongoose session token."""
-    session_url = f"https://inforosmarine.polarisstage.com:7443/infor/CSI/IDORequestService/session"
+    session_url = "https://inforosmarine.polarisstage.com:7443/infor/CSI/IDORequestService/session"
     headers = {
         'Authorization': f'Bearer {oauth_token}',
         'Accept': 'application/json',
+        'Content-Type': 'application/json',
         'X-Infor-MongooseConfig': CONFIG,
     }
-    print(f"\nExchanging OAuth token for Mongoose session...")
-    print(f"  URL: {session_url}")
-    resp = requests.post(session_url, headers=headers, verify=False, timeout=30)
-    print(f"  Status: {resp.status_code}")
-    print(f"  Response: {resp.text[:500]}")
+
+    # Try POST with config body (required by most Mongoose versions)
+    for body in [
+        {'configuration': CONFIG},
+        {'configuration': CONFIG, 'culture': 'en-US'},
+        {},
+    ]:
+        print(f"\n  POST {session_url}  body={body}")
+        resp = requests.post(session_url, headers=headers, json=body, verify=False, timeout=30)
+        print(f"  Status: {resp.status_code}  Response: {resp.text[:300]}")
+        if resp.status_code == 200:
+            data = resp.json()
+            session_token = (data.get('SessionToken') or data.get('sessionToken')
+                             or data.get('token') or data.get('access_token'))
+            if session_token:
+                print(f"  Session token: {session_token[:50]}...")
+                return session_token
+
+    # Try GET (some versions use GET to retrieve session)
+    print(f"\n  GET {session_url}")
+    resp = requests.get(session_url, headers=headers, verify=False, timeout=30)
+    print(f"  Status: {resp.status_code}  Response: {resp.text[:300]}")
     if resp.status_code == 200:
         data = resp.json()
-        # Session token may come back under different keys depending on version
-        session_token = (data.get('SessionToken')
-                         or data.get('sessionToken')
-                         or data.get('token')
-                         or data.get('access_token'))
-        if session_token:
-            print(f"  Session token: {session_token[:50]}...")
-        return session_token
+        return (data.get('SessionToken') or data.get('sessionToken')
+                or data.get('token') or data.get('access_token'))
+
+    # Try CreateSession path with direct credentials (no OAuth)
+    print(f"\n  Trying CreateSession with direct credentials...")
+    cs_url = "https://inforosmarine.polarisstage.com:7443/infor/CSI/IDORequestService/session/CreateSession"
+    resp = requests.post(cs_url,
+                         headers={'Accept': 'application/json', 'Content-Type': 'application/json'},
+                         json={'configuration': CONFIG, 'userName': SERVICE_KEY, 'password': SERVICE_SECRET},
+                         verify=False, timeout=30)
+    print(f"  Status: {resp.status_code}  Response: {resp.text[:300]}")
+    if resp.status_code == 200:
+        data = resp.json()
+        return (data.get('SessionToken') or data.get('sessionToken')
+                or data.get('token') or data.get('access_token'))
+
     return None
 
 
@@ -261,6 +311,13 @@ if __name__ == "__main__":
     # Step 1: Get OAuth token (resource param works, scope=ido does not)
     print("\n--- Step 1: Get OAuth token ---")
     oauth_token = get_token_with_resource()
+
+    # Also try client_credentials — may yield a JWT that IDO can validate directly
+    print("\n--- Step 1b: client_credentials grant ---")
+    cc_token = get_token_client_credentials()
+    if cc_token:
+        print("\n  Testing client_credentials token directly against IDO...")
+        query_ido(cc_token, "SLCos", properties="CoNum", record_cap=1)
 
     if not oauth_token:
         print("Failed to get OAuth token — stopping.")
