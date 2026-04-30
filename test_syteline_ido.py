@@ -425,6 +425,32 @@ if __name__ == "__main__":
     print("Syteline IDO API Test (STG)")
     print("=" * 60)
 
+    # Try CloudSuite JWT token first (known to work for CPQ)
+    print("\n--- Method A: CloudSuite JWT token ---")
+    print("Getting CloudSuite PRD token...")
+    cs_token_url = "https://mingle-sso.inforcloudsuite.com/QA2FNBZCKUAUH7QB_PRD/as/token.oauth2"
+    resp = requests.post(cs_token_url, data={
+        'grant_type': 'password',
+        'client_id': "QA2FNBZCKUAUH7QB_PRD~nZuRG_bQdloMcPeh1fks-TL4nRgxhLWeO-eoIjhISJo",
+        'client_secret': "4O7OIZ64sukP1N6YeGZ6IpzsFTG4T6RFkcTZgq6ZwAetb4VoNOOJ1qMkGQAlvnOqqcgaZDlXKux6YEQNvoZQgg",
+        'username': "QA2FNBZCKUAUH7QB_PRD#-Qs95wmGj_zOYBT3pIxsTDEwM6sJ1_jQQafabeA4NGK9xuXKp_iYp49_M7JuB7UaEo0xjWDqTAE1Q15rQhxojw",
+        'password': "IZq8wArFnHi4rESTZ-3SQT5zMgiCQfre8aLM6KirsVmvBhXmGDZS_4TXvCZlD40AjpXX6igL7y8A3svCHV-glg",
+    }, verify=False, timeout=30)
+    
+    if resp.status_code == 200:
+        jwt_token = resp.json()['access_token']
+        is_jwt = jwt_token.startswith('eyJ')
+        print(f"  Token obtained ({len(jwt_token)} chars, {'JWT ✓' if is_jwt else 'opaque'})")
+        print(f"  Token: {jwt_token[:60]}...")
+        
+        # Test against on-premise IDO with JWT
+        print("\n  Testing CloudSuite JWT against on-premise IDO...")
+        r = query_ido(jwt_token, "SLCos", properties="CoNum", record_cap=1)
+        if '"Success": true' in r.text:
+            print("  *** SUCCESS with CloudSuite JWT! ***")
+    else:
+        print(f"  Failed: {resp.status_code} - {resp.text[:200]}")
+
     # Step 1: CPQ-style token — no scope, no resource (CPQ gets a JWT this way)
     print("\n--- Step 1: CPQ-style token (no scope/resource) ---")
     resp = requests.post(
