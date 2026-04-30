@@ -208,19 +208,83 @@ def try_slrest_api():
     return None
 
 
+def exchange_for_session(oauth_token):
+    """Exchange OAuth bearer token for a Mongoose session token."""
+    session_url = f"https://inforosmarine.polarisstage.com:7443/infor/CSI/IDORequestService/session"
+    headers = {
+        'Authorization': f'Bearer {oauth_token}',
+        'Accept': 'application/json',
+        'X-Infor-MongooseConfig': CONFIG,
+    }
+    print(f"\nExchanging OAuth token for Mongoose session...")
+    print(f"  URL: {session_url}")
+    resp = requests.post(session_url, headers=headers, verify=False, timeout=30)
+    print(f"  Status: {resp.status_code}")
+    print(f"  Response: {resp.text[:500]}")
+    if resp.status_code == 200:
+        data = resp.json()
+        # Session token may come back under different keys depending on version
+        session_token = (data.get('SessionToken')
+                         or data.get('sessionToken')
+                         or data.get('token')
+                         or data.get('access_token'))
+        if session_token:
+            print(f"  Session token: {session_token[:50]}...")
+        return session_token
+    return None
+
+
+def query_ido_with_session(session_token, ido_name, properties="*", filter_clause=None, record_cap=10):
+    """Query an IDO using a Mongoose session token."""
+    url = f"{BASE_URL}/load/{ido_name}"
+    headers = {
+        'Authorization': f'Bearer {session_token}',
+        'Accept': 'application/json',
+        'X-Infor-MongooseConfig': CONFIG,
+    }
+    params = {'properties': properties, 'recordCap': record_cap}
+    if filter_clause:
+        params['filter'] = filter_clause
+
+    print(f"\nQuerying IDO: {ido_name} (session token)")
+    resp = requests.get(url, headers=headers, params=params, verify=False, timeout=30)
+    print(f"  Status: {resp.status_code}")
+    print(f"  Response: {resp.text[:1000]}")
+    return resp
+
+
 if __name__ == "__main__":
     print("=" * 60)
     print("Syteline IDO API Test (STG)")
     print("=" * 60)
-    
-    # Method 1: Token with scope
-    print("\n--- Method 1: Token with scope=ido ---")
-    token = get_token()
-    if token:
-        r = query_ido(token, "SLCos", properties="CoNum", record_cap=1)
-    
-    # Method 2: Token with resource parameter
-    print("\n--- Method 2: Token with resource parameter ---")
-    token = get_token_with_resource()
-    if token:
-        r = query_ido(token, "SLCos", properties="CoNum", record_cap=1)
+
+    # Step 1: Get OAuth token (resource param works, scope=ido does not)
+    print("\n--- Step 1: Get OAuth token ---")
+    oauth_token = get_token_with_resource()
+
+    if not oauth_token:
+        print("Failed to get OAuth token — stopping.")
+        exit(1)
+
+    # Step 2: Exchange for Mongoose session token
+    print("\n--- Step 2: Exchange for Mongoose session token ---")
+    session_token = exchange_for_session(oauth_token)
+
+    if session_token:
+        # Step 3: Query IDO with session token
+        print("\n--- Step 3: Query SLCos with session token ---")
+        query_ido_with_session(session_token, "SLCos", properties="CoNum", record_cap=3)
+    else:
+        # Fallback: try passing OAuth token directly with different headers
+        print("\n--- Fallback: try OAuth token with SyteLine-Token header ---")
+        url = f"{BASE_URL}/load/SLCos"
+        for auth_style in [
+            {'SyteLine-Token': oauth_token},
+            {'Authorization': f'Token {oauth_token}'},
+            {'Authorization': f'Bearer {oauth_token}', 'X-Infor-SyteLine-Token': oauth_token},
+        ]:
+            headers = {**auth_style, 'Accept': 'application/json', 'X-Infor-MongooseConfig': CONFIG}
+            resp = requests.get(url, headers=headers,
+                                params={'properties': 'CoNum', 'recordCap': 1},
+                                verify=False, timeout=30)
+            print(f"  Headers {list(auth_style.keys())}: {resp.status_code} — {resp.text[:200]}")
