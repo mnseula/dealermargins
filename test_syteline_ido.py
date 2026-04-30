@@ -477,9 +477,9 @@ if __name__ == "__main__":
     else:
         print(f"  Response: {resp.text[:300]}")
 
-    # Step 5: Try scopes that might return a JWT instead of opaque token
-    print("\n--- Step 5: Scope variations (looking for JWT) ---")
-    for scope in ['openid', 'openid profile', 'mongoose', 'sl', 'openid ido', 'profile ido']:
+    # Step 5: Try scopes discovered from OIDC - especially infor-ionapi-all
+    print("\n--- Step 5: Discovered scopes (looking for valid IDO token) ---")
+    for scope in ['infor-ionapi-all', 'Infor-Mingle', 'Default_Scope', 'openid infor-ionapi-all', 'openid Infor-Mingle']:
         resp = requests.post(
             TOKEN_ENDPOINT,
             data={
@@ -495,11 +495,13 @@ if __name__ == "__main__":
         token = resp.json().get('access_token', '') if resp.status_code == 200 else ''
         is_jwt = token.startswith('eyJ') if token else False
         print(f"  scope={scope!r}: {resp.status_code}  {'JWT ✓' if is_jwt else ('opaque' if token else resp.json().get('error',''))}")
-        if is_jwt:
-            print(f"    Token: {token[:80]}...")
-            print("\n--- Testing JWT directly against IDO ---")
-            query_ido(token, "SLCos", properties="CoNum", record_cap=1)
-            break
+        if token:
+            print(f"    Token: {token[:60]}...")
+            print(f"    Testing against IDO...")
+            r = query_ido(token, "SLCos", properties="CoNum", record_cap=1)
+            if '"Success": true' in r.text:
+                print("    *** SUCCESS! ***")
+                break
 
     # Step 6: Target /ido/logon — the only alive auth endpoint
     session_token = try_ido_logon(oauth_token)
