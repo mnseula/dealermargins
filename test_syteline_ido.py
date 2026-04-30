@@ -438,8 +438,60 @@ if __name__ == "__main__":
     # Step 3: Try Basic auth
     try_basic_auth()
 
-    # Step 4: Target /ido/logon — the only alive auth endpoint
+    # Step 4: Check OIDC discovery — find valid scopes/grant types
+    print("\n--- Step 4: OIDC discovery ---")
+    discovery_url = "https://inforosmarine.polarisstage.com/InforIntSTS/.well-known/openid-configuration"
+    resp = requests.get(discovery_url, verify=False, timeout=30)
+    print(f"  Status: {resp.status_code}")
+    if resp.status_code == 200:
+        import json
+        data = resp.json()
+        print(f"  grant_types_supported:  {data.get('grant_types_supported')}")
+        print(f"  scopes_supported:       {data.get('scopes_supported')}")
+        print(f"  token_endpoint:         {data.get('token_endpoint')}")
+        print(f"  introspection_endpoint: {data.get('introspection_endpoint')}")
+    else:
+        print(f"  Response: {resp.text[:300]}")
+
+    # Step 5: Try scopes that might return a JWT instead of opaque token
+    print("\n--- Step 5: Scope variations (looking for JWT) ---")
+    for scope in ['openid', 'openid profile', 'mongoose', 'sl', 'openid ido', 'profile ido']:
+        resp = requests.post(
+            TOKEN_ENDPOINT,
+            data={
+                'grant_type': 'password',
+                'client_id': CLIENT_ID,
+                'client_secret': CLIENT_SECRET,
+                'username': SERVICE_KEY,
+                'password': SERVICE_SECRET,
+                'scope': scope,
+            },
+            verify=False, timeout=15
+        )
+        token = resp.json().get('access_token', '') if resp.status_code == 200 else ''
+        is_jwt = token.startswith('eyJ') if token else False
+        print(f"  scope={scope!r}: {resp.status_code}  {'JWT ✓' if is_jwt else ('opaque' if token else resp.json().get('error',''))}")
+        if is_jwt:
+            print(f"    Token: {token[:80]}...")
+            print("\n--- Testing JWT directly against IDO ---")
+            query_ido(token, "SLCos", properties="CoNum", record_cap=1)
+            break
+
+    # Step 6: Target /ido/logon — the only alive auth endpoint
     session_token = try_ido_logon(oauth_token)
     if session_token:
-        print("\n--- Step 5: Query SLCos with session token ---")
+        print("\n--- Step 7: Query SLCos with session token ---")
         query_ido_with_session(session_token, "SLCos", properties="CoNum", record_cap=3)
+
+    # Step 8: If you have a Syteline app username/password, set them here and try logon
+    SL_USERNAME = ""   # e.g. "svc_api" or "POLARIS\\svc_api"
+    SL_PASSWORD = ""
+    if SL_USERNAME and SL_PASSWORD:
+        print("\n--- Step 8: Syteline app user logon ---")
+        url = "https://inforosmarine.polarisstage.com:7443/infor/CSI/IDORequestService/ido/logon"
+        resp = requests.post(url,
+                             headers={'Accept': 'application/json', 'Content-Type': 'application/json',
+                                      'X-Infor-MongooseConfig': CONFIG},
+                             json={'configuration': CONFIG, 'userName': SL_USERNAME, 'password': SL_PASSWORD},
+                             verify=False, timeout=30)
+        print(f"  Status: {resp.status_code}  Response: {resp.text[:400]}")
