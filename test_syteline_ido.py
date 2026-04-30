@@ -115,38 +115,105 @@ def query_ido(token, ido_name, properties="*", filter_clause=None, record_cap=10
     return resp
 
 
+def create_session():
+    """Create a session and get a session token."""
+    session_url = "https://inforosmarine.polarisstage.com:7443/infor/CSI/IDORequestService/session/CreateSession"
+    headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+    }
+    
+    print(f"\nTrying to create session: {session_url}")
+    resp = requests.post(
+        session_url,
+        headers=headers,
+        json={
+            'configuration': CONFIG,
+            'userName': SERVICE_KEY,
+            'password': SERVICE_SECRET,
+        },
+        verify=False,
+        timeout=30
+    )
+    print(f"  Status: {resp.status_code}")
+    print(f"  Response: {resp.text[:500]}")
+    return resp.json() if resp.status_code == 200 else None
+
+
+def try_token_as_param():
+    """Try passing token as query parameter instead of header."""
+    print("\n--- Trying token as query param ---")
+    token = get_token()
+    if token:
+        url = f"{BASE_URL}/load/SLCos"
+        params = {
+            'properties': 'CoNum',
+            'recordCap': 1,
+            'token': token,
+        }
+        headers = {
+            'Accept': 'application/json',
+            'X-Infor-MongooseConfig': CONFIG,
+        }
+        resp = requests.get(url, headers=headers, params=params, verify=False, timeout=30)
+        print(f"  Status: {resp.status_code}")
+        print(f"  Response: {resp.text[:500]}")
+        return resp
+    return None
+
+
+def try_slrest_api():
+    """Try SLREST endpoint instead of IDO."""
+    print("\n--- Trying SLREST API ---")
+    token = get_token()
+    if token:
+        url = "https://inforosmarine.polarisstage.com:7443/infor/CSI/SLREST/api/v1/Co"
+        headers = {
+            'Authorization': f'Bearer {token}',
+            'Accept': 'application/json',
+            'X-Infor-MongooseConfig': CONFIG,
+        }
+        params = {'$top': 1}
+        resp = requests.get(url, headers=headers, params=params, verify=False, timeout=30)
+        print(f"  Status: {resp.status_code}")
+        print(f"  Response: {resp.text[:500]}")
+        return resp
+    return None
+
+
 if __name__ == "__main__":
     print("=" * 60)
     print("Syteline IDO API Test (STG)")
     print("=" * 60)
     
-    # Try different auth methods
-    token = None
+    # Method 1: Try creating a session first
+    print("\n--- Method 1: Create session ---")
+    session_data = create_session()
     
-    # Method 1: OAuth token from STS
-    print("\n--- Method 1: OAuth from InforIntSTS ---")
+    # Method 2: Try token as query param
+    print("\n--- Method 2: Token as query param ---")
+    try_token_as_param()
+    
+    # Method 3: Try SLREST API
+    print("\n--- Method 3: SLREST API ---")
+    try_slrest_api()
+    
+    # Method 4: OAuth token with different header format
+    print("\n--- Method 4: Different auth header formats ---")
     token = get_token()
-    
     if token:
-        print("\nTrying IDO with OAuth token...")
-        r = query_ido(token, "SLCos", properties="CoNum", record_cap=1)
-        if '"Success": true' in r.text:
-            print("SUCCESS with OAuth token!")
-        else:
-            print("OAuth token didn't work, trying other methods...")
-            token = None
-    
-    # Method 2: Session token
-    if not token:
-        print("\n--- Method 2: Session endpoint ---")
-        token = get_session_token()
-        if token:
-            print(f"Got session token: {token}")
-            r = query_ido(token, "SLCos", properties="CoNum", record_cap=1)
-    
-    # Method 3: ION API token on port 7443
-    if not token:
-        print("\n--- Method 3: ION token on port 7443 ---")
-        token = get_token_via_ion_api()
-        if token:
-            r = query_ido(token, "SLCos", properties="CoNum", record_cap=1)
+        url = f"{BASE_URL}/load/SLCos"
+        params = {'properties': 'CoNum', 'recordCap': 1}
+        
+        # Try different header variations
+        header_variations = [
+            {'Authorization': token, 'Accept': 'application/json', 'X-Infor-MongooseConfig': CONFIG},
+            {'X-Auth-Token': token, 'Accept': 'application/json', 'X-Infor-MongooseConfig': CONFIG},
+            {'AuthToken': token, 'Accept': 'application/json', 'X-Infor-MongooseConfig': CONFIG},
+        ]
+        
+        for i, headers in enumerate(header_variations, 1):
+            print(f"\n  Header variation {i}: {list(headers.keys())}")
+            resp = requests.get(url, headers=headers, params=params, verify=False, timeout=30)
+            print(f"  Status: {resp.status_code}")
+            print(f"  Response: {resp.text[:300]}")
