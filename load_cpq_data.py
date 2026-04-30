@@ -11,6 +11,7 @@ Complete one-stop data loader for all CPQ tables.
 Designed to run via JAMS scheduler for automated data synchronization.
 """
 
+import re
 import requests
 import json
 import urllib3
@@ -118,8 +119,12 @@ def fetch_model_prices(token: str) -> List[Dict]:
             for item in data['result']:
                 if 'value' in item:
                     custom_props = item.get('customProperties', {})
+                    image_link = custom_props.get('ImageLinkHighRes', '') or item.get('imageLink', '')
+                    yr_match = re.search(r'20(\d{2})', image_link or '')
+                    model_year = int('20' + yr_match.group(1)) if yr_match else date.today().year
                     models.append({
                         'model_id': str(item['value']).strip(),
+                        'model_year': model_year,
                         'series': custom_props.get('Series', ''),
                         'parent_series': custom_props.get('ParentSeries', ''),
                         'msrp': custom_props.get('Price') or 0,
@@ -230,10 +235,9 @@ def load_model_prices_to_db(cursor, models: List[Dict]):
                         "UPDATE ModelPricing SET end_date = DATE_SUB(%s, INTERVAL 1 DAY) WHERE model_id = %s AND end_date IS NULL",
                         (effective_date, model['model_id'])
                     )
-                    model_year = 2000 + int(model['model_id'][:2])
                     cursor.execute(
                         "INSERT INTO ModelPricing (model_id, msrp, effective_date, year) VALUES (%s, %s, %s, %s)",
-                        (model['model_id'], model['msrp'], effective_date, model_year)
+                        (model['model_id'], model['msrp'], effective_date, model['model_year'])
                     )
 
             success += 1
@@ -266,9 +270,9 @@ def fetch_performance_data(token: str, series: str, matrix_year: int) -> List[Di
         print(f"[WARN]  Error fetching performance for {series} ({matrix_year}): {e}")
         return []
 
-def load_performance_to_db(cursor, series: str, perf_data: List[Dict]):
+def load_performance_to_db(cursor, series: str, perf_data: List[Dict], model_year: int):
     """Load performance data to database using CSV bulk loading"""
-    print(f"  [>>] Preparing performance data for {series}...")
+    print(f"  [>>] Preparing performance data for {series} (model year {model_year})...")
 
     # Collect unique packages and performance records
     packages = set()
@@ -282,9 +286,8 @@ def load_performance_to_db(cursor, series: str, perf_data: List[Dict]):
             continue
 
         packages.add(perf_package)
-        record_year = 2000 + int(model_id[:2]) if model_id[:2].isdigit() else date.today().year
         perf_records.append((
-            model_id, perf_package, record_year,
+            model_id, perf_package, model_year,
             record.get('MaxHP'), record.get('NoOfTubes'), record.get('PersonCapacity'), record.get('HullWeight'),
             record.get('PontoonGauge'), record.get('Transom'), record.get('TubeHeight'), record.get('TubeCentertoCenter'),
             record.get('MaxWidth'), record.get('FuelCapacity'),
@@ -469,10 +472,6 @@ def load_standards_to_db(cursor, series: str, standards_data: List[Dict], all_mo
     """Load standard features to database using CSV bulk loading"""
     print(f"  [>>] Preparing standard features for {series} (model year {model_year})...")
 
-    # Only consider model IDs belonging to this model year (e.g. "25" prefix → 2025)
-    year_prefix = str(model_year)[2:]  # 2025 → "25", 2027 → "27"
-    year_model_ids = {mid for mid in all_model_ids if mid.startswith(year_prefix)}
-
     # Collect features and model-feature links
     features = []
     model_features = []
@@ -493,8 +492,9 @@ def load_standards_to_db(cursor, series: str, standards_data: List[Dict], all_mo
         features.append((feature_code, area, description, sort_order, 1))  # active=1
 
         # Find models where this feature is standard (value = 'S')
-        for model_id in year_model_ids:
-            if model_id in record and record.get(model_id) == 'S':
+        # Check all known model IDs — the same model exists across multiple year matrices
+        for model_id in all_model_ids:
+            if record.get(model_id) == 'S':
                 model_features.append((feature_code, model_id, model_year, 1))  # is_standard=1
 
     if not features:
@@ -834,11 +834,23 @@ def main():
         models_success, models_errors = load_model_prices_to_db(cursor, models)
         connection.commit()
 
-        # Derive unique model years from the loaded model IDs (e.g. "25QXFBWA" → 2025)
-        unique_model_years = sorted({
-            2000 + int(mid[:2]) for mid in all_model_ids if mid[:2].isdigit()
-        })
-        print(f"[>>] Model years present: {unique_model_years}")
+        # Discover which matrix years have data by probing a range.
+        # Matrix year = model year + 1 (e.g. _2026 matrix holds 2025 model year data).
+        # Try current year through current year + 2; skip any that return no rows.
+        current_year = date.today().year
+        candidate_matrix_years = range(current_year, current_year + 3)
+        valid_matrix_years = []
+        print(f"\n[>>] Probing matrix years {list(candidate_matrix_years)}...")
+        for matrix_year in candidate_matrix_years:
+            # Check first series; if it has data the year is valid
+            probe_series = unique_series[0] if unique_series else 'R'
+            probe = fetch_standard_features(token_prd, probe_series, matrix_year)
+            if probe:
+                valid_matrix_years.append(matrix_year)
+                print(f"     _*_{matrix_year}: valid (model year {matrix_year - 1})")
+            else:
+                print(f"     _*_{matrix_year}: no data — skipping")
+        print(f"[>>] Will load matrix years: {valid_matrix_years}")
 
         # STEP 2: Fetch and load performance data
         print("\n" + "=" * 80)
@@ -849,14 +861,14 @@ def main():
         total_perf_errors = 0
 
         all_perf_data = []
-        for model_year in unique_model_years:
-            matrix_year = model_year + 1
+        for matrix_year in valid_matrix_years:
+            model_year = matrix_year - 1
             for series in unique_series:
-                print(f"\n[>>] Processing series: {series}  model year: {model_year}  matrix: _{matrix_year}")
+                print(f"\n[>>] Series: {series}  model year: {model_year}  matrix: _{matrix_year}")
                 perf_data = fetch_performance_data(token_prd, series, matrix_year)
                 if perf_data:
                     print(f"   Fetched {len(perf_data)} performance records")
-                    success, errors = load_performance_to_db(cursor, series, perf_data)
+                    success, errors = load_performance_to_db(cursor, series, perf_data, model_year)
                     total_perf_success += success
                     total_perf_errors += errors
                     all_perf_data.extend(perf_data)
@@ -879,10 +891,10 @@ def main():
         total_std_success = 0
         total_std_errors = 0
 
-        for model_year in unique_model_years:
-            matrix_year = model_year + 1
+        for matrix_year in valid_matrix_years:
+            model_year = matrix_year - 1
             for series in unique_series:
-                print(f"\n[>>] Processing series: {series}  model year: {model_year}  matrix: _{matrix_year}")
+                print(f"\n[>>] Series: {series}  model year: {model_year}  matrix: _{matrix_year}")
                 standards_data = fetch_standard_features(token_prd, series, matrix_year)
                 if standards_data:
                     print(f"   Fetched {len(standards_data)} standard feature records")
