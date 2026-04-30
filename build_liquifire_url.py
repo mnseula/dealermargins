@@ -232,6 +232,7 @@ ASSET_FIXES = {
     '27QXFBWAT2SF': '25QXFBW',
     '27QXFBWAX2SF': '25QXFBW',
     '27RXSBWAT2SF': '25RSR',
+    '27RXSBWAT2':   '25RXSB',   # T2 triple-tube, WA arch — no Liquifire asset; use 25RXSB (same hull)
     '23LXSFB':      '24LXSFB',
     '24LXSFBA':     '24LXSFB',   # arch variant not in Liquifire — use base FB
     '25QFBA':       '25QFB',
@@ -336,8 +337,8 @@ def normalize_asset(model):
     if model in ASSET_FIXES:
         return ASSET_FIXES[model], True
 
-    # Strip SF/SE suffix if present (Special Fishing / Special Edition package)
-    for suffix in ('SF', 'SE'):
+    # Strip known suffixes (Special Fishing, Special Edition, triple-tube, twin-tube)
+    for suffix in ('SF', 'SE', 'T2', 'X2'):
         if model.endswith(suffix) and len(model) > 4:
             stripped = model[:-2]
             # Re-check ASSET_FIXES with the stripped name
