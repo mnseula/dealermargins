@@ -131,6 +131,7 @@ window.ExportSytelineParts = window.ExportSytelineParts || function (ordersIDs) 
     //Loop through all the parts orders
 
     var last_processed = "";
+    var baseOrderCarrier = {}; // tracks first carrier per base order number — prevents multi-shipment carrier mismatch in Syteline
 
     for (const item of parts_data) {
 
@@ -279,6 +280,17 @@ window.ExportSytelineParts = window.ExportSytelineParts || function (ordersIDs) 
             console.error(error);
         }
 
+        // If a prior shipment of the same base order used CC, lock this shipment to CC too.
+        // Syteline rejects a second shipment block whose carrier differs from the first one it
+        // already imported for that order — consolidating to CC matches how Bennington ships
+        // these split orders.
+        var baseOrderKey = ship_id.slice(0, -2);
+        if (baseOrderCarrier[baseOrderKey] !== undefined) {
+            carrierParty = baseOrderCarrier[baseOrderKey];
+        } else {
+            baseOrderCarrier[baseOrderKey] = carrierParty;
+        }
+
         //Zach added 10/7/2024 - Use order id to grab username of person that submitted order.
         //Use the audit table to grab user id from pending line.
         var orderLineID = item.OrdLineID;
@@ -366,7 +378,7 @@ window.ExportSytelineParts = window.ExportSytelineParts || function (ordersIDs) 
                                 <DealerComments/>
                                 <BoatModel>` + boat_model + `</BoatModel>
                                 <BoatSerialNo>` + item.OrdHdrBoatSerialNo + `</BoatSerialNo>
-                                <ShippingMethod>` + item.ShipMethShipCode + `</ShippingMethod>
+                                <ShippingMethod>` + carrierParty + `</ShippingMethod>
                                 <BennTermsCode>` + item.NCPartsCode + `</BennTermsCode>
                                 <ue_International>` + international + `</ue_International>
                                 <ue_InternationalType>` + international_type + `</ue_InternationalType>
