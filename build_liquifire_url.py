@@ -223,6 +223,7 @@ ASSET_FIXES = {
     '24RSB':     '25RSB',
     '23RSBA':    '23RFB',
     '23RSBASF':  '23RFB',
+    '23RSRC':    '25RSR',   # RC variant — no Liquifire asset
     '23RXFBASF': '23RFB',
     '23RXSBSF':  '23RFB',
     '25RSBWASF': '25RSR',
