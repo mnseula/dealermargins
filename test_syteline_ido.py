@@ -20,19 +20,23 @@ BASE_URL = "https://inforosmarine.polarisstage.com:7443/infor/CSI/IDORequestServ
 def get_token():
     """Get OAuth token from Syteline STS."""
     print(f"Getting token from: {TOKEN_ENDPOINT}")
-    resp = requests.post(
-        TOKEN_ENDPOINT,
-        data={
-            'grant_type': 'password',
-            'client_id': CLIENT_ID,
-            'client_secret': CLIENT_SECRET,
-            'username': SERVICE_KEY,
-            'password': SERVICE_SECRET,
-            'scope': 'ido',
-        },
-        verify=False,
-        timeout=30
-    )
+    try:
+        resp = requests.post(
+            TOKEN_ENDPOINT,
+            data={
+                'grant_type': 'password',
+                'client_id': CLIENT_ID,
+                'client_secret': CLIENT_SECRET,
+                'username': SERVICE_KEY,
+                'password': SERVICE_SECRET,
+                'scope': 'ido',
+            },
+            verify=False,
+            timeout=30
+        )
+    except requests.exceptions.ConnectionError as e:
+        print(f"  CONNECTION ERROR (VPN/network): {str(e)[:200]}")
+        return None
     print(f"  Status: {resp.status_code}")
     if resp.status_code == 200:
         data = resp.json()
@@ -46,19 +50,23 @@ def get_token():
 def get_token_with_resource():
     """Get token with resource parameter."""
     print(f"\nGetting token with resource parameter...")
-    resp = requests.post(
-        TOKEN_ENDPOINT,
-        data={
-            'grant_type': 'password',
-            'client_id': CLIENT_ID,
-            'client_secret': CLIENT_SECRET,
-            'username': SERVICE_KEY,
-            'password': SERVICE_SECRET,
-            'resource': 'https://inforosmarine.polarisstage.com:7443',
-        },
-        verify=False,
-        timeout=30
-    )
+    try:
+        resp = requests.post(
+            TOKEN_ENDPOINT,
+            data={
+                'grant_type': 'password',
+                'client_id': CLIENT_ID,
+                'client_secret': CLIENT_SECRET,
+                'username': SERVICE_KEY,
+                'password': SERVICE_SECRET,
+                'resource': 'https://inforosmarine.polarisstage.com:7443',
+            },
+            verify=False,
+            timeout=30
+        )
+    except requests.exceptions.ConnectionError as e:
+        print(f"  CONNECTION ERROR (VPN/network): {str(e)[:200]}")
+        return None
     print(f"  Status: {resp.status_code}")
     if resp.status_code == 200:
         data = resp.json()
@@ -155,15 +163,22 @@ def query_ido(token, ido_name, properties="*", filter_clause=None, record_cap=10
     }
     if filter_clause:
         params['filter'] = filter_clause
-    
+
     print(f"\nQuerying IDO: {ido_name}")
     print(f"  URL: {url}")
     print(f"  Params: {params}")
-    
-    resp = requests.get(url, headers=headers, params=params, verify=False, timeout=30)
-    print(f"  Status: {resp.status_code}")
-    print(f"  Response: {resp.text[:1000]}")
-    return resp
+
+    try:
+        resp = requests.get(url, headers=headers, params=params, verify=False, timeout=30)
+        print(f"  Status: {resp.status_code}")
+        print(f"  Response: {resp.text[:1000]}")
+        return resp
+    except requests.exceptions.ConnectionError as e:
+        print(f"  CONNECTION ERROR (VPN/network): {str(e)[:200]}")
+        return None
+    except Exception as e:
+        print(f"  ERROR: {e}")
+        return None
 
 
 def create_session():
@@ -249,7 +264,11 @@ def exchange_for_session(oauth_token):
         {},
     ]:
         print(f"\n  POST {session_url}  body={body}")
-        resp = requests.post(session_url, headers=headers, json=body, verify=False, timeout=30)
+        try:
+            resp = requests.post(session_url, headers=headers, json=body, verify=False, timeout=30)
+        except requests.exceptions.ConnectionError:
+            print(f"  CONNECTION ERROR (VPN/network unreachable)")
+            return None
         print(f"  Status: {resp.status_code}  Response: {resp.text[:300]}")
         if resp.status_code == 200:
             data = resp.json()
@@ -321,6 +340,9 @@ def probe_server():
         try:
             resp = requests.get(f"{base}{path}", verify=False, timeout=10)
             print(f"  GET {path}: {resp.status_code}  {resp.text[:120]}")
+        except requests.exceptions.ConnectionError:
+            print(f"  GET {path}: CONNECTION ERROR (VPN/network unreachable)")
+            break  # all paths will fail if server is unreachable
         except Exception as e:
             print(f"  GET {path}: ERROR {e}")
 
@@ -336,9 +358,13 @@ def try_basic_auth():
         (CLIENT_ID,      CLIENT_SECRET,  'client id/secret'),
     ]:
         headers = {'Accept': 'application/json', 'X-Infor-MongooseConfig': CONFIG}
-        resp = requests.get(url, headers=headers, params=params,
-                            auth=(user, pwd), verify=False, timeout=30)
-        print(f"  Basic({label}): {resp.status_code} — {resp.text[:200]}")
+        try:
+            resp = requests.get(url, headers=headers, params=params,
+                                auth=(user, pwd), verify=False, timeout=30)
+            print(f"  Basic({label}): {resp.status_code} — {resp.text[:200]}")
+        except requests.exceptions.ConnectionError:
+            print(f"  Basic({label}): CONNECTION ERROR (VPN/network unreachable)")
+            break
 
 
 def try_ido_logon(oauth_token):
@@ -408,7 +434,11 @@ def try_ido_logon(oauth_token):
         kwargs = dict(headers=attempt['headers'], verify=False, timeout=30)
         if attempt['body'] is not None:
             kwargs['json'] = attempt['body']
-        resp = requests.post(url, **kwargs)
+        try:
+            resp = requests.post(url, **kwargs)
+        except requests.exceptions.ConnectionError:
+            print(f"  [{attempt['label']}]: CONNECTION ERROR (VPN/network unreachable)")
+            return None
         print(f"  [{attempt['label']}]: {resp.status_code} — {resp.text[:300]}")
         if resp.status_code == 200:
             data = resp.json()
@@ -420,10 +450,27 @@ def try_ido_logon(oauth_token):
     return None
 
 
+def check_vpn():
+    """Quick check whether the on-premise STG host is reachable."""
+    import socket
+    try:
+        socket.setdefaulttimeout(5)
+        socket.getaddrinfo('inforosmarine.polarisstage.com', 443)
+        return True
+    except socket.gaierror:
+        return False
+
+
 if __name__ == "__main__":
     print("=" * 60)
     print("Syteline IDO API Test (STG)")
     print("=" * 60)
+
+    if not check_vpn():
+        print("\n⚠  WARNING: inforosmarine.polarisstage.com is NOT resolvable.")
+        print("   The on-premise Syteline staging server requires VPN access.")
+        print("   Run this script from a machine on the Polaris network or VPN.")
+        print("   Continuing anyway — CloudSuite token steps will still run.\n")
 
     # Try CloudSuite JWT token first (known to work for CPQ)
     print("\n--- Method A: CloudSuite JWT token ---")
@@ -446,41 +493,44 @@ if __name__ == "__main__":
         # Test against on-premise IDO with JWT
         print("\n  Testing CloudSuite JWT against on-premise IDO...")
         r = query_ido(jwt_token, "SLCos", properties="CoNum", record_cap=1)
-        if '"Success": true' in r.text:
+        if r and '"Success": true' in r.text:
             print("  *** SUCCESS with CloudSuite JWT! ***")
     else:
         print(f"  Failed: {resp.status_code} - {resp.text[:200]}")
 
     # Step 1: CPQ-style token — no scope, no resource (CPQ gets a JWT this way)
     print("\n--- Step 1: CPQ-style token (no scope/resource) ---")
-    resp = requests.post(
-        TOKEN_ENDPOINT,
-        data={
-            'grant_type':    'password',
-            'client_id':     CLIENT_ID,
-            'client_secret': CLIENT_SECRET,
-            'username':      SERVICE_KEY,
-            'password':      SERVICE_SECRET,
-        },
-        verify=False, timeout=30
-    )
-    print(f"  Status: {resp.status_code}")
     cpq_style_token = None
-    if resp.status_code == 200:
-        cpq_style_token = resp.json().get('access_token', '')
-        is_jwt = cpq_style_token.startswith('eyJ')
-        print(f"  Token ({len(cpq_style_token)} chars, {'JWT ✓' if is_jwt else 'opaque'}): {cpq_style_token[:80]}...")
-        print("\n  Testing CPQ-style token directly against IDO...")
-        query_ido(cpq_style_token, "SLCos", properties="CoNum", record_cap=1)
-    else:
-        print(f"  Error: {resp.text[:200]}")
+    try:
+        resp = requests.post(
+            TOKEN_ENDPOINT,
+            data={
+                'grant_type':    'password',
+                'client_id':     CLIENT_ID,
+                'client_secret': CLIENT_SECRET,
+                'username':      SERVICE_KEY,
+                'password':      SERVICE_SECRET,
+            },
+            verify=False, timeout=30
+        )
+        print(f"  Status: {resp.status_code}")
+        if resp.status_code == 200:
+            cpq_style_token = resp.json().get('access_token', '')
+            is_jwt = cpq_style_token.startswith('eyJ')
+            print(f"  Token ({len(cpq_style_token)} chars, {'JWT ✓' if is_jwt else 'opaque'}): {cpq_style_token[:80]}...")
+            print("\n  Testing CPQ-style token directly against IDO...")
+            query_ido(cpq_style_token, "SLCos", properties="CoNum", record_cap=1)
+        else:
+            print(f"  Error: {resp.text[:200]}")
+    except requests.exceptions.ConnectionError:
+        print("  CONNECTION ERROR (VPN/network unreachable)")
 
     # Step 2: Fallback — token with resource param
     print("\n--- Step 2: Token with resource param (fallback) ---")
     oauth_token = get_token_with_resource()
     if not oauth_token:
-        print("Failed to get OAuth token — stopping.")
-        exit(1)
+        print("  Could not get token (server unreachable or auth error) — continuing with other steps.")
+        oauth_token = cpq_style_token or ""
 
     # Step 2: Probe server to see what's available
     probe_server()
@@ -491,33 +541,40 @@ if __name__ == "__main__":
     # Step 4: Check OIDC discovery — find valid scopes/grant types
     print("\n--- Step 4: OIDC discovery ---")
     discovery_url = "https://inforosmarine.polarisstage.com/InforIntSTS/.well-known/openid-configuration"
-    resp = requests.get(discovery_url, verify=False, timeout=30)
-    print(f"  Status: {resp.status_code}")
-    if resp.status_code == 200:
-        import json
-        data = resp.json()
-        print(f"  grant_types_supported:  {data.get('grant_types_supported')}")
-        print(f"  scopes_supported:       {data.get('scopes_supported')}")
-        print(f"  token_endpoint:         {data.get('token_endpoint')}")
-        print(f"  introspection_endpoint: {data.get('introspection_endpoint')}")
-    else:
-        print(f"  Response: {resp.text[:300]}")
+    try:
+        resp = requests.get(discovery_url, verify=False, timeout=30)
+        print(f"  Status: {resp.status_code}")
+        if resp.status_code == 200:
+            import json
+            data = resp.json()
+            print(f"  grant_types_supported:  {data.get('grant_types_supported')}")
+            print(f"  scopes_supported:       {data.get('scopes_supported')}")
+            print(f"  token_endpoint:         {data.get('token_endpoint')}")
+            print(f"  introspection_endpoint: {data.get('introspection_endpoint')}")
+        else:
+            print(f"  Response: {resp.text[:300]}")
+    except requests.exceptions.ConnectionError:
+        print("  CONNECTION ERROR (VPN/network unreachable)")
 
     # Step 5: Try scopes discovered from OIDC - especially infor-ionapi-all
     print("\n--- Step 5: Discovered scopes (looking for valid IDO token) ---")
     for scope in ['infor-ionapi-all', 'Infor-Mingle', 'Default_Scope', 'openid infor-ionapi-all', 'openid Infor-Mingle']:
-        resp = requests.post(
-            TOKEN_ENDPOINT,
-            data={
-                'grant_type': 'password',
-                'client_id': CLIENT_ID,
-                'client_secret': CLIENT_SECRET,
-                'username': SERVICE_KEY,
-                'password': SERVICE_SECRET,
-                'scope': scope,
-            },
-            verify=False, timeout=15
-        )
+        try:
+            resp = requests.post(
+                TOKEN_ENDPOINT,
+                data={
+                    'grant_type': 'password',
+                    'client_id': CLIENT_ID,
+                    'client_secret': CLIENT_SECRET,
+                    'username': SERVICE_KEY,
+                    'password': SERVICE_SECRET,
+                    'scope': scope,
+                },
+                verify=False, timeout=15
+            )
+        except requests.exceptions.ConnectionError:
+            print(f"  scope={scope!r}: CONNECTION ERROR (VPN/network unreachable)")
+            break
         token = resp.json().get('access_token', '') if resp.status_code == 200 else ''
         is_jwt = token.startswith('eyJ') if token else False
         print(f"  scope={scope!r}: {resp.status_code}  {'JWT ✓' if is_jwt else ('opaque' if token else resp.json().get('error',''))}")
@@ -525,7 +582,7 @@ if __name__ == "__main__":
             print(f"    Token: {token[:60]}...")
             print(f"    Testing against IDO...")
             r = query_ido(token, "SLCos", properties="CoNum", record_cap=1)
-            if '"Success": true' in r.text:
+            if r and '"Success": true' in r.text:
                 print("    *** SUCCESS! ***")
                 break
 
@@ -535,15 +592,20 @@ if __name__ == "__main__":
     test_token = get_token_with_resource() or get_token()
     if test_token:
         import json
-        resp = requests.post(
-            introspect_url,
-            data={'token': test_token},
-            auth=(CLIENT_ID, CLIENT_SECRET),
-            verify=False, timeout=30
-        )
-        print(f"  Status: {resp.status_code}")
-        print(f"  Raw response: {resp.text[:500] if resp.text else '(empty)'}")
-        if resp.status_code == 200 and resp.text:
+        try:
+            resp = requests.post(
+                introspect_url,
+                data={'token': test_token},
+                auth=(CLIENT_ID, CLIENT_SECRET),
+                verify=False, timeout=30
+            )
+        except requests.exceptions.ConnectionError:
+            print(f"  CONNECTION ERROR (VPN/network unreachable)")
+            resp = None
+        if resp:
+            print(f"  Status: {resp.status_code}")
+            print(f"  Raw response: {resp.text[:500] if resp.text else '(empty)'}")
+        if resp and resp.status_code == 200 and resp.text:
             try:
                 data = resp.json()
                 print(f"  active: {data.get('active')}")
