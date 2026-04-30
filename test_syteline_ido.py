@@ -503,7 +503,29 @@ if __name__ == "__main__":
                 print("    *** SUCCESS! ***")
                 break
 
-    # Step 6: Target /ido/logon — the only alive auth endpoint
+    # Step 6: Introspect the token to see what it contains
+    print("\n--- Step 6: Token introspection ---")
+    introspect_url = "https://inforosmarine.polarisstage.com/InforIntSTS/connect/introspect"
+    test_token = get_token_with_resource() or get_token()
+    if test_token:
+        import json
+        resp = requests.post(
+            introspect_url,
+            data={'token': test_token},
+            auth=(CLIENT_ID, CLIENT_SECRET),
+            verify=False, timeout=30
+        )
+        print(f"  Status: {resp.status_code}")
+        if resp.status_code == 200:
+            data = resp.json()
+            print(f"  active: {data.get('active')}")
+            print(f"  sub: {data.get('sub')}")
+            print(f"  scope: {data.get('scope')}")
+            print(f"  client_id: {data.get('client_id')}")
+            print(f"  aud: {data.get('aud')}")
+            print(f"  Full response: {json.dumps(data, indent=2)}")
+
+    # Step 7: Try different endpoint patterns for IDO
     session_token = try_ido_logon(oauth_token)
     if session_token:
         print("\n--- Step 7: Query SLCos with session token ---")
