@@ -516,14 +516,18 @@ if __name__ == "__main__":
             verify=False, timeout=30
         )
         print(f"  Status: {resp.status_code}")
-        if resp.status_code == 200:
-            data = resp.json()
-            print(f"  active: {data.get('active')}")
-            print(f"  sub: {data.get('sub')}")
-            print(f"  scope: {data.get('scope')}")
-            print(f"  client_id: {data.get('client_id')}")
-            print(f"  aud: {data.get('aud')}")
-            print(f"  Full response: {json.dumps(data, indent=2)}")
+        print(f"  Raw response: {resp.text[:500] if resp.text else '(empty)'}")
+        if resp.status_code == 200 and resp.text:
+            try:
+                data = resp.json()
+                print(f"  active: {data.get('active')}")
+                print(f"  sub: {data.get('sub')}")
+                print(f"  scope: {data.get('scope')}")
+                print(f"  client_id: {data.get('client_id')}")
+                print(f"  aud: {data.get('aud')}")
+                print(f"  Full response: {json.dumps(data, indent=2)}")
+            except:
+                pass
 
     # Step 7: Try different endpoint patterns for IDO
     session_token = try_ido_logon(oauth_token)
