@@ -303,45 +303,86 @@ def query_ido_with_session(session_token, ido_name, properties="*", filter_claus
     return resp
 
 
+def probe_server():
+    """Probe the server to discover what endpoints and auth methods are available."""
+    base = "https://inforosmarine.polarisstage.com:7443/infor/CSI/IDORequestService"
+    paths = [
+        "/",
+        "/ido",
+        "/session",
+        "/logon",
+        "/api",
+        "/api/ido",
+        "/rest/ido",
+        "/ido/load",
+    ]
+    print("\n--- Server probe ---")
+    for path in paths:
+        try:
+            resp = requests.get(f"{base}{path}", verify=False, timeout=10)
+            print(f"  GET {path}: {resp.status_code}  {resp.text[:120]}")
+        except Exception as e:
+            print(f"  GET {path}: ERROR {e}")
+
+
+def try_basic_auth():
+    """Try Basic auth directly with service credentials against IDO."""
+    print("\n--- Basic auth attempts ---")
+    url = f"{BASE_URL}/load/SLCos"
+    params = {'properties': 'CoNum', 'recordCap': 1}
+
+    for user, pwd, label in [
+        (SERVICE_KEY,    SERVICE_SECRET, 'service key/secret'),
+        (CLIENT_ID,      CLIENT_SECRET,  'client id/secret'),
+    ]:
+        headers = {'Accept': 'application/json', 'X-Infor-MongooseConfig': CONFIG}
+        resp = requests.get(url, headers=headers, params=params,
+                            auth=(user, pwd), verify=False, timeout=30)
+        print(f"  Basic({label}): {resp.status_code} — {resp.text[:200]}")
+
+
+def try_token_as_logon_body(oauth_token):
+    """Try posting the token to a logon endpoint to get a session."""
+    print("\n--- Token as logon body ---")
+    base = "https://inforosmarine.polarisstage.com:7443/infor/CSI/IDORequestService"
+    for path in ['/logon', '/session/logon', '/ido/logon']:
+        for payload in [
+            {'token': oauth_token},
+            {'access_token': oauth_token},
+            {'BearerToken': oauth_token, 'configuration': CONFIG},
+        ]:
+            resp = requests.post(f"{base}{path}",
+                                 headers={'Accept': 'application/json',
+                                          'Content-Type': 'application/json',
+                                          'X-Infor-MongooseConfig': CONFIG},
+                                 json=payload, verify=False, timeout=10)
+            print(f"  POST {path} {list(payload.keys())}: {resp.status_code} — {resp.text[:150]}")
+
+
 if __name__ == "__main__":
     print("=" * 60)
     print("Syteline IDO API Test (STG)")
     print("=" * 60)
 
-    # Step 1: Get OAuth token (resource param works, scope=ido does not)
+    # Step 1: Get OAuth token
     print("\n--- Step 1: Get OAuth token ---")
     oauth_token = get_token_with_resource()
-
-    # Also try client_credentials — may yield a JWT that IDO can validate directly
-    print("\n--- Step 1b: client_credentials grant ---")
-    cc_token = get_token_client_credentials()
-    if cc_token:
-        print("\n  Testing client_credentials token directly against IDO...")
-        query_ido(cc_token, "SLCos", properties="CoNum", record_cap=1)
-
     if not oauth_token:
         print("Failed to get OAuth token — stopping.")
         exit(1)
 
-    # Step 2: Exchange for Mongoose session token
-    print("\n--- Step 2: Exchange for Mongoose session token ---")
-    session_token = exchange_for_session(oauth_token)
+    # Step 2: Probe server to see what's available
+    probe_server()
 
+    # Step 3: Try Basic auth
+    try_basic_auth()
+
+    # Step 4: Try posting token to logon endpoints
+    try_token_as_logon_body(oauth_token)
+
+    # Step 5: Exchange for Mongoose session token (existing flow)
+    print("\n--- Step 5: Session exchange ---")
+    session_token = exchange_for_session(oauth_token)
     if session_token:
-        # Step 3: Query IDO with session token
-        print("\n--- Step 3: Query SLCos with session token ---")
+        print("\n--- Step 6: Query SLCos with session token ---")
         query_ido_with_session(session_token, "SLCos", properties="CoNum", record_cap=3)
-    else:
-        # Fallback: try passing OAuth token directly with different headers
-        print("\n--- Fallback: try OAuth token with SyteLine-Token header ---")
-        url = f"{BASE_URL}/load/SLCos"
-        for auth_style in [
-            {'SyteLine-Token': oauth_token},
-            {'Authorization': f'Token {oauth_token}'},
-            {'Authorization': f'Bearer {oauth_token}', 'X-Infor-SyteLine-Token': oauth_token},
-        ]:
-            headers = {**auth_style, 'Accept': 'application/json', 'X-Infor-MongooseConfig': CONFIG}
-            resp = requests.get(url, headers=headers,
-                                params={'properties': 'CoNum', 'recordCap': 1},
-                                verify=False, timeout=30)
-            print(f"  Headers {list(auth_style.keys())}: {resp.status_code} — {resp.text[:200]}")
