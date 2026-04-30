@@ -44,11 +44,11 @@ SERVICE_KEY_TRN = "QA2FNBZCKUAUH7QB_TRN#kxVE4LhZZFTPMVPuF8lZsHc2Zfz03QS0GOZasx2A
 SERVICE_SECRET_TRN = "pAze3yNlj8r6dbcTv-Fn8AiGvhIcs2x-yEgJaMiuoraAJdkFB6iLQFKaFQCP_17KZIYoroUoF_CeEoslHWlXug"
 
 # API Endpoints
-# Note: API endpoints use _2026 naming but contain 2025 model year data (model IDs with "25" prefix)
-# All endpoints now use PRD environment
+# Matrix year = model year + 1 (e.g. 2025 model year data lives in _2026 matrix)
+# {year} in the endpoint is the matrix year, not the model year
 OPTION_LIST_ENDPOINT = "https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_PRD/CPQ/DataImport/QA2FNBZCKUAUH7QB_PRD/v1/OptionLists/bb38d84e-6493-40c7-b282-9cb9c0df26ae/values"
-PERFORMANCE_MATRIX_ENDPOINT = "https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_PRD/CPQ/DataImport/v2/Matrices/{series}_PerformanceData_2026/values"
-STANDARDS_MATRIX_ENDPOINT = "https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_PRD/CPQ/DataImport/v2/Matrices/{series}_ModelStandards_2026/values"
+PERFORMANCE_MATRIX_ENDPOINT = "https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_PRD/CPQ/DataImport/v2/Matrices/{series}_PerformanceData_{year}/values"
+STANDARDS_MATRIX_ENDPOINT = "https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_PRD/CPQ/DataImport/v2/Matrices/{series}_ModelStandards_{year}/values"
 DEALER_MARGIN_ENDPOINT = "https://mingle-ionapi.inforcloudsuite.com/QA2FNBZCKUAUH7QB_PRD/CPQEQ/RuntimeApi/EnterpriseQuoting/Entities/C_GD_DealerMargin"
 
 # Database Configuration
@@ -63,7 +63,6 @@ DB_CONFIG = {
 # Settings
 REQUEST_TIMEOUT = 120
 MAX_RETRIES = 3
-MODEL_YEAR = 2025  # Model IDs with "25" prefix = 2025 model year
 OUTPUT_DIR = Path("cpq_data_backups")
 
 # ==================== TOKEN MANAGEMENT ====================
@@ -231,9 +230,10 @@ def load_model_prices_to_db(cursor, models: List[Dict]):
                         "UPDATE ModelPricing SET end_date = DATE_SUB(%s, INTERVAL 1 DAY) WHERE model_id = %s AND end_date IS NULL",
                         (effective_date, model['model_id'])
                     )
+                    model_year = 2000 + int(model['model_id'][:2])
                     cursor.execute(
                         "INSERT INTO ModelPricing (model_id, msrp, effective_date, year) VALUES (%s, %s, %s, %s)",
-                        (model['model_id'], model['msrp'], effective_date, MODEL_YEAR)
+                        (model['model_id'], model['msrp'], effective_date, model_year)
                     )
 
             success += 1
@@ -247,12 +247,15 @@ def load_model_prices_to_db(cursor, models: List[Dict]):
 
 # ==================== STEP 2: PERFORMANCE DATA ====================
 
-def fetch_performance_data(token: str, series: str) -> List[Dict]:
-    """Fetch performance data for a series"""
+def fetch_performance_data(token: str, series: str, matrix_year: int) -> List[Dict]:
+    """Fetch performance data for a series and matrix year."""
     try:
-        endpoint = PERFORMANCE_MATRIX_ENDPOINT.format(series=series)
+        endpoint = PERFORMANCE_MATRIX_ENDPOINT.format(series=series, year=matrix_year)
         headers = {'Authorization': f'Bearer {token}', 'Accept': 'application/json'}
         response = requests.get(endpoint, headers=headers, timeout=REQUEST_TIMEOUT, verify=False)
+        if response.status_code == 404:
+            print(f"[INFO]  No {series}_PerformanceData_{matrix_year} matrix — skipping")
+            return []
         response.raise_for_status()
 
         data = response.json()
@@ -260,7 +263,7 @@ def fetch_performance_data(token: str, series: str) -> List[Dict]:
         return details
 
     except Exception as e:
-        print(f"[WARN]  Error fetching performance for {series}: {e}")
+        print(f"[WARN]  Error fetching performance for {series} ({matrix_year}): {e}")
         return []
 
 def load_performance_to_db(cursor, series: str, perf_data: List[Dict]):
@@ -279,8 +282,9 @@ def load_performance_to_db(cursor, series: str, perf_data: List[Dict]):
             continue
 
         packages.add(perf_package)
+        record_year = 2000 + int(model_id[:2]) if model_id[:2].isdigit() else date.today().year
         perf_records.append((
-            model_id, perf_package, MODEL_YEAR,
+            model_id, perf_package, record_year,
             record.get('MaxHP'), record.get('NoOfTubes'), record.get('PersonCapacity'), record.get('HullWeight'),
             record.get('PontoonGauge'), record.get('Transom'), record.get('TubeHeight'), record.get('TubeCentertoCenter'),
             record.get('MaxWidth'), record.get('FuelCapacity'),
@@ -442,12 +446,15 @@ def update_models_with_performance_data(cursor, perf_data: List[Dict]):
 
 # ==================== STEP 3: STANDARD FEATURES ====================
 
-def fetch_standard_features(token: str, series: str) -> List[Dict]:
-    """Fetch standard features for a series"""
+def fetch_standard_features(token: str, series: str, matrix_year: int) -> List[Dict]:
+    """Fetch standard features for a series and matrix year."""
     try:
-        endpoint = STANDARDS_MATRIX_ENDPOINT.format(series=series)
+        endpoint = STANDARDS_MATRIX_ENDPOINT.format(series=series, year=matrix_year)
         headers = {'Authorization': f'Bearer {token}', 'Accept': 'application/json'}
         response = requests.get(endpoint, headers=headers, timeout=REQUEST_TIMEOUT, verify=False)
+        if response.status_code == 404:
+            print(f"[INFO]  No {series}_ModelStandards_{matrix_year} matrix — skipping")
+            return []
         response.raise_for_status()
 
         data = response.json()
@@ -455,12 +462,16 @@ def fetch_standard_features(token: str, series: str) -> List[Dict]:
         return details
 
     except Exception as e:
-        print(f"[WARN]  Error fetching standards for {series}: {e}")
+        print(f"[WARN]  Error fetching standards for {series} ({matrix_year}): {e}")
         return []
 
-def load_standards_to_db(cursor, series: str, standards_data: List[Dict], all_model_ids: Set[str]):
+def load_standards_to_db(cursor, series: str, standards_data: List[Dict], all_model_ids: Set[str], model_year: int):
     """Load standard features to database using CSV bulk loading"""
-    print(f"  [>>] Preparing standard features for {series}...")
+    print(f"  [>>] Preparing standard features for {series} (model year {model_year})...")
+
+    # Only consider model IDs belonging to this model year (e.g. "25" prefix → 2025)
+    year_prefix = str(model_year)[2:]  # 2025 → "25", 2027 → "27"
+    year_model_ids = {mid for mid in all_model_ids if mid.startswith(year_prefix)}
 
     # Collect features and model-feature links
     features = []
@@ -482,9 +493,9 @@ def load_standards_to_db(cursor, series: str, standards_data: List[Dict], all_mo
         features.append((feature_code, area, description, sort_order, 1))  # active=1
 
         # Find models where this feature is standard (value = 'S')
-        for model_id in all_model_ids:
+        for model_id in year_model_ids:
             if model_id in record and record.get(model_id) == 'S':
-                model_features.append((feature_code, model_id, MODEL_YEAR, 1))  # is_standard=1
+                model_features.append((feature_code, model_id, model_year, 1))  # is_standard=1
 
     if not features:
         return 0, 0
@@ -632,7 +643,7 @@ def load_dealer_margins_to_db(cursor, margins: List[Dict]):
             'volume': margin_record.get('C_Volume', 0),
             'enabled': 1 if margin_record.get('C_Enabled', False) else 0,
             'effective_date': effective_date,
-            'year': MODEL_YEAR
+            'year': date.today().year
         }
 
     print(f"  [>>] Deduplicated: {len(margins)} -> {len(unique_margins)} unique margins")
@@ -780,7 +791,6 @@ def main():
     print("LOAD COMPLETE CPQ DATA TO DATABASE")
     print("=" * 80)
     print(f"Database: {DB_CONFIG['database']}")
-    print(f"Year: {MODEL_YEAR}")
     print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 80)
 
@@ -824,6 +834,12 @@ def main():
         models_success, models_errors = load_model_prices_to_db(cursor, models)
         connection.commit()
 
+        # Derive unique model years from the loaded model IDs (e.g. "25QXFBWA" → 2025)
+        unique_model_years = sorted({
+            2000 + int(mid[:2]) for mid in all_model_ids if mid[:2].isdigit()
+        })
+        print(f"[>>] Model years present: {unique_model_years}")
+
         # STEP 2: Fetch and load performance data
         print("\n" + "=" * 80)
         print("STEP 2: PERFORMANCE DATA")
@@ -833,16 +849,18 @@ def main():
         total_perf_errors = 0
 
         all_perf_data = []
-        for series in unique_series:
-            print(f"\n[>>] Processing series: {series}")
-            perf_data = fetch_performance_data(token_prd, series)
-            if perf_data:
-                print(f"   Fetched {len(perf_data)} performance records")
-                success, errors = load_performance_to_db(cursor, series, perf_data)
-                total_perf_success += success
-                total_perf_errors += errors
-                all_perf_data.extend(perf_data)
-                connection.commit()
+        for model_year in unique_model_years:
+            matrix_year = model_year + 1
+            for series in unique_series:
+                print(f"\n[>>] Processing series: {series}  model year: {model_year}  matrix: _{matrix_year}")
+                perf_data = fetch_performance_data(token_prd, series, matrix_year)
+                if perf_data:
+                    print(f"   Fetched {len(perf_data)} performance records")
+                    success, errors = load_performance_to_db(cursor, series, perf_data)
+                    total_perf_success += success
+                    total_perf_errors += errors
+                    all_perf_data.extend(perf_data)
+                    connection.commit()
 
         print(f"\n[OK] Performance data loaded: {total_perf_success} records, {total_perf_errors} errors")
 
@@ -861,15 +879,17 @@ def main():
         total_std_success = 0
         total_std_errors = 0
 
-        for series in unique_series:
-            print(f"\n[>>] Processing series: {series}")
-            standards_data = fetch_standard_features(token_prd, series)
-            if standards_data:
-                print(f"   Fetched {len(standards_data)} standard feature records")
-                success, errors = load_standards_to_db(cursor, series, standards_data, all_model_ids)
-                total_std_success += success
-                total_std_errors += errors
-                connection.commit()
+        for model_year in unique_model_years:
+            matrix_year = model_year + 1
+            for series in unique_series:
+                print(f"\n[>>] Processing series: {series}  model year: {model_year}  matrix: _{matrix_year}")
+                standards_data = fetch_standard_features(token_prd, series, matrix_year)
+                if standards_data:
+                    print(f"   Fetched {len(standards_data)} standard feature records")
+                    success, errors = load_standards_to_db(cursor, series, standards_data, all_model_ids, model_year)
+                    total_std_success += success
+                    total_std_errors += errors
+                    connection.commit()
 
         print(f"\n[OK] Standard features loaded: {total_std_success} records, {total_std_errors} errors")
 
