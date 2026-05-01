@@ -11,6 +11,8 @@ Targets:
                                         CPQ config is now available
   - LiquifireMethod   = 'no-verify' — stored without render test (may be
                                         a placeholder GIF); retry with full test
+  - LiquifireImageUrl not from liquifire.com — S3 generic or other non-Liquifire
+                                        URL stored by EOS; replace with real image
 
 Usage:
     python3 sweep_liquifire_urls.py                           # full sweep (all missing)
@@ -49,6 +51,11 @@ def get_sweep_serials(cur):
             OR snm.LiquifireImageUrl = ''
             OR snm.LiquifireMethod   = 'stock-bare'
             OR snm.LiquifireMethod   = 'no-verify'
+            OR (
+              snm.LiquifireImageUrl IS NOT NULL
+              AND snm.LiquifireImageUrl != ''
+              AND snm.LiquifireImageUrl NOT LIKE '%liquifire.com%'
+            )
           )
           {date_filter}
         ORDER BY snm.Boat_SerialNo
