@@ -192,7 +192,7 @@ ASSET_FIXES = {
     '23SSRSF': '22SSR',
     '24MSLSF': '24MSL',
     '25QSBWASF': '25QSBW',
-    '25QXFBASF': '25QXFBW',
+    '25QXFBASF': '25QXFB',
     '25QXFBWASF': '25QXFBW',
     '25QXSBWASF': '25QXSBW',
     '25RFBSF': '23RFB',
@@ -303,6 +303,8 @@ ASSET_FIXES = {
     # M series Swingback year variants
     '22MSB':  '23MSB',
     '26MSB':  '23MSB',
+    # QX Fastback Arch (no windshield) — Liquifire has no 25QXFBA asset, use 25QXFB
+    '25QXFBA':   '25QXFB',
     # Large QX model without SF suffix
     '30QXFBAX2': '25QXFBW',
     # Legacy/old model naming
