@@ -9,6 +9,8 @@ Targets:
   - LiquifireImageUrl = '' / NULL  — never populated or timed out
   - LiquifireMethod   = 'stock-bare' — no colors applied; retry in case
                                         CPQ config is now available
+  - LiquifireMethod   = 'no-verify' — stored without render test (may be
+                                        a placeholder GIF); retry with full test
 
 Usage:
     python3 sweep_liquifire_urls.py                           # full sweep (all missing)
@@ -46,6 +48,7 @@ def get_sweep_serials(cur):
             snm.LiquifireImageUrl IS NULL
             OR snm.LiquifireImageUrl = ''
             OR snm.LiquifireMethod   = 'stock-bare'
+            OR snm.LiquifireMethod   = 'no-verify'
           )
           {date_filter}
         ORDER BY snm.Boat_SerialNo
@@ -112,12 +115,17 @@ def main():
             print(f'  {serial}: asset normalized {model} → {normalized_asset}')
 
         if NO_VERIFY:
-            url = blu.build_url(serial, config, model, series, matrices)
-            size, method = 0, 'no-verify'
+            # Try real render test first; only skip if Liquifire is unreachable
+            url, size, method = blu.build_and_test_url(
+                serial, config, model, series, matrices, from_snm=from_snm
+            )
             if not url:
-                print(f'  {serial} ({model}): SKIP — could not build URL')
-                results['skipped'] += 1
-                continue
+                url = blu.build_url(serial, config, model, series, matrices)
+                if not url:
+                    print(f'  {serial} ({model}): SKIP — could not build URL (no model)')
+                    results['skipped'] += 1
+                    continue
+                size, method = 0, 'no-verify'
         else:
             url, size, method = blu.build_and_test_url(
                 serial, config, model, series, matrices, from_snm=from_snm
