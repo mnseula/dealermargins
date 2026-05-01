@@ -1,0 +1,92 @@
+<ProcessTest_Verenia_Boat
+    xmlns='http://schema.infor.com/InforOAGIS/2'
+    xmlns:xs='http://www.w3.org/2001/XMLSchema'>
+    <ApplicationArea>
+        <Sender>
+            <LogicalID>infor.file.test_verenia_boat_sftp</LogicalID>
+            <ComponentID>External</ComponentID>
+            <ConfirmationCode>OnError</ConfirmationCode>
+        </Sender>
+        <CreationDateTime>2026-05-01T00:00:00.000Z</CreationDateTime>
+        <BODID>infor.file.test_verenia_boat_sftp:WN0526988-S2-resubmit</BODID>
+    </ApplicationArea>
+    <DataArea>
+        <Process>
+            <AccountingEntityID xmlns=""/>
+            <LocationID xmlns=""/>
+            <ActionCriteria>
+                <ActionExpression actionCode='Add'/>
+            </ActionCriteria>
+        </Process>
+        <Test_Verenia_Boat>
+            <Test_Verenia_BoatHeader>
+                <AlternateDocumentID>
+                    <ID>WN0526988-S2</ID>
+                </AlternateDocumentID>
+                <ShipToParty>
+                    <PartyIDs>
+                        <ID>301750~0</ID>
+                    </PartyIDs>
+                </ShipToParty>
+                <CarrierParty>
+                    <PartyIDs>
+                        <ID>UPS</ID>
+                    </PartyIDs>
+                </CarrierParty>
+                <PaymentTerm>
+                    <Term>
+                        <ID>NK</ID>
+                    </Term>
+                </PaymentTerm>
+                <PurchaseOrderReference>
+                    <DocumentID>
+                        <ID>MASTRELLA</ID>
+                    </DocumentID>
+                </PurchaseOrderReference>
+                <OrderDateTime>5/1/2026</OrderDateTime>
+                <ue_BennOrderType>NO CHARGE PARTS</ue_BennOrderType>
+                <ue_EngineForBoat/>
+                <ue_PreSold/>
+                <ue_ShowBoat/>
+                <ue_RentalBoat/>
+                <PanelColor>METALLIC PLATINUM</PanelColor>
+                <BaseVinyl/>
+                <BuildComments/>
+                <DealerComments/>
+                <BoatModel>22SSRXPSG</BoatModel>
+                <BoatSerialNo>ETWH8443J920</BoatSerialNo>
+                <ShippingMethod>UPS</ShippingMethod>
+                <BennTermsCode>NK</BennTermsCode>
+                <ue_International></ue_International>
+                <ue_InternationalType></ue_InternationalType>
+                <ue_SpecialInstructions>Production Number: 2002101</ue_SpecialInstructions>
+                <ue_Reason>BIMINI IS TEARING, LADDER STRAP HAS FAILED</ue_Reason>
+                <ue_LoadNumber/>
+                <ue_BennOwned></ue_BennOwned>
+                <ue_CustTrackingEmail>stevel@marinamikes.com</ue_CustTrackingEmail>
+            </Test_Verenia_BoatHeader>
+            <Test_Verenia_BoatLine>
+                <Item>
+                    <ItemID>
+                        <ID>014066</ID>
+                    </ItemID>
+                </Item>
+                <Quantity unitCode="EA">1</Quantity>
+                <WarrantyClaimNo/>
+                <WarrantyClaimLineID/>
+                <UnitPrice>0.00</UnitPrice>
+                <ShippingInstructions/>
+                <PartsWebOrderNo>WN0526988-02</PartsWebOrderNo>
+                <ue_LastRecord>1</ue_LastRecord>
+                <ue_Dealer_Comments/>
+                <ue_Details_Sublet_Comments/>
+                <ue_Item_Desc>STRAP LADDER 6" BLACK POLY CS0011 ship</ue_Item_Desc>
+                <ue_RGA>0</ue_RGA>
+                <ue_RGA_Date></ue_RGA_Date>
+                <ue_Estimated_Shipping_Date>2026-05-08</ue_Estimated_Shipping_Date>
+                <ue_TransactionId>WN0526988-02</ue_TransactionId>
+                <ue_Alternate_Shipping_Location></ue_Alternate_Shipping_Location>
+            </Test_Verenia_BoatLine>
+        </Test_Verenia_Boat>
+    </DataArea>
+</ProcessTest_Verenia_Boat>
