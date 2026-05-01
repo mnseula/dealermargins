@@ -51,10 +51,12 @@ Partial Class Workstations_FurniturePickListSouth
             Dim cmd2 As New SqlCommand
             Dim cmd3 As New SqlCommand
             Dim cmd4 As New SqlCommand
+            Dim cmd5 As New SqlCommand
 
             Dim TodaysDate As Date = Date.Now
             Dim ThisDay As Date = TodaysDate.Date
             Dim recordcount As Int16 = 0
+            Dim southshrinkcount As Int16 = 0
 
             conn.ConnectionString = connstr
             cmd.CommandType = CommandType.Text
@@ -63,11 +65,13 @@ Partial Class Workstations_FurniturePickListSouth
             cmd2.CommandText = "Select Count (*) FROM BML_POPREPORTING_GREENLIGHTS where FurnitureInstalledStatus = 2 and BuildLoc = 'S' and Convert(date,FurnitureInstalled) ='" & ThisDay & "'"
             cmd3.CommandText = "Select Count (*) FROM BML_POPREPORTING_GREENLIGHTS where HelmInstalled is not NULL and ProdNo = '" & SelectedProdNo & "'"
             cmd4.CommandText = "UPDATE BML_POPREPORTING_GREENLIGHTS SET FurnitureInstalledStatus = '1', HelmInstalledStatus = '0', FurnitureInstalled = NULL where ProdNo =  '" & SelectedProdNo & "' and HelmInstalled is NULL"
+            cmd5.CommandText = "Select Count (*) FROM BML_POPREPORTING_GREENLIGHTS where BuildLoc = 'S' and ShrinkwrapStatus = 2 and Convert(date,Shrinkwrap) ='" & ThisDay & "'"
 
             cmd.Connection = conn
             cmd2.Connection = conn
             cmd3.Connection = conn
             cmd4.Connection = conn
+            cmd5.Connection = conn
 
             conn.Open()
 
@@ -84,6 +88,9 @@ Partial Class Workstations_FurniturePickListSouth
 
             recordcount = Convert.ToInt16(cmd2.ExecuteScalar())
             lblBoatsStarted.Text = recordcount
+
+            southshrinkcount = Convert.ToInt16(cmd5.ExecuteScalar())
+            lblSouthShrink.Text = southshrinkcount
 
             gvFurniture.DataBind()
 
@@ -116,19 +123,29 @@ Partial Class Workstations_FurniturePickListSouth
             ddlDaysInAdvance.Items.Add(New ListItem("20 Days", DaystoShow))
         End If
 
+        Dim cmd3 As New SqlCommand
+        Dim southshrinkcount As Int16
+
         conn.ConnectionString = connstr
         cmd2.CommandType = CommandType.Text
+        cmd3.CommandType = CommandType.Text
 
         cmd2.CommandText = "Select Count (*) FROM BML_POPREPORTING_GREENLIGHTS where FurnitureInstalledStatus = 2 and BuildLoc = 'S' and Convert(date,FurnitureInstalled) ='" & ThisDay & "'"
+        cmd3.CommandText = "Select Count (*) FROM BML_POPREPORTING_GREENLIGHTS where BuildLoc = 'S' and ShrinkwrapStatus = 2 and Convert(date,Shrinkwrap) ='" & ThisDay & "'"
 
         cmd2.Connection = conn
+        cmd3.Connection = conn
 
         conn.Open()
 
         recordcount = Convert.ToInt16(cmd2.ExecuteScalar())
         lblBoatsStarted.Text = recordcount
 
-        lblBoatsStarted.Visible = False
+        southshrinkcount = Convert.ToInt16(cmd3.ExecuteScalar())
+        lblSouthShrink.Text = southshrinkcount
+
+        lblBoatsStarted.Visible = True
+        lblSouthShrink.Visible = True
 
         conn.Close()
     End Sub

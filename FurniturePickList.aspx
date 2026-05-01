@@ -61,6 +61,8 @@
                     <ItemTemplate>                          
                 <asp:GridView ID="locs" runat="server" DataSourceID="sdsLocs" AutoGenerateColumns="False" CellPadding="4" CellSpacing="4" OnRowCommand="locs_RowCommand">
                     <Columns>
+                        <asp:BoundField DataField="Rack" HeaderText="Rack" />
+                        <asp:BoundField DataField="Slot" HeaderText="Slot" />
                         <asp:BoundField DataField="LocKey" ShowHeader="False" HeaderText="Loc" />
                         <asp:TemplateField ShowHeader="False" HeaderText="Rear">
                             <ItemTemplate>
@@ -145,6 +147,8 @@
                     <ItemTemplate>
                         <asp:GridView ID="locsSouth" runat="server" DataSourceID="sdsLocsSouth" AutoGenerateColumns="False" CellPadding="4" CellSpacing="4" OnRowCommand="locsSouth_RowCommand">
                             <Columns>
+                                <asp:BoundField DataField="Rack" HeaderText="Rack" />
+                                <asp:BoundField DataField="Slot" HeaderText="Slot" />
                                 <asp:BoundField DataField="LocKey" ShowHeader="False" HeaderText="Loc" />
                                 <asp:TemplateField ShowHeader="False" HeaderText="Rear">
                                     <ItemTemplate>
