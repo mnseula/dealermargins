@@ -301,6 +301,7 @@ ASSET_FIXES = {
     '23MSL':  '24MSL',
     '26MSL':  '24MSL',
     # M series Swingback year variants
+    '22MSB':  '23MSB',
     '26MSB':  '23MSB',
     # Large QX model without SF suffix
     '30QXFBAX2': '25QXFBW',
@@ -770,12 +771,16 @@ def main():
             print(f'  {serial}: asset normalized {model} → {normalized_asset}')
 
         if no_verify:
-            url = build_url(serial, config, model, series, matrices)
+            # Try a real render test first; only fall back to unverified if Liquifire is unreachable
+            url, size, method = build_and_test_url(serial, config, model, series, matrices, from_snm=from_snm)
             if not url:
-                print(f'  {serial} ({model}): SKIP — could not build URL (no model)')
-                results['skipped'] += 1
-                continue
-            method, size = 'no-verify', 0
+                # Liquifire returned a placeholder or was unreachable — build URL anyway and flag it
+                url = build_url(serial, config, model, series, matrices)
+                if not url:
+                    print(f'  {serial} ({model}): SKIP — could not build URL (no model)')
+                    results['skipped'] += 1
+                    continue
+                method, size = 'no-verify', 0
         else:
             url, size, method = build_and_test_url(serial, config, model, series, matrices, from_snm=from_snm)
 
