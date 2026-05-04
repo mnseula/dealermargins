@@ -270,6 +270,27 @@ WHERE Boat_SerialNo IN ('ETWS1503B626','ETWS1548B626','ETWS1549B626',
 
 ---
 
+## 9. Fix a Parts Order S2 Shipment Missing OE# in Syteline
+
+**Symptom:** A multi-shipment parts order shows S1 with an OE# but S2 with no OE#
+(e.g. WN0526988-01 has OE# WN00964140 but WN0526988-02 has nothing).
+
+**Cause:** Syteline occasionally fails transiently on the second shipment block in a
+multi-shipment XML file. The XML itself is correct — this is a Syteline-side transient error.
+
+**Fix:** Resubmit the **original unmodified XML file** via SFTP.
+- Syteline will reject the duplicate S1 block (already imported) and process S2 as new.
+- S2 will get its own OE# (separate from S1's OE#).
+- No code change or manual XML construction needed.
+
+**Confirmed:** WN0526988 on 2026-05-01 — S2 (item 014066, STRAP LADDER) got OE# WN00964161
+on resubmit of the original file.
+
+**Note:** Standalone re-export XMLs (e.g. `sytelineExport_WN0525220-S2.xml`) are an alternative
+if the original file is unavailable, but resubmitting the original is simpler and preferred.
+
+---
+
 ## Notes
 
 - Always use `TRIM(Cust_Num)` when querying `DealerAddr` — values have leading spaces.
